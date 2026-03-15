@@ -1,0 +1,47 @@
+services:
+  mongodb:
+    container_name: mongodb-despesas
+    image: mongo:8
+    logging:
+      driver: "none"
+    volumes:
+      - vol-mongodb-despesas:/data/db
+    ports:
+      - 27018:27017
+    command: mongod --quiet --logpath /dev/null
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - despesas-network
+
+  api:
+    container_name: api-despesas
+    build: ./
+    environment:
+      DB_URL: "mongodb://mongodb-despesas:27017/appDespesas"
+      NODE_ENV: "development"
+      TERM: "xterm"
+    ports:
+      - 5040:5040
+    env_file:
+      - ./.env
+    volumes:
+      - ./:/app:delegated
+      - /app/node_modules
+    command: npm run dev:local
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - despesas-network
+
+volumes:
+  vol-mongodb-despesas:
+
+networks:
+  despesas-network:
+    name: despesas-network
+    driver: bridge
