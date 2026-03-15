@@ -1,0 +1,114 @@
+{
+  "author": "Luis Felipe Lopes",
+  "license": "MIT",
+  "name": "tcc-despesas-api",
+  "version": "1.0.0",
+  "description": "API RESTful para aplicativo de registro de despesas de viagens voltado para transportadoras rodoviárias",
+  "main": "src/app.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@gitlab.fslab.dev:6666/tcc-registro-de-despesas-luis/tcc-despesas-api.git"
+  },
+  "scripts": {
+    "dev": "docker compose -f docker-compose.dev.yml up --build --force-recreate",
+    "dev:local": "npx nodemon server.js",
+    "seed": "docker exec -it api-despesas node src/seeds/seeds.js",
+    "seed:local": "node src/seeds/seeds.js",
+    "test": "jest --coverage --detectOpenHandles",
+    "start:local": "node server.js",
+    "start": "docker compose -f docker-compose.yml up --build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+   "dependencies": {
+    "@faker-js/faker": "^10.3.0",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "cpf-cnpj-validator": "^1.0.3",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-fileupload": "^1.5.2",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "minio": "^8.0.7",
+    "mongoose": "^9.2.2",
+    "mongoose-paginate-v2": "^1.9.1",
+    "multer": "^2.1.1",
+    "sharp": "^0.34.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^9.0.1",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@eslint/js": "^9.39.3",
+    "babel-jest": "^30.2.0",
+    "babel-plugin-transform-import-meta": "^2.3.3",
+    "eslint": "^9.26.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.3.0",
+    "jest": "^30.2.0",
+    "mongodb-memory-server": "^11.0.1",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ]
+    ],
+    "plugins": [
+      "babel-plugin-transform-import-meta"
+    ]
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "testEnvironment": "node",
+    "verbose": true,
+    "transformIgnorePatterns": [
+      "/node_modules/(?!uuid)"
+    ],
+    "roots": [
+      "<rootDir>"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/src/config/dbConnect.js",
+      "/src/controllers/AuthController.js",
+      "/src/service/AuthService.js",
+      "/utils/logger.js",
+      "/utils/errors",
+      "/middlewares/",
+      "/utils/AuthHelper.js",
+      "/utils/TokenUtil.js",
+      "/utils/helpers/errorHandler.js",
+      "/utils/helpers/StatusService.js",
+      "/utils/helpers/messages.js",
+      "/utils/helpers/CommonResponse.js",
+      "/middlewares/asyncWrapper.js",
+      "utils/helpers/HttpStatusCodes.js"
+    ]
+  }
+}
