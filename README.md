@@ -2,7 +2,7 @@
 
 # 🧾 RDV - Registro de Despesas de Viagens
 
-**API RESTful para gerenciamento de despesas de viagens corporativas**
+**API RESTful para gerenciamento de despesas de viagens em transportadoras rodoviárias.**
 
 Permite registrar viagens, despesas detalhadas por tipo (abastecimento, alimentação, pedágio, manutenção e outros) e gerenciar perfil de usuário.
 
@@ -455,8 +455,8 @@ graph TD
 
 ```
  ┌─────────────────────────────────────────────────────────────┐
- │  1. 🛡️  helmet()              → Headers de segurança + CSP │
- │  2. 🌐  cors()                → Cross-origin access        │
+ │  1. 🛡️  helmet()              → Headers de segurança + CSP  │
+ │  2. 🌐  cors()                → Cross-origin access         │
  │  3. 📦  compression()         → Compressão gzip             │
  │  4. 📋  express.json()        → Parse de body JSON          │
  │  5. 📎  expressFileUpload()   → Upload de arquivos (50MB)   │
@@ -464,7 +464,7 @@ graph TD
  │  7. 📝  express.urlencoded()  → Parse de form data          │
  │  8. 📂  static /public        → Arquivos estáticos          │
  │  9. 🎯  routes(app)           → Rotas da aplicação          │
- │ 10. ❓  404 handler           → Rotas não encontradas        │
+ │ 10. ❓  404 handler           → Rotas não encontradas       │
  │ 11. 🚨  errorHandler          → Tratamento global de erros  │
  └─────────────────────────────────────────────────────────────┘
 ```
@@ -635,25 +635,6 @@ ensurePermission({
 | **Erros operacionais** | Sempre via `CustomError` |
 | **Logging** | Sempre via Winston logger |
 | **Rotas async** | Sempre com `asyncWrapper` |
-
----
-
-## 🤝 Contribuindo
-
-Ao implementar novas funcionalidades, siga a ordem das camadas:
-
-```
-1. 📝 Model          →  src/models/
-2. 🗄️ Repository     →  src/repository/
-3. 💼 Service        →  src/service/
-4. 🎮 Controller     →  src/controllers/
-5. 🎯 Routes         →  src/routes/
-6. ✅ Validação Zod  →  src/utils/validators/schemas/zod/
-7. 🧪 Testes         →  src/test/
-8. 📚 Swagger docs   →  src/docs/
-```
-
-> Sempre manter a **separação de responsabilidades** entre camadas.
 
 ---
 
