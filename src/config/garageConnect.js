@@ -10,12 +10,12 @@ const requiredGarageVars = [
     'GARAGE_BUCKET_FOTOS'
 ];
 
-for (const varName of requiredGarageVars) {
-    if (!process.env[varName]) {
-        console.error(`GARAGE: Variável de ambiente '${varName}' não está definida. Verifique seu arquivo .env ou docker-compose.`);
-        process.exit(1);
-    }
-};
+// for (const varName of requiredGarageVars) {
+//     if (!process.env[varName]) {
+//         console.error(`GARAGE: Variável de ambiente '${varName}' não está definida. Verifique seu arquivo .env ou docker-compose.`);
+//         process.exit(1);
+//     }
+// };
 
 const garageClient = new Minio.Client({
     endPoint: process.env.GARAGE_ENDPOINT,

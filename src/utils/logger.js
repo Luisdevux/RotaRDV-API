@@ -68,7 +68,7 @@ class Logger {
                 format.splat(),
                 format.json()
             ),
-            defaultMeta: { service: 'pedidos-service' },
+            defaultMeta: { service: 'despesas-service' },
             transports: loggerTransports,
         });
     }
