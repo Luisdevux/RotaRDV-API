@@ -18,7 +18,7 @@ const app = express();
 // Conectando ao banco de dados
 await DbConnect.conectar();
 // Configurando o Garage para armazenamento de arquivos
-await setupGarage();
+// await setupGarage();
 
 // Middlewares de segurança
 app.use(helmet({
