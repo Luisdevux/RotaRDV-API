@@ -9,7 +9,7 @@ import DbConnect from '../config/dbConnect.js';
 
 await DbConnect.conectar();
 
-const senhaPura = 'Senha123';
+const senhaPura = 'Senha@123';
 const senhaHash = bcrypt.hashSync(senhaPura, 8);
 
 async function seedUsuarios() {
@@ -33,7 +33,7 @@ async function seedUsuarios() {
     usuarios.push(
         {
             nome: 'Usuario Admin',
-            email: 'usuario@admin.com',
+            email: 'admin@rotardv.com',
             senha: senhaHash,
             cpf: '00000000000',
             status: 'ativo',

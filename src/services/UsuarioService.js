@@ -18,11 +18,47 @@ class UsuarioService {
     }
 
     async listar(req) {
+        const usuarioLogado = await this.repository.buscarPorID(req.user_id);
+
+        if (req.params?.id) {
+            // Se está buscando um usuário específico, verifica permissão (Admin ou Dono do Perfil)
+            ensurePermission({
+                usuarioLogado,
+                targetId: req.params.id,
+                field: 'Consulta de Usuário',
+                customMessage: 'Você não tem permissões para acessar os dados deste usuário.',
+            });
+        } else {
+            // Se está listando todos os usuários, apenas Admin tem permissão
+            if (!usuarioLogado.isAdmin) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.FORBIDDEN.code,
+                    errorType: 'permissionError',
+                    field: 'Consulta',
+                    customMessage: 'Apenas administradores podem listar todos os usuários.',
+                });
+            }
+        }
+
         const data = await this.repository.listar(req);
         return data;
     }
 
-    async criar(parsedData) {
+    async criar(parsedData, req) {
+        // Bloquear criação avulsa via API por usuários não administradores
+        // (Motoristas devem usar obrigatoriamente a rota pública de Signup)
+        if (req && req.user_id) {
+            const usuarioLogado = await this.repository.buscarPorID(req.user_id);
+            if (!usuarioLogado || !usuarioLogado.isAdmin) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.FORBIDDEN.code,
+                    errorType: 'permissionError',
+                    field: 'Criação de Usuário',
+                    customMessage: 'Apenas administradores podem cadastrar novos usuários por esta rota.',
+                });
+            }
+        }
+
         // Validar email único
         await this.validateEmail(parsedData.email);
 

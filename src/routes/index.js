@@ -9,7 +9,7 @@ import getSwaggerOptions from '../docs/config/head.js';
 import mongoose from 'mongoose';
 
 // Importação das rotas
-// import authRoutes from './authRoutes.js';
+import authRoutes from './authRoutes.js';
 import usuarioRoutes from './usuarioRoutes.js';
 
 dotenv.config();
@@ -46,7 +46,7 @@ const routes = (app) => {
     // Registra todas as rotas
     app.use(
         express.json(),
-        // authRoutes,
+        authRoutes,
         usuarioRoutes,
     );
 };
