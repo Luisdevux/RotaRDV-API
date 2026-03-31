@@ -1,10 +1,10 @@
 // src/utils/validators/schemas/zod/UsuarioSchema.js
 
 import { z } from 'zod';
+import objectIdSchema from './ObjectIdSchema.js';
 
 const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
 const cpfRegex = /^\d{11}$/;
-const telefoneRegex = /^\d{10,11}$/;
 
 const UsuarioSchema = z.object({
     nome: z
@@ -30,19 +30,20 @@ const UsuarioSchema = z.object({
         .refine((val) => cpfRegex.test(val), {
             message: 'CPF deve conter exatamente 11 dígitos numéricos.',
         }),
-    telefone: z
-        .string()
-        .nonempty('Campo telefone é obrigatório.')
-        .refine((val) => telefoneRegex.test(val), {
-            message: 'Telefone deve conter 10 ou 11 dígitos numéricos.',
-        }),
+    status: z.enum(['ativo', 'inativo']).optional(),
+    isAdmin: z.boolean().optional(),
     foto_perfil: z
         .string()
-        .refine((val) => val === '' || /\.(jpg|jpeg|png|webp|svg|gif)$/i.test(val), {
+        .refine((val) => val === '' || /\.(jpg|jpeg|png|svg)$/i.test(val), {
             message: 'Deve ser um link de imagem com extensão válida (jpg, png, etc).',
         })
         .optional(),
-    isAdmin: z.boolean().optional(),
+    empresa: z
+        .object({
+          nome: z.string().optional(),
+          cargo: z.string().optional(),
+    }).optional(),
+    veiculo_id: objectIdSchema.optional(),
 });
 
 const UsuarioUpdateSchema = UsuarioSchema.partial();
