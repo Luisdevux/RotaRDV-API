@@ -11,7 +11,7 @@ const authRoutes = {
             + Caso de uso: Autenticação de usuário no sistema via email e senha.
 
             + Função de Negócio:
-                - Permitir que o usuário faça login na plataforma de delivery.
+                - Permitir que o usuário (Motorista ou Admin) faça login no App RotaRDV.
                 + Recebe no corpo da requisição:
                     - **email**: email cadastrado do usuário.
                     - **senha**: senha do usuário.
@@ -48,7 +48,7 @@ const authRoutes = {
             tags: ["Auth"],
             summary: "Registra novo usuário no sistema",
             description: `
-            + Caso de uso: Criação de conta própria no sistema de delivery.
+            + Caso de uso: Criação de conta própria no aplicativo de despesas rodoviárias.
 
             + Função de Negócio:
                 - Permitir que novos usuários se registrem, criando uma conta com dados básicos.

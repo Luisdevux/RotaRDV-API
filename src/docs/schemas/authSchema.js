@@ -19,8 +19,8 @@ const authSchemas = {
         required: ["email", "senha"],
         description: "Schema para login de usuário",
         example: {
-            email: "admin@delivery.com",
-            senha: "Senha123"
+            email: "admin@rotardv.com",
+            senha: "Senha@123"
         }
     },
 
@@ -29,14 +29,14 @@ const authSchemas = {
         properties: {
             nome: {
                 type: "string",
-                description: "Nome completo do usuário",
+                description: "Nome completo do motorista",
                 example: "João da Silva"
             },
             email: {
                 type: "string",
                 format: "email",
                 description: "Email do usuário",
-                example: "admin@delivery.com"
+                example: "joao.silva@rotardv.com.br"
             },
             senha: {
                 type: "string",
@@ -48,20 +48,37 @@ const authSchemas = {
                 description: "CPF do usuário",
                 example: "08573215099"
             },
-            telefone: {
+            empresa: {
+                type: "object",
+                properties: {
+                    nome: {
+                        type: "string",
+                        example: "Logística Rápida BR"
+                    },
+                    cargo: {
+                        type: "string",
+                        example: "Motorista Bi-trem"
+                    }
+                }
+            },
+            veiculo_id: {
                 type: "string",
-                description: "Telefone de contato",
-                example: "69999998888"
+                description: "ID do veículo ao qual o motorista está atrelado (ObjectId)",
+                example: "674fa21d79969d2172e78711"
             }
         },
         required: ["nome", "email", "senha"],
-        description: "Schema para cadastro de novo usuário",
+        description: "Schema para cadastro de novo usuário (SignUp)",
         example: {
             nome: "João da Silva",
-            email: "admin@delivery.com",
+            email: "joao.silva@rotardv.com.br",
             senha: "Senha@123",
             cpf: "08573215099",
-            telefone: "69999998888",
+            empresa: {
+                nome: "Logística Rápida BR",
+                cargo: "Motorista Bi-trem"
+            },
+            veiculo_id: "674fa21d79969d2172e78711"
         }
     },
 
@@ -70,14 +87,21 @@ const authSchemas = {
         properties: {
             _id: { type: "string", example: "674fa21d79969d2172e78710" },
             nome: { type: "string", example: "João da Silva" },
-            email: { type: "string", example: "admin@delivery.com" },
+            email: { type: "string", example: "joao.silva@rotardv.com.br" },
             cpf: { type: "string", example: "08573215099" },
-            telefone: { type: "string", example: "69999998888" },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
-            createdAt: { type: "string", format: "date-time", example: "2025-01-16T12:00:00.000Z" },
-            updatedAt: { type: "string", format: "date-time", example: "2025-01-16T12:00:00.000Z" }
+            empresa: {
+                type: "object",
+                properties: {
+                    nome: { type: "string", example: "Logística Rápida BR" },
+                    cargo: { type: "string", example: "Motorista Bi-trem" }
+                }
+            },
+            veiculo_id: { type: "string", example: "674fa21d79969d2172e78711" },
+            createdAt: { type: "string", format: "date-time", example: "2026-03-31T12:00:00.000Z" },
+            updatedAt: { type: "string", format: "date-time", example: "2026-03-31T12:00:00.000Z" }
         },
         description: "Schema para detalhes do cadastro de usuário"
     },
@@ -100,7 +124,7 @@ const authSchemas = {
                 properties: {
                     _id: { type: "string", example: "674fa21d79969d2172e78710" },
                     nome: { type: "string", example: "João da Silva" },
-                    email: { type: "string", example: "admin@delivery.com" },
+                    email: { type: "string", example: "joao.silva@rotardv.com.br" },
                     isAdmin: { type: "boolean", example: false }
                 }
             }
@@ -115,13 +139,13 @@ const authSchemas = {
                 type: "string",
                 format: "email",
                 description: "Email cadastrado para recuperação de senha",
-                example: "admin@delivery.com"
+                example: "joao.silva@rotardv.com.br"
             }
         },
         required: ["email"],
         description: "Schema para requisição de recuperação de senha",
         example: {
-            email: "admin@delivery.com"
+            email: "joao.silva@rotardv.com.br"
         }
     },
 
@@ -144,7 +168,7 @@ const authSchemas = {
                 type: "string",
                 format: "email",
                 description: "Email do usuário",
-                example: "admin@delivery.com"
+                example: "joao.silva@rotardv.com.br"
             },
             codigo: {
                 type: "string",
@@ -160,7 +184,7 @@ const authSchemas = {
         required: ["email", "codigo", "novaSenha"],
         description: "Schema para redefinição de senha com código",
         example: {
-            email: "joao.silva@email.com",
+            email: "joao.silva@rotardv.com.br",
             codigo: "abc123def456",
             novaSenha: "NovaSenha@456"
         }

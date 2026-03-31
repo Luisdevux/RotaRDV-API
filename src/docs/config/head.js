@@ -17,14 +17,14 @@ const getSwaggerOptions = async () => {
     const t = process.env.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
 
     // Paths
-    // const authPaths = (await import(new URL("../paths/auth.js",
-    //     import.meta.url).href + t)).default;
+    const authPaths = (await import(new URL("../paths/auth.js",
+        import.meta.url).href + t)).default;
     const usuarioPaths = (await import(new URL("../paths/usuario.js",
         import.meta.url).href + t)).default;
 
     // Schemas
-    // const authSchemas = (await import(new URL("../schemas/authSchema.js",
-    //     import.meta.url).href + t)).default;
+    const authSchemas = (await import(new URL("../schemas/authSchema.js",
+        import.meta.url).href + t)).default;
     const usuarioSchemas = (await import(new URL("../schemas/usuarioSchema.js",
         import.meta.url).href + t)).default;
 
@@ -53,7 +53,7 @@ Esta API é responsável por orquestrar a infraestrutura do aplicativo móvel e 
 ### 🔐 Segurança
 Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Authorize** ao topo.
 
-*Utilize as credenciais de admin ou dono de restaurante para acessar algumas das rotas fechadas.*
+*Utilize as credenciais de admin para acessar algumas das rotas fechadas.*
                 `,
                 contact: {
                     name: "Suporte RotaRDV - Sistema de Registro e Despesas de Viagens",
@@ -62,17 +62,17 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
             },
             servers: getServersInCorrectOrder(),
             tags: [
-                // {
-                //     name: "Auth",
-                //     description: "Rotas para autenticação e autorização"
-                // },
+                {
+                    name: "Auth",
+                    description: "Rotas para autenticação e autorização"
+                },
                 {
                     name: "Usuários",
                     description: "Rotas para o gerenciamento de usuários"
                 },
             ],
             paths: {
-                // ...authPaths,
+                ...authPaths,
                 ...usuarioPaths,
             },
             components: {
@@ -84,7 +84,7 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                     }
                 },
                 schemas: {
-                    // ...authSchemas,
+                    ...authSchemas,
                     ...usuarioSchemas,
                 }
             },
