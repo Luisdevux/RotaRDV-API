@@ -1,4 +1,4 @@
-// src/service/UsuarioService.js
+// src/services/UsuarioService.js
 
 import {
     CustomError,
@@ -8,13 +8,13 @@ import {
 } from '../utils/helpers/index.js';
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
-// import UploadService from './UploadService.js';
+import UploadService from './UploadService.js';
 import { cpf } from 'cpf-cnpj-validator';
 
 class UsuarioService {
     constructor() {
         this.repository = new UsuarioRepository();
-        // this.uploadService = new UploadService();
+        this.uploadService = new UploadService();
     }
 
     async listar(req) {
