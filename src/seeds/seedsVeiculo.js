@@ -74,7 +74,6 @@ async function seedVeiculos() {
 
     console.log(`[SEED] ${veiculosCriados.length} veículos criados.`);
     return veiculosCriados;
-
 }
 
 export default seedVeiculos;
