@@ -5,6 +5,15 @@ import mongoose from 'mongoose';
 import loadModels from './loadModels.js';
 import TokenUtil from '../utils/TokenUtil.js';
 
+const baseDespesa = {
+  viagem_id: () => new mongoose.Types.ObjectId(),
+  tipo: () => faker.helpers.arrayElement(['ABASTECIMENTO', 'ALIMENTACAO', 'MANUTENCAO', 'PEDAGIO', 'OUTROS']),
+  valor_total: () => faker.finance.amount(10, 1000, 2),
+  data: () => faker.date.recent(),
+  local: () => faker.company.name(),
+  foto_anexo: () => faker.image.url(),
+};
+
 export const fakeMappings = {
   common: {
     descricao: () => faker.lorem.sentence(),
@@ -25,7 +34,7 @@ export const fakeMappings = {
       nome: faker.company.name(),
       cargo: faker.person.jobTitle(),
     }),
-    veiculo_id: () => mongoose.Types.ObjectId(),
+    veiculo_id: () => new mongoose.Types.ObjectId(),
     refreshtoken: () => TokenUtil.generateAccessToken(new mongoose.Types.ObjectId().toString()),
     accesstoken: () => TokenUtil.generateAccessToken(new mongoose.Types.ObjectId().toString()),
     tokenUnico: () => TokenUtil.generateAccessToken(new mongoose.Types.ObjectId().toString()),
@@ -39,8 +48,49 @@ export const fakeMappings = {
     reboque: () => ({
       modelo: faker.helpers.arrayElement(['Bitrem Graneleiro 9 Eixos', 'Rodotrem Basculante', 'Sider Librelato', 'Carreta Baú Facchini']),
       placas: [faker.vehicle.vrm(), faker.vehicle.vrm()],
-      ano_fabricacao: faker.date.past(20).getFullYear(),
+      ano_fabricacao: faker.date.past({ years: 20 }).getFullYear(),
     }),
+  },
+
+  Viagem: {
+    usuario_id: () => new mongoose.Types.ObjectId(),
+    veiculo_id: () => new mongoose.Types.ObjectId(),
+    origem: () => ({ cidade: faker.location.city(), estado: faker.location.state({ abbreviated: true }) }),
+    destino: () => ({ cidade: faker.location.city(), estado: faker.location.state({ abbreviated: true }) }),
+    data_inicio: () => faker.date.recent(),
+    data_fim: () => faker.date.future(),
+    km_inicial: () => faker.number.int({ min: 10000, max: 50000 }),
+    km_final: () => faker.number.int({ min: 50100, max: 80000 }),
+    status: () => faker.helpers.arrayElement(['em_andamento', 'concluída', 'cancelada']),
+  },
+
+  Despesa: { ...baseDespesa },
+
+  DespesaAbastecimento: {
+    ...baseDespesa,
+    tipo: () => 'ABASTECIMENTO',
+    litros: () => parseFloat(faker.finance.amount({ min: 10, max: 200, dec: 2 })),
+    km_atual: () => faker.number.int({ min: 10000, max: 80000 }),
+  },
+
+  DespesaAlimentacao: {
+    ...baseDespesa,
+    tipo: () => 'ALIMENTACAO',
+    tipo_refeicao: () => faker.helpers.arrayElement(['CAFE_DA_MANHA', 'ALMOCO', 'JANTA', 'LANCHE']),
+  },
+
+  DespesaManutencao: {
+    ...baseDespesa,
+    tipo: () => 'MANUTENCAO',
+    oficina_nome: () => faker.company.name(),
+    servico_realizado: () => faker.helpers.arrayElement(['Troca de óleo', 'Alinhamento', 'Balanceamento', 'Troca de pneu']),
+    pecas_trocadas: () => faker.helpers.arrayElements(['Óleo', 'Filtro', 'Pneu', 'Pastilha de freio'], 2),
+  },
+
+  DespesaPedagio: {
+    ...baseDespesa,
+    tipo: () => 'PEDAGIO',
+    praca_nome: () => `Praça ${faker.location.city()}`,
   },
 };
 
