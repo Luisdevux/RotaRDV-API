@@ -1,3 +1,5 @@
+// src/config/setupGarage.js
+
 import garageClient from "./garageConnect.js";
 
 async function setupGarage() {

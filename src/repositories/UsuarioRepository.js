@@ -1,4 +1,4 @@
-// src/repository/UsuarioRepository.js
+// src/repositories/UsuarioRepository.js
 
 import Usuario from '../models/Usuario.js';
 import Veiculo from '../models/Veiculo.js';
