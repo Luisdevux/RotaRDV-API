@@ -123,8 +123,6 @@ async function seedUsuarios() {
     console.log(`[SEED] ${usuariosCriados.length} usuários criados.`);
     console.log(`[SEED] Senha padrão: ${senhaPura}`);
     return usuariosCriados;
-
-
 }
 
 export default seedUsuarios;
