@@ -8,6 +8,8 @@ Os tipos fixos de despesa, como abastecimento, alimentação, manutenção e ped
 
 ## Técnica utilizada
 
+Os discriminators do Mongoose são uma forma de criar modelos diferentes a partir de um mesmo schema base. Eles permitem que documentos com campos comuns compartilhem a mesma coleção, enquanto cada variação mantém seus campos específicos e suas próprias validações.
+
 A técnica aplicada é conhecida como `Single Collection Inheritance`. Na prática, ela funciona assim:
 
 1. Existe um schema pai com os campos compartilhados por todas as despesas.
