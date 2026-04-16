@@ -1,3 +1,5 @@
+// src/models/DespesaManutencao.js
+
 import mongoose from "mongoose";
 import Despesa from "./Despesa.js";
 
