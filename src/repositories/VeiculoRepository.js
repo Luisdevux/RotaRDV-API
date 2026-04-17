@@ -1,6 +1,7 @@
 // src/repositories/VeiculoRepository.js
 
 import Veiculo from "../models/Veiculo.js";
+import VeiculoFilterBuild from "./filters/VeiculoFilterBuild.js";
 import {
     CustomError,
     messages
@@ -29,10 +30,9 @@ class VeiculoRepository {
 
     async listar(req) {
         const { id } = req.params;
-
         if (id) {
-            const data = await this.findById(id);
-            if (data) {
+            const data = await this.buscarPorID(id);
+            if (!data) {
                 throw new CustomError({
                     statusCode: 404,
                     errorType: 'resourceNotFound',
@@ -44,8 +44,29 @@ class VeiculoRepository {
             return data;
         }
 
-        const data = await this.modelVeiculo.find();
-        return data;
+        const { placa, modelo, reboque_placa, reboque_modelo, page = 1 } = req.query;
+        const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
+
+        const filterBuilder = new VeiculoFilterBuild()
+            .comPlaca(placa)
+            .comModelo(modelo)
+            .comReboquePlaca(reboque_placa)
+            .comReboqueModelo(reboque_modelo);
+
+        const filtros = filterBuilder.build();
+
+        const options = {
+            page: parseInt(page, 10),
+            limit: parseInt(limite, 10),
+            sort: { modelo: 1 }
+        };
+
+
+        const resultado = await this.modelVeiculo.paginate(filtros, options);
+        resultado.docs = resultado.docs.map(doc => {
+            return typeof doc.toObject === 'function' ? doc.toObject() : doc;
+        });
+        return resultado;
     }
 
     async criar(dadosVeiculo) {
