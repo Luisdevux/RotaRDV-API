@@ -33,6 +33,49 @@ const veiculoSchemas = {
             updatedAt: { type: "string", format: "date-time", example: "2025-01-16T12:00:00.000Z" }
         },
         description: "Schema para listagem de veículos"
+    },
+
+    VeiculoCriacao: {
+        type: "object",
+        required: ["modelo", "placa"],
+        properties: {
+            modelo: { type: "string", example: "Volvo FH 540" },
+            placa: { type: "string", example: "ABC1D23" },
+            reboque: {
+                type: "object",
+                properties: {
+                    modelo: { type: "string", example: "Randon Graneleiro" },
+                    placas: {
+                        type: "array",
+                        items: { type: "string" },
+                        example: ["XYZ9A87", "XYZ9A88"]
+                    },
+                    ano_fabricacao: { type: "number", example: 2023 }
+                }
+            }
+        },
+        description: "Schema para criação de um novo veículo"
+    },
+
+    VeiculoAtualizacao: {
+        type: "object",
+        properties: {
+            modelo: { type: "string", example: "Volvo FH 540" },
+            placa: { type: "string", example: "ABC1D23" },
+            reboque: {
+                type: "object",
+                properties: {
+                    modelo: { type: "string", example: "Randon Graneleiro" },
+                    placas: {
+                        type: "array",
+                        items: { type: "string" },
+                        example: ["XYZ9A87", "XYZ9A88"]
+                    },
+                    ano_fabricacao: { type: "number", example: 2023 }
+                }
+            }
+        },
+        description: "Schema para atualização de um veículo existente"
     }
 };
 
