@@ -28,6 +28,10 @@ class VeiculoRepository {
         return veiculo;
     }
 
+    async buscarPorPlaca(placa) {
+        return await this.modelVeiculo.findOne({ placa });
+    }
+
     async listar(req) {
         const { id } = req.params;
         if (id) {
