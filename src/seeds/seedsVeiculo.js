@@ -1,4 +1,4 @@
-// src/seeds/seedsUsuario.js
+// src/seeds/seedsVeiculo.js
 
 import 'dotenv/config';
 import { fakeMappings } from './globalFakeMapping.js';
