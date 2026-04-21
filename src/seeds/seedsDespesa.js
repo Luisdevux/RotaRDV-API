@@ -1,6 +1,7 @@
 // src/seeds/seedsDespesa.js
 
 import 'dotenv/config';
+import crypto from 'crypto';
 import Despesa from '../models/Despesa.js';
 import DespesaAbastecimento from '../models/DespesaAbastecimento.js';
 import DespesaAlimentacao from '../models/DespesaAlimentacao.js';
@@ -33,6 +34,7 @@ async function seedDespesas() {
             const tipoSeed = modelsDisponiveis[Math.floor(Math.random() * modelsDisponiveis.length)];
 
             const dadosComuns = {
+                _id: crypto.randomUUID(),
                 viagem_id: viagem._id,
                 valor_total: parseFloat(fakeMappings.Despesa.valor_total()),
                 data: fakeMappings.Despesa.data(),

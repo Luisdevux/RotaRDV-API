@@ -2,13 +2,19 @@
 
 import mongoose from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
+import crypto from "crypto";
 import brazilianDatePlugin from "../utils/helpers/mongooseBrazilianDatePlugin.js";
 
 const despesaSchema = new mongoose.Schema({
+    _id: {
+        type: String,
+        default: () => crypto.randomUUID(), // Gera automático se vier do Swagger/Web!
+        required: [true, "O UUID da despesa é obrigatório para sincronização offline!"]
+    },
     viagem_id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: "viagens",
-        required: [true, "O ID da viagem é obrigatório!"]
+        required: [true, "O UUID da viagem é obrigatório!"]
     },
     tipo: {
         type: String,

@@ -1,6 +1,7 @@
 // src/seeds/seedsViagem.js
 
 import 'dotenv/config';
+import crypto from 'crypto';
 import Viagem from '../models/Viagem.js';
 import Usuario from '../models/Usuario.js';
 import Veiculos from '../models/Veiculo.js';
@@ -30,6 +31,7 @@ async function seedViagens() {
         const randomVeiculo = veiculos[Math.floor(Math.random() * veiculos.length)];
 
         viagens.push({
+            _id: crypto.randomUUID(),
             usuario_id: randomUsuario._id,
             veiculo_id: randomVeiculo._id,
             origem: fakeMappings.Viagem.origem(),
