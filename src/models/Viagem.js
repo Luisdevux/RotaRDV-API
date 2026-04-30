@@ -5,12 +5,37 @@ import mongoosePaginate from "mongoose-paginate-v2";
 import crypto from "crypto";
 import brazilianDatePlugin from "../utils/helpers/mongooseBrazilianDatePlugin.js";
 
+const veiculoSnapshotSchema = new mongoose.Schema({
+    placa: String,
+    modelo: String,
+    reboque: {
+        modelo: String,
+        placas: [String]
+    }
+}, { _id: false });
+
+const usuarioSnapshotSchema = new mongoose.Schema({
+    nome: String,
+    email: String
+}, { _id: false });
+
+const resumoFinanceiroSchema = new mongoose.Schema({
+    total_geral: { type: Number, default: 0 },
+    por_categoria: {
+        ABASTECIMENTO: { type: Number, default: 0 },
+        ALIMENTACAO: { type: Number, default: 0 },
+        MANUTENCAO: { type: Number, default: 0 },
+        PEDAGIO: { type: Number, default: 0 },
+        OUTROS: { type: Number, default: 0 }
+    }
+}, { _id: false });
+
 class Viagem {
     constructor() {
         const viagemSchema = new mongoose.Schema({
             _id: {
                 type: String,
-                default: () => crypto.randomUUID(), // Se o Swagger não mandar, gera automático!
+                default: () => crypto.randomUUID(),
                 required: [true, "O UUID da viagem é obrigatório para sincronização offline!"]
             },
             usuario_id: {
@@ -18,10 +43,20 @@ class Viagem {
                 ref: "usuarios",
                 required: [true, "O ID do usuário é obrigatório!"]
             },
+            // Snapshot do motorista
+            usuario_snapshot: {
+                type: usuarioSnapshotSchema,
+                required: [true, "O snapshot do usuário é obrigatório!"]
+            },
             veiculo_id: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "veiculos",
                 required: [true, "O ID do veículo é obrigatório!"]
+            },
+            // Snapshot do veículo
+            veiculo_snapshot: {
+                type: veiculoSnapshotSchema,
+                required: [true, "O snapshot do veículo é obrigatório!"]
             },
             origem: {
                 cidade: {
@@ -57,7 +92,7 @@ class Viagem {
             },
             km_final: {
                 type: Number,
-                required: [true, "O km final é obrigatório!"]
+                default: null
             },
             descricao: {
                 type: String,
@@ -67,6 +102,10 @@ class Viagem {
                 type: String,
                 enum: ["em_andamento", "concluída", "cancelada"],
                 default: "em_andamento"
+            },
+            resumo_financeiro: {
+                type: resumoFinanceiroSchema,
+                default: () => ({})
             }
         }, {
             timestamps: true,
