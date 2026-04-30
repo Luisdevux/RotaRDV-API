@@ -28,7 +28,6 @@ async function seedDespesas() {
         const numDespesas = Math.floor(Math.random() * 5) + 2; // entre 2 e 6 despesas por viagem
 
         for (let i = 0; i < numDespesas; i++) {
-            const keys = Object.keys(fakeMappings);
             // Pega um schema derivado aleatoriamente
             const modelsDisponiveis = ['DespesaAbastecimento', 'DespesaAlimentacao', 'DespesaManutencao', 'DespesaPedagio'];
             const tipoSeed = modelsDisponiveis[Math.floor(Math.random() * modelsDisponiveis.length)];
@@ -45,11 +44,17 @@ async function seedDespesas() {
 
             switch (tipoSeed) {
                 case 'DespesaAbastecimento':
+                    // KM de abastecimento deve estar entre inicial e final (se existir)
+                    let km_abast = viagem.km_inicial + Math.floor(Math.random() * 50);
+                    if (viagem.km_final) {
+                        km_abast = faker.number.int({ min: viagem.km_inicial, max: viagem.km_final });
+                    }
+
                     await DespesaAbastecimento.create({
                         ...dadosComuns,
                         tipo: 'ABASTECIMENTO',
                         litros: fakeMappings.DespesaAbastecimento.litros(),
-                        km_atual: fakeMappings.DespesaAbastecimento.km_atual()
+                        km_atual: km_abast
                     });
                     break;
                 case 'DespesaAlimentacao':
@@ -63,9 +68,7 @@ async function seedDespesas() {
                     await DespesaManutencao.create({
                         ...dadosComuns,
                         tipo: 'MANUTENCAO',
-                        oficina_nome: fakeMappings.DespesaManutencao.oficina_nome(),
-                        servico_realizado: fakeMappings.DespesaManutencao.servico_realizado(),
-                        pecas_trocadas: fakeMappings.DespesaManutencao.pecas_trocadas()
+                        oficina_nome: fakeMappings.DespesaManutencao.oficina_nome()
                     });
                     break;
                 case 'DespesaPedagio':
@@ -80,7 +83,7 @@ async function seedDespesas() {
         }
     }
 
-    console.log(`[SEED] ${count} Despesas com Discriminators cadastradas com sucesso misturadas na base!`);
+    console.log(`[SEED] ${count} Despesas cadastradas e resumos financeiros atualizados via Middleware!`);
 }
 
 export default seedDespesas;
