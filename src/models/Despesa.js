@@ -8,7 +8,7 @@ import brazilianDatePlugin from "../utils/helpers/mongooseBrazilianDatePlugin.js
 const despesaSchema = new mongoose.Schema({
     _id: {
         type: String,
-        default: () => crypto.randomUUID(), // Gera automático se vier do Swagger/Web!
+        default: () => crypto.randomUUID(),
         required: [true, "O UUID da despesa é obrigatório para sincronização offline!"]
     },
     viagem_id: {
@@ -44,8 +44,62 @@ const despesaSchema = new mongoose.Schema({
 }, {
     timestamps: true,
     versionKey: false,
-    discriminatorKey: "tipo", // Isso diz ao Mongoose qual campo usar para diferenciar os tipos
+    discriminatorKey: "tipo",
     collection: "despesas"
+});
+
+// Middleware para atualizar o resumo financeiro da viagem
+async function atualizarResumoViagem(doc) {
+    const Viagem = mongoose.model("viagens");
+    const Despesa = mongoose.model("despesas");
+
+    const viagemId = doc.viagem_id;
+
+    const pipeline = [
+        { $match: { viagem_id: viagemId } },
+        {
+            $group: {
+                _id: "$tipo",
+                total: { $sum: "$valor_total" }
+            }
+        }
+    ];
+
+    const resultados = await Despesa.aggregate(pipeline);
+
+    const resumo = {
+        total_geral: 0,
+        por_categoria: {
+            ABASTECIMENTO: 0,
+            ALIMENTACAO: 0,
+            MANUTENCAO: 0,
+            PEDAGIO: 0,
+            OUTROS: 0
+        }
+    };
+
+    resultados.forEach(res => {
+        resumo.por_categoria[res._id] = res.total;
+        resumo.total_geral += res.total;
+    });
+
+    await Viagem.findByIdAndUpdate(viagemId, { resumo_financeiro: resumo });
+}
+
+despesaSchema.post("save", async function (doc) {
+    await atualizarResumoViagem(doc);
+});
+
+despesaSchema.post("findOneAndUpdate", async function (doc) {
+    if (doc) {
+        await atualizarResumoViagem(doc);
+    }
+});
+
+despesaSchema.post("findOneAndDelete", async function (doc) {
+    if (doc) {
+        await atualizarResumoViagem(doc);
+    }
 });
 
 despesaSchema.plugin(mongoosePaginate);
