@@ -18,8 +18,12 @@ class ViagemService {
         this.veiculoRepository = new VeiculoRepository();
     }
 
-    async _calcularResumoFinanceiro(viagemId) {
+    async _calcularResumoFinanceiro(viagemId, viagemDoc = null) {
         const Despesa = mongoose.model('despesas');
+        const Viagem = mongoose.model('viagens');
+
+        // Se não passarem o doc da viagem, buscamos os dados básicos de KM
+        const viagem = viagemDoc || await Viagem.findById(viagemId).select('km_inicial km_final');
 
         const pipeline = [
             { $match: { viagem_id: viagemId } },
@@ -27,6 +31,9 @@ class ViagemService {
                 $group: {
                     _id: '$tipo',
                     total: { $sum: '$valor_total' },
+                    litros_totais: {
+                        $sum: { $ifNull: ['$litros', 0] }
+                    }
                 },
             },
         ];
@@ -42,6 +49,11 @@ class ViagemService {
                 PEDAGIO: 0,
                 OUTROS: 0,
             },
+            metricas: {
+                km_percorrido: 0,
+                total_litros: 0,
+                media_consumo: 0 // km/l
+            }
         };
 
         resultados.forEach((res) => {
@@ -49,7 +61,21 @@ class ViagemService {
                 resumo.por_categoria[res._id] = res.total;
                 resumo.total_geral += res.total;
             }
+            if (res._id === 'ABASTECIMENTO') {
+                resumo.metricas.total_litros = res.litros_totais;
+            }
         });
+
+        // Aqui calcula as métricas de distância e consumo, basicamente, calculo de média de consumo, (km/l)
+        if (viagem && viagem.km_final) {
+            resumo.metricas.km_percorrido = viagem.km_final - viagem.km_inicial;
+
+            if (resumo.metricas.total_litros > 0) {
+                resumo.metricas.media_consumo = parseFloat(
+                    (resumo.metricas.km_percorrido / resumo.metricas.total_litros).toFixed(2)
+                );
+            }
+        }
 
         return resumo;
     }
@@ -81,7 +107,7 @@ class ViagemService {
 
             // Converter para objeto plano para injetar o resumo dinâmico
             const viagemObj = viagem.toObject();
-            viagemObj.resumo_financeiro = await this._calcularResumoFinanceiro(id);
+            viagemObj.resumo_financeiro = await this._calcularResumoFinanceiro(id, viagem);
 
             return viagemObj;
         }
@@ -182,19 +208,48 @@ class ViagemService {
             customMessage: 'Você não tem permissão para atualizar esta viagem.',
         });
 
+        // Impedir alteração em viagens já finalizadas/canceladas)
         if (viagemOriginal.status !== 'em_andamento' && !usuarioLogado.isAdmin) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'businessRuleError',
                 field: 'status',
-                customMessage: 'Esta viagem já foi finalizada ou cancelada e não pode mais ser alterada.',
+                customMessage: `Esta viagem já está com status '${viagemOriginal.status}' e não pode mais ser alterada.`,
             });
+        }
+
+        // Validação para Fechamento (Status: concluída)
+        if (parsedData.status === 'concluída') {
+            // Garantir KM Final
+            const kmFinal = parsedData.km_final || viagemOriginal.km_final;
+            if (!kmFinal) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'km_final',
+                    customMessage: 'O KM final é obrigatório para concluir a viagem.',
+                });
+            }
+
+            // Validar KM Final > Inicial
+            if (kmFinal <= viagemOriginal.km_inicial) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'businessRuleError',
+                    field: 'km_final',
+                    customMessage: `O KM final (${kmFinal}) deve ser maior que o KM inicial (${viagemOriginal.km_inicial}).`,
+                });
+            }
+
+            // Preencher data_fim automaticamente se não enviada
+            if (!parsedData.data_fim) {
+                parsedData.data_fim = new Date();
+            }
         }
 
         const data = await this.repository.atualizar(id, parsedData);
         return data;
     }
-
     async deletar(id, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 

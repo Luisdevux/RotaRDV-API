@@ -1,5 +1,6 @@
 // src/seeds/seedsDespesa.js
 
+import { faker } from '@faker-js/faker/locale/pt_BR';
 import 'dotenv/config';
 import crypto from 'crypto';
 import Despesa from '../models/Despesa.js';
@@ -43,7 +44,7 @@ async function seedDespesas() {
             };
 
             switch (tipoSeed) {
-                case 'DespesaAbastecimento':
+                case 'DespesaAbastecimento': {
                     // KM de abastecimento deve estar entre inicial e final (se existir)
                     let km_abast = viagem.km_inicial + Math.floor(Math.random() * 50);
                     if (viagem.km_final) {
@@ -57,6 +58,7 @@ async function seedDespesas() {
                         km_atual: km_abast
                     });
                     break;
+                }
                 case 'DespesaAlimentacao':
                     await DespesaAlimentacao.create({
                         ...dadosComuns,
@@ -83,7 +85,7 @@ async function seedDespesas() {
         }
     }
 
-    console.log(`[SEED] ${count} Despesas cadastradas e resumos financeiros atualizados via Middleware!`);
+    console.log(`[SEED] ${count} Despesas cadastradas com sucesso!`);
 }
 
 export default seedDespesas;
