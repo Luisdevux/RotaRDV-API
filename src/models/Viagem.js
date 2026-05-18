@@ -92,11 +92,7 @@ class Viagem {
             },
             km_final: {
                 type: Number,
-<<<<<<< Updated upstream
                 default: null
-=======
-                required: false
->>>>>>> Stashed changes
             },
             descricao: {
                 type: String,
