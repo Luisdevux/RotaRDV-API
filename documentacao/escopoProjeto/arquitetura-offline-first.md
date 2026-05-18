@@ -66,7 +66,7 @@ Não executamos `DELETE` físico direto no celular quando offline.
 
 Para o retorno aos trabalhos, o foco será a implementação do **Endpoint Unificado de Sincronização Lógica**:
 
-1. **`SyncController`**: Uma única rota `POST /api/v1/sync` englobando uma Transação (Transaction) gerencial.
+1. **`SyncController`**: Uma única rota `POST /sync` englobando uma Transação (Transaction) gerencial.
 2. A rota receberá um Payload imenso:
    ```json
    {

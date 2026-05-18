@@ -19,17 +19,6 @@ const usuarioSnapshotSchema = new mongoose.Schema({
     email: String
 }, { _id: false });
 
-const resumoFinanceiroSchema = new mongoose.Schema({
-    total_geral: { type: Number, default: 0 },
-    por_categoria: {
-        ABASTECIMENTO: { type: Number, default: 0 },
-        ALIMENTACAO: { type: Number, default: 0 },
-        MANUTENCAO: { type: Number, default: 0 },
-        PEDAGIO: { type: Number, default: 0 },
-        OUTROS: { type: Number, default: 0 }
-    }
-}, { _id: false });
-
 class Viagem {
     constructor() {
         const viagemSchema = new mongoose.Schema({
@@ -102,10 +91,6 @@ class Viagem {
                 type: String,
                 enum: ["em_andamento", "concluída", "cancelada"],
                 default: "em_andamento"
-            },
-            resumo_financeiro: {
-                type: resumoFinanceiroSchema,
-                default: () => ({})
             }
         }, {
             timestamps: true,

@@ -1,5 +1,6 @@
 // src/services/ViagemService.js
 
+import mongoose from 'mongoose';
 import {
     CustomError,
     HttpStatusCodes,
@@ -17,12 +18,58 @@ class ViagemService {
         this.veiculoRepository = new VeiculoRepository();
     }
 
+    async _calcularResumoFinanceiro(viagemId) {
+        const Despesa = mongoose.model('despesas');
+
+        const pipeline = [
+            { $match: { viagem_id: viagemId } },
+            {
+                $group: {
+                    _id: '$tipo',
+                    total: { $sum: '$valor_total' },
+                },
+            },
+        ];
+
+        const resultados = await Despesa.aggregate(pipeline);
+
+        const resumo = {
+            total_geral: 0,
+            por_categoria: {
+                ABASTECIMENTO: 0,
+                ALIMENTACAO: 0,
+                MANUTENCAO: 0,
+                PEDAGIO: 0,
+                OUTROS: 0,
+            },
+        };
+
+        resultados.forEach((res) => {
+            if (res._id in resumo.por_categoria) {
+                resumo.por_categoria[res._id] = res.total;
+                resumo.total_geral += res.total;
+            }
+        });
+
+        return resumo;
+    }
+
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         const { id } = req.params;
 
         if (id) {
             const viagem = await this.repository.buscarPorID(id);
+
+            if (!viagem) {
+              throw new CustomError({
+                  statusCode: HttpStatusCodes.NOT_FOUND.code,
+                  errorType: 'resourceNotFound',
+                  field: 'viagem',
+                  customMessage: 'Viagem não encontrada.',
+              });
+            }
+
             const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
 
             ensurePermission({
@@ -32,7 +79,11 @@ class ViagemService {
                 customMessage: 'Você não tem permissão para acessar os dados desta viagem.',
             });
 
-            return viagem;
+            // Converter para objeto plano para injetar o resumo dinâmico
+            const viagemObj = viagem.toObject();
+            viagemObj.resumo_financeiro = await this._calcularResumoFinanceiro(id);
+
+            return viagemObj;
         }
 
         if (!usuarioLogado.isAdmin) {

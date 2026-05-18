@@ -51,7 +51,23 @@ const viagemSchemas = {
             km_inicial: { type: "number", example: 10000 },
             km_final: { type: "number", example: 10500 },
             descricao: { type: "string", example: "Viagem de transporte de carga seca" },
-            status: { type: "string", example: "em_andamento" },
+            status: { type: "string", enum: ["em_andamento", "concluída", "cancelada"], example: "em_andamento" },
+            resumo_financeiro: {
+                type: "object",
+                properties: {
+                    total_geral: { type: "number", example: 1500.50 },
+                    por_categoria: {
+                        type: "object",
+                        properties: {
+                            ABASTECIMENTO: { type: "number", example: 1000 },
+                            ALIMENTACAO: { type: "number", example: 250.50 },
+                            MANUTENCAO: { type: "number", example: 250 },
+                            PEDAGIO: { type: "number", example: 0 },
+                            OUTROS: { type: "number", example: 0 }
+                        }
+                    }
+                }
+            },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" }
         }
