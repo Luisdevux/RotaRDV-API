@@ -84,7 +84,7 @@ class Viagem {
             },
             data_fim: {
                 type: Date,
-                required: [true, "A data de fim é obrigatória!"]
+                required: false
             },
             km_inicial: {
                 type: Number,
@@ -92,7 +92,11 @@ class Viagem {
             },
             km_final: {
                 type: Number,
+<<<<<<< Updated upstream
                 default: null
+=======
+                required: false
+>>>>>>> Stashed changes
             },
             descricao: {
                 type: String,

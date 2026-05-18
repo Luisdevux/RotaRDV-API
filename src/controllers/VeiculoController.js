@@ -86,7 +86,7 @@ class VeiculoController {
         }
 
         const parsedData = await VeiculoSchema.parse(req.body);
-        const data = await this.service.criar(parsedData);
+        const data = await this.service.criar(parsedData, req);
 
         return CommonResponse.created(res, data);
     }
@@ -112,7 +112,7 @@ class VeiculoController {
         }
 
         const parsedData = await VeiculoUpdateSchema.parse(req.body);
-        const data = await this.service.atualizar(id, parsedData);
+        const data = await this.service.atualizar(id, parsedData, req);
 
         return CommonResponse.success(
           res,
@@ -141,7 +141,7 @@ class VeiculoController {
           });
         }
 
-        await this.service.deletar(id);
+        await this.service.deletar(id, req);
         return CommonResponse.success(
           res,
           null,

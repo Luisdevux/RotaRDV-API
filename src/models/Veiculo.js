@@ -16,6 +16,11 @@ class Veiculo {
                 required: [true, "A placa é obrigatória!"],
                 unique: true
             },
+            combustivel_preferencial: {
+                type: String,
+                enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
+                required: [true, "O combustível preferencial é obrigatório!"]
+            },
             reboque: {
                 modelo: {
                     type: String,
