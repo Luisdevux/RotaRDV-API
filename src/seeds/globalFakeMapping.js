@@ -54,7 +54,19 @@ export const fakeMappings = {
 
   Viagem: {
     usuario_id: () => new mongoose.Types.ObjectId(),
+    usuario_snapshot: () => ({
+      nome: faker.person.fullName(),
+      email: faker.internet.email(),
+    }),
     veiculo_id: () => new mongoose.Types.ObjectId(),
+    veiculo_snapshot: () => ({
+      placa: faker.vehicle.vrm(),
+      modelo: faker.vehicle.model(),
+      reboque: {
+        modelo: faker.helpers.arrayElement(['Randon', 'Guerra', 'Librelato']),
+        placas: [faker.vehicle.vrm()]
+      }
+    }),
     origem: () => ({ cidade: faker.location.city(), estado: faker.location.state({ abbreviated: true }) }),
     destino: () => ({ cidade: faker.location.city(), estado: faker.location.state({ abbreviated: true }) }),
     data_inicio: () => faker.date.recent(),
@@ -62,6 +74,16 @@ export const fakeMappings = {
     km_inicial: () => faker.number.int({ min: 10000, max: 50000 }),
     km_final: () => faker.number.int({ min: 50100, max: 80000 }),
     status: () => faker.helpers.arrayElement(['em_andamento', 'concluída', 'cancelada']),
+    resumo_financeiro: () => ({
+      total_geral: 0,
+      por_categoria: {
+        ABASTECIMENTO: 0,
+        ALIMENTACAO: 0,
+        MANUTENCAO: 0,
+        PEDAGIO: 0,
+        OUTROS: 0
+      }
+    })
   },
 
   Despesa: { ...baseDespesa },

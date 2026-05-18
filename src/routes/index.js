@@ -12,6 +12,7 @@ import mongoose from 'mongoose';
 import authRoutes from './authRoutes.js';
 import usuarioRoutes from './usuarioRoutes.js';
 import veiculoRoutes from './veiculoRoutes.js';
+import viagemRoutes from './viagemRoutes.js';
 
 dotenv.config();
 
@@ -49,7 +50,8 @@ const routes = (app) => {
         express.json(),
         authRoutes,
         usuarioRoutes,
-        veiculoRoutes
+        veiculoRoutes,
+        viagemRoutes
     );
 };
 
