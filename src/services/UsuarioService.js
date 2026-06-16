@@ -74,7 +74,20 @@ class UsuarioService {
             parsedData.senha = await AuthHelper.hashPassword(parsedData.senha);
         }
 
+        // Configuração de verificação de email
+        const tokenVerificacao = await AuthHelper.generateRandomToken();
+        parsedData.token_verificacao_email = tokenVerificacao;
+        parsedData.exp_token_verificacao_email = new Date(Date.now() + 24 * 60 *60 * 1000); // 24 horas
+        parsedData.email_verificada = false;
+
         const data = await this.repository.criar(parsedData);
+
+        // Envia email de verificação em background (não bloqueia o fluxo)
+        const EmailService = (await import('./EmailService.js')).default;
+        EmailService.enviarEmailVerificacao(data.email, tokenVerificacao, data.nome)
+            .then(() => console.log(`Email de verificação enviado para: ${data.email}`))
+            .catch((error) => console.error('Erro ao enviar email de verificação:', error));
+
         return data;
     }
 
@@ -105,6 +118,11 @@ class UsuarioService {
         // Não permitir alterar isAdmin se não for admin
         if (!isAdmin) {
             delete parsedData.isAdmin;
+        }
+
+        // Validar CPF ao atualizar (não apenas no cadastro)
+        if (parsedData.cpf) {
+            await this.validateCpf(parsedData.cpf, id);
         }
 
         const data = await this.repository.atualizar(id, parsedData);

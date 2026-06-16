@@ -21,6 +21,16 @@ class Usuario {
                 required: [true, "A senha é obrigatória!"],
                 select: false
             },
+            googleId: {
+                type: String,
+                unique: true,
+                sparse:true
+            },
+            authProvider: {
+                type: String,
+                enum: ["local", "google"],
+                default: "local"
+            },
             cpf: {
                 type: String,
                 unique: true,
@@ -70,6 +80,18 @@ class Usuario {
             exp_codigo_recupera_senha: {
                 type: Date,
                 select: false
+            },
+            email_verificado: {
+              type: Boolean,
+              default: false
+            },
+            token_verificacao_email: {
+              type: String,
+              select: false
+            },
+            exp_token_verificacao_email: {
+              type: Date,
+              select: false
             }
         }, {
             timestamps: true,

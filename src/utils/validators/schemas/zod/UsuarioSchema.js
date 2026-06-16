@@ -48,4 +48,10 @@ const UsuarioSchema = z.object({
 
 const UsuarioUpdateSchema = UsuarioSchema.partial();
 
-export { UsuarioSchema, UsuarioUpdateSchema };
+const UsuarioStatusUpdateSchema = z.object({
+    status: z.enum(['ativo', 'inativo'], {
+        errorMap: () => ({ message: "O status deve ser 'ativo' ou 'inativo'." })
+    })
+});
+
+export { UsuarioSchema, UsuarioUpdateSchema, UsuarioStatusUpdateSchema };
