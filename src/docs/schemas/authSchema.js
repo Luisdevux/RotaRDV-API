@@ -202,6 +202,22 @@ const authSchemas = {
         description: "Schema para resposta de redefinição de senha"
     },
 
+    googleLoginPost: {
+        type: "object",
+        properties: {
+            idToken: {
+                type: "string",
+                description: "O ID Token retornado pelo Google Sign-In",
+                example: "eyJhbGciOiJSUzI1NiIsImtpZCI6IjYxOWRk..."
+            }
+        },
+        required: ["idToken"],
+        description: "Schema para login via Google",
+        example: {
+            idToken: "token_recebido_pelo_google"
+        }
+    },
+
     RespostaPass: {
         type: "object",
         properties: {

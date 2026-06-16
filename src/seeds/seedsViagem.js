@@ -6,11 +6,9 @@ import Viagem from '../models/Viagem.js';
 import Usuario from '../models/Usuario.js';
 import Veiculos from '../models/Veiculo.js';
 import { fakeMappings } from './globalFakeMapping.js';
-import DbConnect from '../config/dbConnect.js';
-
-await DbConnect.conectar();
 
 async function seedViagens() {
+    console.log('[SEED] Iniciando seed de viagens...');
     await Viagem.deleteMany();
 
     const usuarios = await Usuario.find();

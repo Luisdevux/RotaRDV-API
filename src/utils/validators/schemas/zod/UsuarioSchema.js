@@ -23,7 +23,8 @@ const UsuarioSchema = z.object({
             return senhaRegex.test(senha);
         }, {
             message: 'A senha deve conter pelo menos 1 letra maiúscula, 1 letra minúscula e 1 número.',
-        }),
+        })
+        .optional(),
     cpf: z
         .string()
         .nonempty('Campo CPF é obrigatório.')
@@ -44,6 +45,8 @@ const UsuarioSchema = z.object({
           cargo: z.string().optional(),
     }).optional(),
     veiculo_id: objectIdSchema.optional(),
+    googleId: z.string().optional(),
+    authProvider: z.enum(['local', 'google']).default('local'),
 });
 
 const UsuarioUpdateSchema = UsuarioSchema.partial();

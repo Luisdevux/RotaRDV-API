@@ -1,5 +1,6 @@
 // src/services/AuthService.js
 
+import EmailService from './EmailService.js';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import {
@@ -229,7 +230,7 @@ class AuthService {
 
         return {
             user: {
-                acessToken,
+                accessToken,
                 refreshtoken,
                 ...userObject
             }

@@ -81,7 +81,7 @@ class UsuarioRepository {
         return documento;
     }
 
-    async buscarPorGoogleId() {
+    async buscarPorGoogleId(googleId) {
         const documento = await this.modelUsuario.findOne({ googleId });
         return documento;
     }

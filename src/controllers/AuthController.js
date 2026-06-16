@@ -13,6 +13,10 @@ import { UsuarioSchema } from '../utils/validators/schemas/zod/UsuarioSchema.js'
 import { GoogleLoginSchema } from '../utils/validators/schemas/zod/GoogleLoginSchema.js';
 import { UsuarioIdSchema } from '../utils/validators/schemas/zod/querys/UsuarioQuerySchema.js';
 import AuthService from '../services/AuthService.js';
+import {
+    templateErroVerificacao,
+    templateSucessoVerificacao
+} from '../utils/templates/paginaVerificacao.js';
 
 class AuthController {
     constructor() {

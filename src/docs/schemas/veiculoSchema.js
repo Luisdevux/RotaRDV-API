@@ -17,6 +17,11 @@ const veiculoSchemas = {
             _id: { type: "string", example: "674fa21d79969d2172e78799" },
             modelo: { type: "string", example: "Volvo FH 540" },
             placa: { type: "string", example: "ABC1D23" },
+            combustivel_preferencial: { 
+                type: "string", 
+                enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
+                example: "DIESEL_S10"
+            },
             reboque: {
                 type: "object",
                 properties: {
@@ -41,6 +46,11 @@ const veiculoSchemas = {
         properties: {
             modelo: { type: "string", example: "Volvo FH 540" },
             placa: { type: "string", example: "ABC1D23" },
+            combustivel_preferencial: { 
+                type: "string", 
+                enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
+                example: "DIESEL_S10"
+            },
             reboque: {
                 type: "object",
                 properties: {
@@ -62,6 +72,11 @@ const veiculoSchemas = {
         properties: {
             modelo: { type: "string", example: "Volvo FH 540" },
             placa: { type: "string", example: "ABC1D23" },
+            combustivel_preferencial: { 
+                type: "string", 
+                enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
+                example: "DIESEL_S10"
+            },
             reboque: {
                 type: "object",
                 properties: {

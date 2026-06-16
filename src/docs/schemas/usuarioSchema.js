@@ -24,6 +24,7 @@ const usuarioSchemas = {
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
+            email_verificado: { type: "boolean", example: true },
             empresa: {
                 type: "object",
                 properties: {
@@ -48,6 +49,7 @@ const usuarioSchemas = {
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
+            email_verificado: { type: "boolean", example: true },
             empresa: {
                 type: "object",
                 properties: {
