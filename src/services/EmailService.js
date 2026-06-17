@@ -23,13 +23,15 @@ class EmailService {
 
     async _enviarNotificacao(payload) {
         try {
-            const response = await this.client.post('/notificacoes/enviar', {
-                usuarioId: this.tenantId, // ID do sistema/inquilino no NPaaS
+            const finalPayload = {
+                usuarioId: payload.usuarioId || this.tenantId, // ID do sistema/inquilino no NPaaS
                 canal: 'email',
                 ...payload
-            });
+            };
+
+            const response = await this.client.post('/notificacoes/enviar', finalPayload);
             
-            logger.info(`Notificação enviada via NPaaS. Status: ${response.status} - ID: ${response.data?._id}`);
+            logger.info(`Notificação enviada via NPaaS. Status: ${response.status} - ID: ${response.data?.dados?._id}`);
             return response.data;
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
@@ -39,7 +41,7 @@ class EmailService {
         }
     }
 
-    async enviarEmailRecuperacao(email, token, nomeUsuario) {
+    async enviarEmailRecuperacao(email, token, nomeUsuario, usuarioId = null) {
         const corpoHtml = `
             <!DOCTYPE html>
             <html lang="pt-BR">
@@ -57,6 +59,7 @@ class EmailService {
         `;
 
         return this._enviarNotificacao({
+            usuarioId,
             destinatario: email,
             titulo: 'Recuperação de Senha - RotaRDV',
             corpo: corpoHtml,
@@ -64,7 +67,7 @@ class EmailService {
         });
     }
 
-    async enviarEmailVerificacao(email, token, nomeUsuario) {
+    async enviarEmailVerificacao(email, token, nomeUsuario, usuarioId = null) {
         const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${token}`;
         
         const corpoHtml = `
@@ -82,6 +85,7 @@ class EmailService {
         `;
 
         return this._enviarNotificacao({
+            usuarioId,
             destinatario: email,
             titulo: 'Verificação de Email - RotaRDV',
             corpo: corpoHtml,

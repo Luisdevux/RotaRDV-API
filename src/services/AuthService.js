@@ -328,7 +328,8 @@ class AuthService {
         await EmailService.enviarEmailRecuperacao(
             body.email,
             tokenUnico,
-            userEncontrado.nome
+            userEncontrado.nome,
+            userEncontrado._id
         );
 
         return {
@@ -399,7 +400,7 @@ class AuthService {
             await this.repository.atualizarTokenVerificacao(usuario._id, novoToken, novaExpiracao);
 
             // Enviar novo email
-            await EmailService.enviarEmailVerificacao(usuario.email, novoToken, usuario.nome);
+            await EmailService.enviarEmailVerificacao(usuario.email, novoToken, usuario.nome, usuario._id);
 
             throw new CustomError({
                 statusCode: HttpStatusCodes.UNAUTHORIZED.code,

@@ -84,7 +84,7 @@ class UsuarioService {
 
         // Envia email de verificação em background (não bloqueia o fluxo)
         const EmailService = (await import('./EmailService.js')).default;
-        EmailService.enviarEmailVerificacao(data.email, tokenVerificacao, data.nome)
+        EmailService.enviarEmailVerificacao(data.email, tokenVerificacao, data.nome, data._id)
             .then(() => console.log(`Email de verificação enviado para: ${data.email}`))
             .catch((error) => console.error('Erro ao enviar email de verificação:', error));
 

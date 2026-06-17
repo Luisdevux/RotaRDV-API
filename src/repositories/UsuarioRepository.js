@@ -196,10 +196,10 @@ class UsuarioRepository {
 
     async buscarPorTokenVerificacao(token) {
         const filtro = {
-            token_verficiacao_email: token,
+            token_verificacao_email: token,
         };
         const documento = await this.modelUsuario.findOne(filtro)
-            .select('+token_verficiacao_email +exp_token_verificacao_email');
+            .select('+token_verificacao_email +exp_token_verificacao_email');
         return documento;
     }
 
@@ -208,7 +208,7 @@ class UsuarioRepository {
             id,
             {
                 email_verificado:true,
-                token_verficiacao_email: null,
+                token_verificacao_email: null,
                 exp_token_verificacao_email: null
             },
             { returnDocument: 'after' }
@@ -231,7 +231,7 @@ class UsuarioRepository {
         const usuario = await this.modelUsuario.findByIdAndUpdate(
             id,
             {
-                token_verficiacao_email: novoToken,
+                token_verificacao_email: novoToken,
                 exp_token_verificacao_email: novaExpiracao
             },
             { returnDocument: 'after' }
