@@ -8,14 +8,14 @@ dotenv.config();
 
 class EmailService {
     constructor() {
-        this.apiKey = process.env.NPAAS_API_KEY;
-        this.baseUrl = process.env.NPAAS_BASE_URL || 'https://npaas.fslab.dev/api/v1';
-        this.tenantId = process.env.NPAAS_TENANT_ID; // usuarioId exigido pelo NPaaS para rastreamento
-        
+        this.apiKey = process.env.HERMES_API_KEY;
+        this.baseUrl = process.env.HERMES_BASE_URL || 'https://api.hermes.qa.fslab.dev';
+        // this.tenantId = process.env.NPAAS_TENANT_ID; // usuarioId exigido pelo NPaaS para rastreamento
+
         this.client = axios.create({
             baseURL: this.baseUrl,
             headers: {
-                'x-api-key': this.apiKey,
+                'X-API-Key': this.apiKey,
                 'Content-Type': 'application/json'
             }
         });
@@ -24,72 +24,47 @@ class EmailService {
     async _enviarNotificacao(payload) {
         try {
             const finalPayload = {
-                usuarioId: payload.usuarioId || this.tenantId, // ID do sistema/inquilino no NPaaS
+                usuarioId: payload.usuarioId,
                 canal: 'email',
                 ...payload
             };
 
-            const response = await this.client.post('/notificacoes/enviar', finalPayload);
-            
-            logger.info(`Notificação enviada via NPaaS. Status: ${response.status} - ID: ${response.data?.dados?._id}`);
+            const response = await this.client.post('/api/emails', finalPayload);
+
+            logger.info(`Notificação enviada via Hermes - Serviço de E-mail. Status: ${response.status} - ID: ${response.data?.dados?._id}`);
             return response.data;
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
-            logger.error(`Erro ao enviar notificação via NPaaS: ${errorMsg}`);
+            logger.error(`Erro ao enviar notificação via Hermes - Serviço de E-mail: ${errorMsg}`);
             // Não travamos o fluxo principal por erro de email, apenas logamos
             return null;
         }
     }
 
     async enviarEmailRecuperacao(email, token, nomeUsuario, usuarioId = null) {
-        const corpoHtml = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <body style="font-family: sans-serif;">
-                <h2>Recuperação de Senha - RotaRDV</h2>
-                <p>Olá, <strong>${nomeUsuario}</strong>!</p>
-                <p>Você solicitou a recuperação de senha. Utilize o código abaixo para redefinir sua senha:</p>
-                <div style="padding: 20px; background-color: #f4f4f4; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px;">
-                    ${token}
-                </div>
-                <p>Este código é válido por 1 hora.</p>
-                <p>Se você não solicitou isso, por favor ignore este email.</p>
-            </body>
-            </html>
-        `;
-
         return this._enviarNotificacao({
             usuarioId,
-            destinatario: email,
-            titulo: 'Recuperação de Senha - RotaRDV',
-            corpo: corpoHtml,
-            prioridade: 'alta'
+            recipient_to: email,
+            template_id: '1a1fc3af-80b0-443f-92ef-ae3b025eae23',
+            variables: {
+                nomeUsuario: nomeUsuario,
+                token: token
+            }
         });
     }
 
     async enviarEmailVerificacao(email, token, nomeUsuario, usuarioId = null) {
         const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${token}`;
-        
-        const corpoHtml = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <body style="font-family: sans-serif;">
-                <h2>Verificação de Email - RotaRDV</h2>
-                <p>Olá, <strong>${nomeUsuario}</strong>!</p>
-                <p>Para confirmar seu email, clique no link abaixo:</p>
-                <a href="${linkVerificacao}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">Verificar Email</a>
-                <p>Ou copie e cole o link: ${linkVerificacao}</p>
-                <p>Este link é válido por 24 horas.</p>
-            </body>
-            </html>
-        `;
 
         return this._enviarNotificacao({
             usuarioId,
-            destinatario: email,
-            titulo: 'Verificação de Email - RotaRDV',
-            corpo: corpoHtml,
-            prioridade: 'normal'
+            recipient_to: email,
+            subject: 'Verificação de Email - RotaRDV',
+            template_id: '95f9e573-039c-43fa-862a-376858c02728',
+            variables: {
+                nomeUsuario: nomeUsuario,
+                linkVerificacao: linkVerificacao
+            }
         });
     }
 }
