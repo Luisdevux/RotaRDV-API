@@ -36,7 +36,6 @@
     "express": "^5.2.1",
     "express-fileupload": "^1.5.2",
     "express-rate-limit": "^8.5.2",
-    "faker": "^6.6.6",
     "google-auth-library": "^10.7.0",
     "helmet": "^8.2.0",
     "jsdom": "^29.1.1",
@@ -115,5 +114,11 @@
       "/middlewares/asyncWrapper.js",
       "utils/helpers/HttpStatusCodes.js"
     ]
+  },
+  "overrides": {
+    "babel-plugin-transform-import-meta": {
+      "@babel/core": "$@babel/core"
+    },
+    "js-yaml": "^4.1.2"
   }
 }
