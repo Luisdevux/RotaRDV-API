@@ -1,6 +1,6 @@
 // src/services/AuthService.js
 
-import EmailService from './EmailService.js';
+import hermesClient from '../config/hermesClient.js';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import {
@@ -325,12 +325,20 @@ class AuthService {
         });
 
         // Enviar email com o token de recuperação
-        await EmailService.enviarEmailRecuperacao(
-            body.email,
-            tokenUnico,
-            userEncontrado.nome,
-            userEncontrado._id
-        );
+        try {
+            const resposta = await hermesClient.sendEmail({
+                usuarioId: userEncontrado._id,
+                recipient_to: body.email,
+                template_id: '1a1fc3af-80b0-443f-92ef-ae3b025eae23',
+                variables: {
+                    nomeUsuario: userEncontrado.nome,
+                    token: tokenUnico
+                }
+            });
+            console.log(`[Sucesso] Email de recuperação enviado para: ${body.email}. ID: ${resposta?.dados?._id || 'N/A'}`);
+        } catch (error) {
+            console.error(`[Erro] Falha ao enviar email de recuperação: ${error.message}`);
+        }
 
         return {
             message: 'Se o email informado estiver cadastrado, você receberá um link de recuperação.'
@@ -400,7 +408,22 @@ class AuthService {
             await this.repository.atualizarTokenVerificacao(usuario._id, novoToken, novaExpiracao);
 
             // Enviar novo email
-            await EmailService.enviarEmailVerificacao(usuario.email, novoToken, usuario.nome, usuario._id);
+            try {
+                const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${novoToken}`;
+                const resposta = await hermesClient.sendEmail({
+                    usuarioId: usuario._id,
+                    recipient_to: usuario.email,
+                    subject: 'Verificação de Email - RotaRDV',
+                    template_id: '95f9e573-039c-43fa-862a-376858c02728',
+                    variables: {
+                        nomeUsuario: usuario.nome,
+                        linkVerificacao: linkVerificacao
+                    }
+                });
+                console.log(`[Sucesso] Email de verificação enviado para: ${usuario.email}. ID: ${resposta?.dados?._id || 'N/A'}`);
+            } catch (error) {
+                console.error(`[Erro] Falha ao enviar email de verificação: ${error.message}`);
+            }
 
             throw new CustomError({
                 statusCode: HttpStatusCodes.UNAUTHORIZED.code,

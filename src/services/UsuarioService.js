@@ -83,10 +83,21 @@ class UsuarioService {
         const data = await this.repository.criar(parsedData);
 
         // Envia email de verificação em background (não bloqueia o fluxo)
-        const EmailService = (await import('./EmailService.js')).default;
-        EmailService.enviarEmailVerificacao(data.email, tokenVerificacao, data.nome, data._id)
-            .then(() => console.log(`Email de verificação enviado para: ${data.email}`))
-            .catch((error) => console.error('Erro ao enviar email de verificação:', error));
+        const hermesClient = (await import('../config/hermesClient.js')).default;
+        const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${tokenVerificacao}`;
+
+        hermesClient.sendEmail({
+            usuarioId: data._id,
+            recipient_to: data.email,
+            subject: 'Verificação de Email - RotaRDV',
+            template_id: '95f9e573-039c-43fa-862a-376858c02728',
+            variables: {
+                nomeUsuario: data.nome,
+                linkVerificacao: linkVerificacao
+            }
+        })
+        .then((resposta) => console.log(`[Sucesso] Email de verificação enviado para: ${data.email}. ID: ${resposta?.dados?._id || 'N/A'}`))
+        .catch((error) => console.error(`[Erro] Falha ao enviar email de verificação: ${error.message}`));
 
         return data;
     }
