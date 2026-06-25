@@ -2,29 +2,28 @@
 
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
+import { faker } from '@faker-js/faker/locale/pt_BR';
 import { fakeMappings } from './globalFakeMapping.js';
 import Usuario from '../models/Usuario.js';
 import Veiculos from '../models/Veiculo.js';
-import DbConnect from '../config/dbConnect.js';
-
-await DbConnect.conectar();
 
 const senhaPura = 'Senha@123';
 const senhaHash = bcrypt.hashSync(senhaPura, 8);
 
 async function seedUsuarios() {
+    console.log('[SEED] Iniciando seed de usuários...');
     await Usuario.deleteMany();
 
     const veiculos = await Veiculos.find();
 
     if (veiculos.length === 0) {
       throw new Error(
-        "Nenhuma veiculo encontrada. Rode o seed de veiculos primeiro."
+        "Nenhum veículo encontrado. Rode o seed de veiculos primeiro."
       );
     }
 
-    function randomCollection(collection) {
-      return [collection[Math.floor(Math.random() * collection.length)]._id];
+    function randomVeiculoId(collection) {
+      return collection[Math.floor(Math.random() * collection.length)]._id;
     }
 
     const usuarios = [];
@@ -38,12 +37,14 @@ async function seedUsuarios() {
             cpf: '00000000000',
             status: 'ativo',
             isAdmin: true,
+            email_verificado: true,
+            authProvider: 'local',
             foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
             empresa: {
                 nome: 'Empresa Caminhões Tanque',
                 cargo: 'Motorista'
             },
-            veiculo_id: randomCollection(veiculos)
+            veiculo_id: randomVeiculoId(veiculos)
         },
         {
             nome: 'Motorista 1',
@@ -52,12 +53,14 @@ async function seedUsuarios() {
             senha: senhaHash,
             status: 'ativo',
             isAdmin: false,
+            email_verificado: true,
+            authProvider: 'local',
             foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
             empresa: {
                 nome: 'Empresa Caminhões Tanque',
                 cargo: 'Motorista'
             },
-            veiculo_id: randomCollection(veiculos)
+            veiculo_id: randomVeiculoId(veiculos)
         },
         {
             nome: 'Motorista 2',
@@ -66,12 +69,14 @@ async function seedUsuarios() {
             senha: senhaHash,
             status: 'ativo',
             isAdmin: false,
+            email_verificado: true,
+            authProvider: 'local',
             foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
             empresa: {
                 nome: 'Empresa Caminhões Tanque',
                 cargo: 'Motorista'
             },
-            veiculo_id: randomCollection(veiculos)
+            veiculo_id: randomVeiculoId(veiculos)
         },
         {
             nome: 'Usuário Teste',
@@ -80,12 +85,14 @@ async function seedUsuarios() {
             senha: senhaHash,
             status: 'ativo',
             isAdmin: false,
+            email_verificado: true,
+            authProvider: 'local',
             foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
             empresa: {
                 nome: 'Empresa Caminhões Tanque',
                 cargo: 'Motorista'
             },
-            veiculo_id: randomCollection(veiculos)
+            veiculo_id: randomVeiculoId(veiculos)
         },
         {
             nome: 'Usuário Inativo',
@@ -94,12 +101,14 @@ async function seedUsuarios() {
             senha: senhaHash,
             status: 'inativo',
             isAdmin: false,
+            email_verificado: true,
+            authProvider: 'local',
             foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
             empresa: {
                 nome: 'Empresa Caminhões Tanque',
                 cargo: 'Motorista'
             },
-            veiculo_id: randomCollection(veiculos)
+            veiculo_id: randomVeiculoId(veiculos)
         }
     );
 
@@ -112,9 +121,11 @@ async function seedUsuarios() {
             senha: senhaHash,
             status: fakeMappings.Usuario.status(),
             isAdmin: fakeMappings.Usuario.isAdmin(),
+            email_verificado: faker.datatype.boolean(),
+            authProvider: 'local',
             foto_perfil: fakeMappings.Usuario.foto_perfil(),
             empresa: fakeMappings.Usuario.empresa(),
-            veiculo_id: randomCollection(veiculos),
+            veiculo_id: randomVeiculoId(veiculos),
         })
     }
 

@@ -1,5 +1,3 @@
-// src/seeds/seedsDespesa.js
-
 import { faker } from '@faker-js/faker/locale/pt_BR';
 import 'dotenv/config';
 import crypto from 'crypto';
@@ -10,11 +8,9 @@ import DespesaManutencao from '../models/DespesaManutencao.js';
 import DespesaPedagio from '../models/DespesaPedagio.js';
 import Viagem from '../models/Viagem.js';
 import { fakeMappings } from './globalFakeMapping.js';
-import DbConnect from '../config/dbConnect.js';
-
-await DbConnect.conectar();
 
 async function seedDespesas() {
+    console.log('[SEED] Iniciando seed de despesas...');
     await Despesa.deleteMany();
 
     const viagens = await Viagem.find();
@@ -55,6 +51,8 @@ async function seedDespesas() {
                         ...dadosComuns,
                         tipo: 'ABASTECIMENTO',
                         litros: fakeMappings.DespesaAbastecimento.litros(),
+                        valor_litro: fakeMappings.DespesaAbastecimento.valor_litro(),
+                        tipo_combustivel: fakeMappings.DespesaAbastecimento.tipo_combustivel(),
                         km_atual: km_abast
                     });
                     break;

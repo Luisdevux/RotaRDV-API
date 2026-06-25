@@ -16,20 +16,27 @@ const viagemSchemas = {
         type: "object",
         properties: {
             _id: { type: "string", example: "550e8400-e29b-41d4-a716-446655440000" },
-            usuario_id: { 
+            usuario_id: { type: "string", example: "674fa21d79969d2172e78799" },
+            usuario_snapshot: {
                 type: "object",
                 properties: {
-                    _id: { type: "string", example: "674fa21d79969d2172e78799" },
                     nome: { type: "string", example: "João Silva" },
                     email: { type: "string", example: "joao@exemplo.com" }
                 }
             },
-            veiculo_id: {
+            veiculo_id: { type: "string", example: "674fa21d79969d2172e78800" },
+            veiculo_snapshot: {
                 type: "object",
                 properties: {
-                    _id: { type: "string", example: "674fa21d79969d2172e78800" },
+                    placa: { type: "string", example: "ABC1D23" },
                     modelo: { type: "string", example: "Volvo FH 540" },
-                    placa: { type: "string", example: "ABC1D23" }
+                    reboque: {
+                        type: "object",
+                        properties: {
+                            modelo: { type: "string", example: "Randon Graneleiro" },
+                            placas: { type: "array", items: { type: "string" }, example: ["XYZ9A87"] }
+                        }
+                    }
                 }
             },
             origem: {
@@ -64,6 +71,14 @@ const viagemSchemas = {
                             MANUTENCAO: { type: "number", example: 250 },
                             PEDAGIO: { type: "number", example: 0 },
                             OUTROS: { type: "number", example: 0 }
+                        }
+                    },
+                    metricas: {
+                        type: "object",
+                        properties: {
+                            km_percorrido: { type: "number", example: 500 },
+                            total_litros: { type: "number", example: 100 },
+                            media_consumo: { type: "number", example: 5.0, description: "Consumo médio em km/l" }
                         }
                     }
                 }

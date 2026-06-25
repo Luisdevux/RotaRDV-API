@@ -5,7 +5,8 @@ import Veiculo from '../models/Veiculo.js';
 import UsuarioFilterBuild from './filters/UsuarioFilterBuild.js';
 import {
     CustomError,
-    messages
+    messages,
+    HttpStatusCodes
 } from '../utils/helpers/index.js';
 
 class UsuarioRepository {
@@ -13,11 +14,16 @@ class UsuarioRepository {
         this.modelUsuario = usuarioModel;
     }
 
+    /**
+     * Armazena o refreshtoken do usuário no banco.
+     * O accesstoken NÃO é persistido — ele é stateless (verificado via assinatura JWT).
+     * Manter accesstoken no banco não agrega segurança e aumenta a superfície de ataque.
+     */
     async armazenarTokens(id, accesstoken, refreshtoken) {
         const document = await this.modelUsuario.findById(id);
         if (!document) {
             throw new CustomError({
-                statusCode: 401,
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
                 errorType: "resourceNotFound",
                 field: "Usuário",
                 details: [],
@@ -38,7 +44,7 @@ class UsuarioRepository {
         const usuario = await this.modelUsuario.findByIdAndUpdate(id, parsedData, { returnDocument: 'after' }).exec();
         if (!usuario) {
             throw new CustomError({
-                statusCode: 404,
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
                 errorType: 'resourceNotFound',
                 field: "Usuário",
                 details: [],
@@ -56,7 +62,7 @@ class UsuarioRepository {
         const user = await query;
         if (!user) {
             throw new CustomError({
-                statusCode: 404,
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
                 errorType: 'resourceNotFound',
                 field: 'Usuário',
                 details: [],
@@ -75,12 +81,17 @@ class UsuarioRepository {
         return documento;
     }
 
+    async buscarPorGoogleId(googleId) {
+        const documento = await this.modelUsuario.findOne({ googleId });
+        return documento;
+    }
+
     async buscarPorCpf(cpfValue, idIgnorado = null) {
         const filtro = { cpf: cpfValue };
         if (idIgnorado) {
             filtro._id = { $ne: idIgnorado };
         }
-        const documento = await this.modelUsuario.findOne(filtro).select('+senha');
+        const documento = await this.modelUsuario.findOne(filtro);
         return documento;
     }
 
@@ -90,7 +101,7 @@ class UsuarioRepository {
             const data = await this.modelUsuario.findById(id).populate('veiculo_id');
             if (!data) {
                 throw new CustomError({
-                    statusCode: 404,
+                    statusCode: HttpStatusCodes.NOT_FOUND.code,
                     errorType: 'resourceNotFound',
                     field: 'Usuário',
                     details: [],
@@ -138,7 +149,7 @@ class UsuarioRepository {
         const usuario = await this.modelUsuario.findByIdAndUpdate(id, parsedData, { returnDocument: 'after' });
         if (!usuario) {
             throw new CustomError({
-                statusCode: 404,
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
                 errorType: 'resourceNotFound',
                 field: 'Usuário',
                 details: [],
@@ -173,13 +184,69 @@ class UsuarioRepository {
         );
         if (!usuario) {
             throw new CustomError({
-                statusCode: 404,
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
                 errorType: 'resourceNotFound',
                 field: 'Usuário',
                 details: [],
                 customMessage: messages.error.resourceNotFound('Usuário')
             });
         }
+        return usuario;
+    }
+
+    async buscarPorTokenVerificacao(token) {
+        const filtro = {
+            token_verificacao_email: token,
+        };
+        const documento = await this.modelUsuario.findOne(filtro)
+            .select('+token_verificacao_email +exp_token_verificacao_email');
+        return documento;
+    }
+
+    async atualizarVerificacaoEmail(id) {
+        const usuario = await this.modelUsuario.findByIdAndUpdate(
+            id,
+            {
+                email_verificado:true,
+                token_verificacao_email: null,
+                exp_token_verificacao_email: null
+            },
+            { returnDocument: 'after' }
+        );
+
+        if(!usuario) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
+                errorType: 'resourceNotFound',
+                field: 'Usuário',
+                details: [],
+                customMessage: messages.error.resourceNotFound('Usuário')
+            });
+        }
+
+        return usuario;
+    }
+
+    async atualizarTokenVerificacao(id, novoToken, novaExpiracao) {
+        const usuario = await this.modelUsuario.findByIdAndUpdate(
+            id,
+            {
+                token_verificacao_email: novoToken,
+                exp_token_verificacao_email: novaExpiracao
+            },
+            { returnDocument: 'after' }
+        );
+
+        if (!usuario) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
+                errorType: 'resourceNotFound',
+                field: 'Usuário',
+                details: [],
+                customMessage: messages.error.resourceNotFound('Usuário')
+            });
+        }
+
         return usuario;
     }
 }

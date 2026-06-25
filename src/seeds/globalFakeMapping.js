@@ -30,6 +30,11 @@ export const fakeMappings = {
     status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
     isAdmin: () => faker.datatype.boolean(),
     foto_perfil: () => faker.image.avatar(),
+    email_verificado: () => faker.datatype.boolean(),
+    token_verificacao_email: () => null,
+    exp_token_verificacao_email: () => null,
+    googleId: () => faker.string.uuid(),
+    authProvider: () => faker.helpers.arrayElement(['local', 'google']),
     empresa: () => ({
       nome: faker.company.name(),
       cargo: faker.person.jobTitle(),
@@ -45,6 +50,7 @@ export const fakeMappings = {
   Veiculo: {
     modelo: () => faker.vehicle.model(),
     placa: () => faker.vehicle.vrm(),
+    combustivel_preferencial: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
     reboque: () => ({
       modelo: faker.helpers.arrayElement(['Bitrem Graneleiro 9 Eixos', 'Rodotrem Basculante', 'Sider Librelato', 'Carreta Baú Facchini']),
       placas: [faker.vehicle.vrm(), faker.vehicle.vrm()],
@@ -92,6 +98,8 @@ export const fakeMappings = {
     ...baseDespesa,
     tipo: () => 'ABASTECIMENTO',
     litros: () => parseFloat(faker.finance.amount({ min: 10, max: 200, dec: 2 })),
+    valor_litro: () => parseFloat(faker.finance.amount({ min: 5, max: 8, dec: 2 })),
+    tipo_combustivel: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
     km_atual: () => faker.number.int({ min: 10000, max: 80000 }),
   },
 

@@ -4,6 +4,7 @@ import UsuarioService from '../services/UsuarioService.js';
 import {
   UsuarioSchema,
   UsuarioUpdateSchema,
+  UsuarioStatusUpdateSchema
 } from '../utils/validators/schemas/zod/UsuarioSchema.js';
 import {
   UsuarioQuerySchema,
@@ -133,7 +134,7 @@ class UsuarioController {
     const { id } = req.params;
     UsuarioIdSchema.parse(id);
 
-    const parsedData = req.body || {};
+    const parsedData = UsuarioStatusUpdateSchema.parse(req.body || {});
     const data = await this.service.atualizarStatus(id, parsedData, req);
 
     return CommonResponse.success(

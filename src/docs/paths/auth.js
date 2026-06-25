@@ -261,6 +261,73 @@ const authRoutes = {
                 500: commonResponses[500]()
             }
         }
+    },
+
+    "/google": {
+        post: {
+            tags: ["Auth"],
+            summary: "Autentica via Google Sign-In",
+            description: `
+            + Caso de uso: Login simplificado utilizando conta do Google.
+
+            + Função de Negócio:
+                - Permitir que o motorista acesse o sistema sem digitar senha, via OAuth2.
+                + Recebe no corpo da requisição:
+                    - **idToken**: token de identidade gerado pelo SDK do Google no Mobile.
+
+            + Regras de Negócio:
+                - Valida o idToken junto ao Google Auth Library.
+                - Se o usuário não existir, cria um novo perfil com base nos dados do Google.
+                - Se o email já existir, vincula o googleId à conta existente.
+                - Retorna accessToken e refreshToken.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com corpo conforme **RespostaLogin**.
+        `,
+            requestBody: {
+                content: {
+                    "application/json": {
+                        schema: {
+                            "$ref": "#/components/schemas/googleLoginPost"
+                        }
+                    }
+                }
+            },
+            responses: {
+                200: commonResponses[200]("#/components/schemas/RespostaLogin"),
+                401: commonResponses[401](),
+                500: commonResponses[500]()
+            }
+        }
+    },
+
+    "/verificar-email": {
+        get: {
+            tags: ["Auth"],
+            summary: "Verifica o email do usuário",
+            description: `
+            + Caso de uso: Confirmação de posse do email após o cadastro.
+
+            + Função de Negócio:
+                - Valida o token de verificação enviado por email.
+                - Ativa a conta para permitir o login.
+                + Recebe via query parameter:
+                    - **token**: o token aleatório gerado no cadastro.
+
+            + Resultado Esperado:
+                - Retorna uma página HTML de sucesso ou erro.
+            `,
+            parameters: [{
+                name: "token",
+                in: "query",
+                required: true,
+                schema: { type: "string" }
+            }],
+            responses: {
+                200: { description: "Página HTML de sucesso" },
+                400: { description: "Token inválido ou expirado" }
+            }
+        }
     }
 };
 
