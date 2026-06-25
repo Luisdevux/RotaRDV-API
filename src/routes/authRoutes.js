@@ -15,6 +15,8 @@ router
     .post('/refresh', asyncWrapper(authController.refresh.bind(authController)))
     .post('/recover', strictRateLimit, asyncWrapper(authController.recuperaSenha.bind(authController)))
     .patch('/password/reset', strictRateLimit, asyncWrapper(authController.atualizarSenhaToken.bind(authController)))
-    .post('/signup', asyncWrapper(authController.signup.bind(authController)));
+    .post('/signup', asyncWrapper(authController.signup.bind(authController)))
+    .get('/verificar-email', asyncWrapper(authController.verificarEmail.bind(authController)))
+    .post('/google', strictRateLimit, asyncWrapper(authController.googleLogin.bind(authController)));
 
 export default router;

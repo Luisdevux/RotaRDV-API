@@ -8,6 +8,15 @@ const despesaAbastecimentoSchema = new mongoose.Schema({
         type: Number,
         required: [true, "A quantidade de litros é obrigatória!"]
     },
+    valor_litro: {
+        type: Number,
+        required: [true, "O valor por litro é obrigatório!"]
+    },
+    tipo_combustivel: {
+        type: String,
+        enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
+        required: [true, "O tipo de combustível é obrigatório!"]
+    },
     km_atual: {
         type: Number,
         required: [true, "A quilometragem atual é obrigatória!"]

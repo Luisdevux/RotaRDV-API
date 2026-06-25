@@ -11,6 +11,8 @@ import mongoose from 'mongoose';
 // Importação das rotas
 import authRoutes from './authRoutes.js';
 import usuarioRoutes from './usuarioRoutes.js';
+import veiculoRoutes from './veiculoRoutes.js';
+import viagemRoutes from './viagemRoutes.js';
 
 dotenv.config();
 
@@ -48,6 +50,8 @@ const routes = (app) => {
         express.json(),
         authRoutes,
         usuarioRoutes,
+        veiculoRoutes,
+        viagemRoutes
     );
 };
 

@@ -24,46 +24,48 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@faker-js/faker": "^10.3.0",
+    "@faker-js/faker": "^10.5.0",
+    "@ruanlopes1350/hermes-client": "^1.1.0",
+    "axios": "^1.18.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
-    "cpf-cnpj-validator": "^1.0.3",
-    "dompurify": "^3.3.3",
-    "dotenv": "^17.3.1",
+    "cpf-cnpj-validator": "^2.1.2",
+    "dompurify": "^3.4.11",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-fileupload": "^1.5.2",
-    "express-rate-limit": "^8.2.1",
-    "faker": "^5.5.3",
-    "helmet": "^8.1.0",
-    "jsdom": "^29.0.1",
+    "express-rate-limit": "^8.5.2",
+    "google-auth-library": "^10.7.0",
+    "helmet": "^8.2.0",
+    "jsdom": "^29.1.1",
     "jsonwebtoken": "^9.0.3",
     "minio": "^8.0.7",
-    "mongoose": "^9.2.2",
-    "mongoose-paginate-v2": "^1.9.1",
-    "multer": "^2.1.1",
-    "sharp": "^0.34.5",
-    "swagger-jsdoc": "^6.2.8",
+    "mongoose": "^9.7.1",
+    "mongoose-paginate-v2": "^1.9.4",
+    "multer": "^2.2.0",
+    "sharp": "^0.35.1",
+    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^9.0.1",
+    "uuid": "^14.0.0",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/preset-env": "^7.29.0",
-    "@eslint/js": "^9.39.3",
-    "babel-jest": "^30.2.0",
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.1",
+    "@eslint/js": "^10.0.1",
+    "babel-jest": "^30.4.1",
     "babel-plugin-transform-import-meta": "^2.3.3",
-    "eslint": "^9.26.0",
+    "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.3.0",
-    "jest": "^30.2.0",
-    "mongodb-memory-server": "^11.0.1",
+    "globals": "^17.6.0",
+    "jest": "^30.4.2",
+    "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.14",
-    "prettier": "^3.8.1",
+    "prettier": "^3.8.4",
     "supertest": "^7.2.2"
   },
   "babel": {
@@ -113,5 +115,11 @@
       "/middlewares/asyncWrapper.js",
       "utils/helpers/HttpStatusCodes.js"
     ]
+  },
+  "overrides": {
+    "babel-plugin-transform-import-meta": {
+      "@babel/core": "$@babel/core"
+    },
+    "js-yaml": "^4.1.2"
   }
 }

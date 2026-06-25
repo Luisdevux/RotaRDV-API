@@ -74,7 +74,31 @@ class UsuarioService {
             parsedData.senha = await AuthHelper.hashPassword(parsedData.senha);
         }
 
+        // Configuração de verificação de email
+        const tokenVerificacao = await AuthHelper.generateRandomToken();
+        parsedData.token_verificacao_email = tokenVerificacao;
+        parsedData.exp_token_verificacao_email = new Date(Date.now() + 24 * 60 *60 * 1000); // 24 horas
+        parsedData.email_verificada = false;
+
         const data = await this.repository.criar(parsedData);
+
+        // Envia email de verificação em background (não bloqueia o fluxo)
+        const hermesClient = (await import('../config/hermesClient.js')).default;
+        const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${tokenVerificacao}`;
+
+        hermesClient.sendEmail({
+            usuarioId: data._id,
+            recipient_to: data.email,
+            subject: 'Verificação de Email - RotaRDV',
+            template_id: '95f9e573-039c-43fa-862a-376858c02728',
+            variables: {
+                nomeUsuario: data.nome,
+                linkVerificacao: linkVerificacao
+            }
+        })
+        .then((resposta) => console.log(`[Sucesso] Email de verificação enviado para: ${data.email}. ID: ${resposta?.dados?._id || 'N/A'}`))
+        .catch((error) => console.error(`[Erro] Falha ao enviar email de verificação: ${error.message}`));
+
         return data;
     }
 
@@ -105,6 +129,11 @@ class UsuarioService {
         // Não permitir alterar isAdmin se não for admin
         if (!isAdmin) {
             delete parsedData.isAdmin;
+        }
+
+        // Validar CPF ao atualizar (não apenas no cadastro)
+        if (parsedData.cpf) {
+            await this.validateCpf(parsedData.cpf, id);
         }
 
         const data = await this.repository.atualizar(id, parsedData);

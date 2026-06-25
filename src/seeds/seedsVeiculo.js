@@ -1,13 +1,11 @@
-// src/seeds/seedsUsuario.js
+// src/seeds/seedsVeiculo.js
 
 import 'dotenv/config';
 import { fakeMappings } from './globalFakeMapping.js';
 import Veiculos from '../models/Veiculo.js';
-import DbConnect from '../config/dbConnect.js';
-
-await DbConnect.conectar();
 
 async function seedVeiculos() {
+    console.log('[SEED] Iniciando seed de veículos...');
     await Veiculos.deleteMany();
 
     const veiculos = [];
@@ -17,6 +15,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo Admin',
             placa: 'ABC1234',
+            combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Bitrem Graneleiro 9 Eixos',
                 placas: ['RYQ-5I78', 'RYQ-5A79'],
@@ -26,6 +25,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 1',
             placa: 'DEF5678',
+            combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Carreta Baú',
                 placas: ['RYQ-5B80'],
@@ -35,6 +35,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 2',
             placa: 'GHI9012',
+            combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Rodotrem Basculante',
                 placas: ['RYQ-5C81', 'RYQ-5D82', 'RYQ-5E83'],
@@ -44,6 +45,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 3',
             placa: 'JKL3456',
+            combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Sider',
                 placas: ['RYQ-5F84'],
@@ -53,6 +55,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 4',
             placa: 'MNO7890',
+            combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Porta Container',
                 placas: ['RYQ-5G85'],
@@ -66,6 +69,7 @@ async function seedVeiculos() {
         veiculos.push({
             modelo: fakeMappings.Veiculo.modelo(),
             placa: fakeMappings.Veiculo.placa(),
+            combustivel_preferencial: fakeMappings.Veiculo.combustivel_preferencial(),
             reboque: fakeMappings.Veiculo.reboque()
         })
     }

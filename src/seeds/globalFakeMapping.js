@@ -30,6 +30,11 @@ export const fakeMappings = {
     status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
     isAdmin: () => faker.datatype.boolean(),
     foto_perfil: () => faker.image.avatar(),
+    email_verificado: () => faker.datatype.boolean(),
+    token_verificacao_email: () => null,
+    exp_token_verificacao_email: () => null,
+    googleId: () => faker.string.uuid(),
+    authProvider: () => faker.helpers.arrayElement(['local', 'google']),
     empresa: () => ({
       nome: faker.company.name(),
       cargo: faker.person.jobTitle(),
@@ -45,6 +50,7 @@ export const fakeMappings = {
   Veiculo: {
     modelo: () => faker.vehicle.model(),
     placa: () => faker.vehicle.vrm(),
+    combustivel_preferencial: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
     reboque: () => ({
       modelo: faker.helpers.arrayElement(['Bitrem Graneleiro 9 Eixos', 'Rodotrem Basculante', 'Sider Librelato', 'Carreta Baú Facchini']),
       placas: [faker.vehicle.vrm(), faker.vehicle.vrm()],
@@ -54,7 +60,19 @@ export const fakeMappings = {
 
   Viagem: {
     usuario_id: () => new mongoose.Types.ObjectId(),
+    usuario_snapshot: () => ({
+      nome: faker.person.fullName(),
+      email: faker.internet.email(),
+    }),
     veiculo_id: () => new mongoose.Types.ObjectId(),
+    veiculo_snapshot: () => ({
+      placa: faker.vehicle.vrm(),
+      modelo: faker.vehicle.model(),
+      reboque: {
+        modelo: faker.helpers.arrayElement(['Randon', 'Guerra', 'Librelato']),
+        placas: [faker.vehicle.vrm()]
+      }
+    }),
     origem: () => ({ cidade: faker.location.city(), estado: faker.location.state({ abbreviated: true }) }),
     destino: () => ({ cidade: faker.location.city(), estado: faker.location.state({ abbreviated: true }) }),
     data_inicio: () => faker.date.recent(),
@@ -62,6 +80,16 @@ export const fakeMappings = {
     km_inicial: () => faker.number.int({ min: 10000, max: 50000 }),
     km_final: () => faker.number.int({ min: 50100, max: 80000 }),
     status: () => faker.helpers.arrayElement(['em_andamento', 'concluída', 'cancelada']),
+    resumo_financeiro: () => ({
+      total_geral: 0,
+      por_categoria: {
+        ABASTECIMENTO: 0,
+        ALIMENTACAO: 0,
+        MANUTENCAO: 0,
+        PEDAGIO: 0,
+        OUTROS: 0
+      }
+    })
   },
 
   Despesa: { ...baseDespesa },
@@ -70,6 +98,8 @@ export const fakeMappings = {
     ...baseDespesa,
     tipo: () => 'ABASTECIMENTO',
     litros: () => parseFloat(faker.finance.amount({ min: 10, max: 200, dec: 2 })),
+    valor_litro: () => parseFloat(faker.finance.amount({ min: 5, max: 8, dec: 2 })),
+    tipo_combustivel: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
     km_atual: () => faker.number.int({ min: 10000, max: 80000 }),
   },
 

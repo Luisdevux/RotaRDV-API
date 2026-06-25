@@ -63,8 +63,24 @@ Com essa modelagem, o sistema ficou com estas características:
 4. Leitura mais simples para o app mobile.
 5. Menor custo de manutenção no backend.
 
+## Cálculo do Resumo Financeiro
+
+Diferente de sistemas convencionais onde os totais são salvos em colunas estáticas, o RotaRDV utiliza a estratégia de **Cálculo Dinâmico (On-the-fly)** para o resumo financeiro das viagens.
+
+### Por que não salvar o resumo no banco?
+
+1.  **Integridade em Sincronização em Lote:** Em um cenário Offline-First, o motorista pode sincronizar dezenas de despesas de uma única vez. Se o resumo fosse atualizado a cada despesa salva (via middlewares de banco), o overhead de processamento seria enorme.
+2.  **Verdade Única:** Ao calcular o resumo no momento da consulta (`GET /viagens/:id`), garantimos que o valor exibido é exatamente a soma real das despesas presentes no banco, sem risco de desatualização por falhas em processos assíncronos.
+3.  **Desacoplamento:** A Model de `Despesa` não precisa conhecer a Model de `Viagem`, seguindo o princípio de responsabilidade única.
+
+### Como funciona na prática
+
+A lógica de agregação reside no `ViagemService`. Ao solicitar os detalhes de uma viagem:
+1.  A API busca os dados básicos da viagem.
+2.  Executa um pipeline de `$aggregate` do MongoDB na coleção de despesas, filtrando pelo ID da viagem.
+3.  Agrupa os valores pelo campo `tipo` e calcula o `total_geral`.
+4.  Injeta esse objeto `resumo_financeiro` no JSON de resposta.
+
 ## Conclusão
 
-A adoção de discriminators no Mongoose é a melhor opção para este projeto porque combina duas necessidades importantes ao mesmo tempo: flexibilidade para telas diferentes de cadastro e simplicidade para consultas unificadas.
-
-Em vez de espalhar a lógica em várias coleções, o sistema passa a enxergar a despesa como uma entidade única, com variações controladas por tipo. Isso torna a arquitetura mais limpa, mais performática e mais fácil de evoluir.
+A adoção de discriminators combinada com o cálculo dinâmico via Service é a arquitetura ideal para este projeto. Ela oferece flexibilidade para o App Mobile, performance para sincronização em massa e segurança absoluta nos dados financeiros auditados.

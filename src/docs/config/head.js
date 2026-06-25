@@ -21,11 +21,19 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const usuarioPaths = (await import(new URL("../paths/usuario.js",
         import.meta.url).href + t)).default;
+    const veiculoPaths = (await import(new URL("../paths/veiculo.js",
+        import.meta.url).href + t)).default;
+    const viagemPaths = (await import(new URL("../paths/viagem.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
         import.meta.url).href + t)).default;
     const usuarioSchemas = (await import(new URL("../schemas/usuarioSchema.js",
+        import.meta.url).href + t)).default;
+    const veiculoSchemas = (await import(new URL("../schemas/veiculoSchema.js",
+        import.meta.url).href + t)).default;
+    const viagemSchemas = (await import(new URL("../schemas/viagemSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -70,10 +78,20 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                     name: "Usuários",
                     description: "Rotas para o gerenciamento de usuários"
                 },
+                {
+                    name: "Veículos",
+                    description: "Rotas para o gerenciamento da frota (Veículos e Reboques)"
+                },
+                {
+                    name: "Viagens",
+                    description: "Rotas para o registro e controle de viagens"
+                },
             ],
             paths: {
                 ...authPaths,
                 ...usuarioPaths,
+                ...veiculoPaths,
+                ...viagemPaths,
             },
             components: {
                 securitySchemes: {
@@ -86,6 +104,8 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                 schemas: {
                     ...authSchemas,
                     ...usuarioSchemas,
+                    ...veiculoSchemas,
+                    ...viagemSchemas,
                 }
             },
             security: [{

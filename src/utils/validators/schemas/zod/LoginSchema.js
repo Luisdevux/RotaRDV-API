@@ -1,8 +1,8 @@
 // src/utils/validators/schemas/zod/LoginSchema.js
 
-import { email, z } from 'zod';
+import { z } from 'zod';
 
-const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
 const LoginSchema = z.object({
     email: z
@@ -21,7 +21,7 @@ const LoginSchema = z.object({
             if (!senha) return true;
             return senhaRegex.test(senha);
         }, {
-            message: 'A senha deve conter pelo menos 1 letra maiúscula, 1 letra minúscula, 1 número e no mínimo 8 caracteres.',
+            message: 'A senha deve conter pelo menos 1 letra maiúscula, 1 letra minúscula, 1 número, 1 caractere especial e no mínimo 8 caracteres.',
         }),
 });
 
