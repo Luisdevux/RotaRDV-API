@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import objectIdSchema from './ObjectIdSchema.js';
 
-const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 const cpfRegex = /^\d{11}$/;
 
 const UsuarioSchema = z.object({
@@ -22,7 +22,7 @@ const UsuarioSchema = z.object({
             if (!senha) return true;
             return senhaRegex.test(senha);
         }, {
-            message: 'A senha deve conter pelo menos 1 letra maiúscula, 1 letra minúscula e 1 número.',
+            message: 'A senha deve conter pelo menos 1 letra maiúscula, 1 letra minúscula, 1 número, 1 caractere especial e no mínimo 8 caracteres.',
         })
         .optional(),
     cpf: z

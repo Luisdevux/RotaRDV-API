@@ -18,7 +18,10 @@ class Usuario {
             },
             senha: {
                 type: String,
-                required: [true, "A senha é obrigatória!"],
+                required: [
+                    function() { return this.authProvider === 'local'; }, 
+                    "A senha é obrigatória!"
+                ],
                 select: false
             },
             googleId: {
