@@ -5,6 +5,13 @@ class VeiculoFilterBuild {
         this.filtros = {};
     }
 
+    comId(id) {
+        if (id) {
+            this.filtros._id = id;
+        }
+        return this;
+    }
+
     comPlaca(placa) {
         if (placa) {
             this.filtros.placa = {

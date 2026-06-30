@@ -25,6 +25,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const viagemPaths = (await import(new URL("../paths/viagem.js",
         import.meta.url).href + t)).default;
+    const despesaPaths = (await import(new URL("../paths/despesa.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -34,6 +36,8 @@ const getSwaggerOptions = async () => {
     const veiculoSchemas = (await import(new URL("../schemas/veiculoSchema.js",
         import.meta.url).href + t)).default;
     const viagemSchemas = (await import(new URL("../schemas/viagemSchema.js",
+        import.meta.url).href + t)).default;
+    const despesaSchemas = (await import(new URL("../schemas/despesaSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -65,7 +69,7 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                 `,
                 contact: {
                     name: "Suporte RotaRDV - Sistema de Registro e Despesas de Viagens",
-                    email: "suporterotardv@gmail.com",
+                    email: "contatorotardv2026@gmail.com",
                 },
             },
             servers: getServersInCorrectOrder(),
@@ -86,12 +90,17 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                     name: "Viagens",
                     description: "Rotas para o registro e controle de viagens"
                 },
+                {
+                    name: "Despesas",
+                    description: "Rotas para o controle de despesas e abastecimentos"
+                }
             ],
             paths: {
                 ...authPaths,
                 ...usuarioPaths,
                 ...veiculoPaths,
                 ...viagemPaths,
+                ...despesaPaths,
             },
             components: {
                 securitySchemes: {
@@ -106,6 +115,7 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                     ...usuarioSchemas,
                     ...veiculoSchemas,
                     ...viagemSchemas,
+                    ...despesaSchemas,
                 }
             },
             security: [{
