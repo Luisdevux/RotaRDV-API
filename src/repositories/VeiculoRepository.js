@@ -32,23 +32,15 @@ class VeiculoRepository {
         return await this.modelVeiculo.findOne({ placa });
     }
 
-    async listar(req) {
+    async listar(req, filtrosOverride = {}) {
         const { id } = req.params;
         if (id) {
             const data = await this.buscarPorID(id);
-            if (!data) {
-                throw new CustomError({
-                    statusCode: 404,
-                    errorType: 'resourceNotFound',
-                    field: "Veículo",
-                    details: [],
-                    customMessage: messages.error.resourceNotFound("Veículo")
-                });
-            }
             return data;
         }
 
-        const { _id, placa, modelo, reboque_placa, reboque_modelo, page = 1 } = req.query;
+        const { placa, modelo, reboque_placa, reboque_modelo, page = 1 } = req.query;
+        const _id = filtrosOverride._id || req.query._id;
         const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
 
         const filterBuilder = new VeiculoFilterBuild()

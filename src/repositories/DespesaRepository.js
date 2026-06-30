@@ -28,14 +28,15 @@ class DespesaRepository {
         return despesa;
     }
 
-    async listar(req) {
+    async listar(req, filtrosOverride = {}) {
         const { id } = req.params;
         if (id) {
             return await this.buscarPorID(id);
         }
 
         const query = req.validatedQuery || req.query;
-        const { viagem_id, tipo, data_inicio, data_fim, page = 1, limite = 10 } = query;
+        const { tipo, data_inicio, data_fim, page = 1, limite = 10 } = query;
+        const viagem_id = filtrosOverride.viagem_id || query.viagem_id;
 
         const limitOptions = Math.min(parseInt(limite, 10), 100);
 

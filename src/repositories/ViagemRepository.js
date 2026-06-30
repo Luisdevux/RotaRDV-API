@@ -39,13 +39,14 @@ class ViagemRepository {
         return ultimaViagem ? (ultimaViagem.km_final || 0) : 0;
     }
 
-    async listar(req) {
+    async listar(req, filtrosOverride = {}) {
         const { id } = req.params;
         if (id) {
             return await this.buscarPorID(id);
         }
 
-        const { usuario_id, veiculo_id, status, data_inicio, data_fim, page = 1 } = req.query;
+        const { veiculo_id, status, data_inicio, data_fim, page = 1 } = req.query;
+        const usuario_id = filtrosOverride.usuario_id || req.query.usuario_id;
         const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
 
         const filterBuilder = new ViagemFilterBuild()

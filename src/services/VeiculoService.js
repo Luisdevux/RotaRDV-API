@@ -41,11 +41,16 @@ class VeiculoService {
               field: 'Consulta de Veículo',
               customMessage: 'Você não tem permissões para acessar os dados deste veículo.',
           });
-      } else {
+      }
+
+      const filtrosOverride = {};
+
+      const { id } = req.params;
+      if (!id) {
           // Se for listagem geral e for motorista, só pode listar o veículo atrelado a ele.
           if (!usuarioLogado.isAdmin) {
               if (usuarioLogado.veiculo_id) {
-                  req.query._id = String(usuarioLogado.veiculo_id._id || usuarioLogado.veiculo_id);
+                  filtrosOverride._id = String(usuarioLogado.veiculo_id._id || usuarioLogado.veiculo_id);
               } else {
                   throw new CustomError({
                       statusCode: HttpStatusCodes.FORBIDDEN.code,
@@ -58,7 +63,7 @@ class VeiculoService {
           }
       }
 
-      const data = await this.repository.listar(req);
+      const data = await this.repository.listar(req, filtrosOverride);
       return data;
     }
 

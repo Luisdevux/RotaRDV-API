@@ -112,11 +112,12 @@ class ViagemService {
             return viagemObj;
         }
 
+        const filtrosOverride = {};
         if (!usuarioLogado.isAdmin) {
-            req.query.usuario_id = String(usuarioLogado._id);
+            filtrosOverride.usuario_id = String(usuarioLogado._id);
         }
 
-        const data = await this.repository.listar(req);
+        const data = await this.repository.listar(req, filtrosOverride);
         return data;
     }
 

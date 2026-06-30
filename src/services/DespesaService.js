@@ -73,32 +73,31 @@ class DespesaService {
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
+        const filtrosOverride = {};
         if (!usuarioLogado.isAdmin) {
-            // O app deve obrigatoriamente informar a viagem_id para listar despesas (por segurança)
+            // O app deve obrigatoriamente informar a viagem_id para listar despesas
             const { viagem_id } = req.validatedQuery || req.query;
 
             if (!viagem_id) {
-                throw new CustomError({
-                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                    errorType: 'validation',
-                    field: 'viagem_id',
-                    customMessage: 'Para motoristas, é obrigatório informar o viagem_id para listar as despesas.'
-                });
-            }
-
-            // Verifica se a viagem pertence a ele
-            const viagem = await this.viagemRepository.buscarPorID(viagem_id);
-            if (String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
-                throw new CustomError({
-                    statusCode: HttpStatusCodes.FORBIDDEN.code,
-                    errorType: 'forbidden',
-                    field: 'viagem_id',
-                    customMessage: 'Você não tem permissão para visualizar as despesas desta viagem.'
-                });
+                // Sincronização offline-first: Retorna despesas de todas as viagens do motorista
+                const viagens = await this.viagemRepository.modelViagem.find({ usuario_id: usuarioLogado._id }).select('_id');
+                const viagensIds = viagens.map(v => v._id);
+                filtrosOverride.viagem_id = { $in: viagensIds };
+            } else {
+                // Verifica se a viagem pertence a ele
+                const viagem = await this.viagemRepository.buscarPorID(viagem_id);
+                if (String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
+                    throw new CustomError({
+                        statusCode: HttpStatusCodes.FORBIDDEN.code,
+                        errorType: 'forbidden',
+                        field: 'viagem_id',
+                        customMessage: 'Você não tem permissão para visualizar as despesas desta viagem.'
+                    });
+                }
             }
         }
 
-        return await this.repository.listar(req);
+        return await this.repository.listar(req, filtrosOverride);
     }
 
     async deletar(id, req) {
