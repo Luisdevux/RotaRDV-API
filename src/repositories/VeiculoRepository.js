@@ -48,10 +48,11 @@ class VeiculoRepository {
             return data;
         }
 
-        const { placa, modelo, reboque_placa, reboque_modelo, page = 1 } = req.query;
+        const { _id, placa, modelo, reboque_placa, reboque_modelo, page = 1 } = req.query;
         const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
 
         const filterBuilder = new VeiculoFilterBuild()
+            .comId(_id)
             .comPlaca(placa)
             .comModelo(modelo)
             .comReboquePlaca(reboque_placa)

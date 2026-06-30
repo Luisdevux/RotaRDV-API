@@ -42,13 +42,20 @@ class VeiculoService {
               customMessage: 'Você não tem permissões para acessar os dados deste veículo.',
           });
       } else {
-          // Se está listando todos os veículos, apenas Admin tem permissão
-          ensurePermission({
-              usuarioLogado,
-              isOwner: false,
-              field: 'Consulta',
-              customMessage: 'Apenas administradores podem listar todos os veículos.',
-          });
+          // Se for listagem geral e for motorista, só pode listar o veículo atrelado a ele.
+          if (!usuarioLogado.isAdmin) {
+              if (usuarioLogado.veiculo_id) {
+                  req.query._id = String(usuarioLogado.veiculo_id._id || usuarioLogado.veiculo_id);
+              } else {
+                  throw new CustomError({
+                      statusCode: HttpStatusCodes.FORBIDDEN.code,
+                      errorType: 'forbidden',
+                      field: 'Consulta de Veículo',
+                      details: [],
+                      customMessage: 'Você não possui nenhum veículo vinculado ao seu perfil. Entre em contato com a administração.',
+                  });
+              }
+          }
       }
 
       const data = await this.repository.listar(req);
@@ -58,7 +65,7 @@ class VeiculoService {
     async criar(parsedData, req) {
         // Apenas administradores podem criar veículos
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        
+
         ensurePermission({
             usuarioLogado,
             isOwner: false,
@@ -75,7 +82,7 @@ class VeiculoService {
     async atualizar(id, parsedData, req) {
         // Apenas administradores podem atualizar veículos
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        
+
         ensurePermission({
             usuarioLogado,
             isOwner: false,
@@ -94,7 +101,7 @@ class VeiculoService {
     async deletar(id, req) {
         // Apenas administradores podem deletar veículos
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        
+
         ensurePermission({
             usuarioLogado,
             isOwner: false,
