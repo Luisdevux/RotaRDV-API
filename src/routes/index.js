@@ -13,6 +13,7 @@ import authRoutes from './authRoutes.js';
 import usuarioRoutes from './usuarioRoutes.js';
 import veiculoRoutes from './veiculoRoutes.js';
 import viagemRoutes from './viagemRoutes.js';
+import despesaRoutes from './despesaRoutes.js';
 
 dotenv.config();
 
@@ -51,7 +52,8 @@ const routes = (app) => {
         authRoutes,
         usuarioRoutes,
         veiculoRoutes,
-        viagemRoutes
+        viagemRoutes,
+        despesaRoutes
     );
 };
 
