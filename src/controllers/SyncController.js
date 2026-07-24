@@ -24,7 +24,7 @@ class SyncController {
         }
 
         const payload = await SyncPayloadSchema.parseAsync(req.body);
-        const data = await this.service.pushSync(req.user, payload.viagens, payload.despesas);
+        const data = await this.service.pushSync({ _id: req.user_id }, payload.viagens, payload.despesas);
 
         return CommonResponse.success(
             res,
@@ -35,7 +35,7 @@ class SyncController {
     }
     async pull(req, res) {
         const { updatedAfter } = req.query;
-        const data = await this.service.pullSync(req.user, updatedAfter);
+        const data = await this.service.pullSync({ _id: req.user_id }, updatedAfter);
 
         return CommonResponse.success(
             res,
