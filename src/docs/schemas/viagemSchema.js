@@ -90,7 +90,7 @@ const viagemSchemas = {
 
     ViagemCriacao: {
         type: "object",
-        required: ["usuario_id", "veiculo_id", "origem", "destino", "data_inicio", "data_fim", "km_inicial", "km_final"],
+        required: ["usuario_id", "veiculo_id", "origem", "destino", "data_inicio", "km_inicial"],
         properties: {
             _id: { type: "string", format: "uuid", description: "Opcional. UUID para sincronização offline." },
             usuario_id: { type: "string", example: "674fa21d79969d2172e78799" },
@@ -112,9 +112,7 @@ const viagemSchemas = {
                 }
             },
             data_inicio: { type: "string", format: "date-time", example: "2025-01-16T08:00:00.000Z" },
-            data_fim: { type: "string", format: "date-time", example: "2025-01-17T18:00:00.000Z" },
             km_inicial: { type: "number", example: 10000 },
-            km_final: { type: "number", example: 10500 },
             descricao: { type: "string", example: "Carga de eletrônicos" },
             status: { type: "string", enum: ["em_andamento", "concluída", "cancelada"], default: "em_andamento" }
         }

@@ -15,7 +15,7 @@ const ViagemBaseSchema = z.object({
     origem: LocalSchema,
     destino: LocalSchema,
     data_inicio: z.string().datetime({ message: 'Data de início inválida.' }).or(z.date()),
-    data_fim: z.string().datetime({ message: 'Data de fim inválida.' }).or(z.date()),
+    data_fim: z.string().datetime({ message: 'Data de fim inválida.' }).or(z.date()).nullable().optional().default(null),
     km_inicial: z.number().min(0, 'KM inicial não pode ser negativo.'),
     km_final: z.number().min(0, 'KM final não pode ser negativo.').nullable().optional().default(null),
     descricao: z.string().optional().default(''),
@@ -23,9 +23,12 @@ const ViagemBaseSchema = z.object({
 });
 
 const ViagemSchema = ViagemBaseSchema.refine((data) => {
-    const inicio = new Date(data.data_inicio);
-    const fim = new Date(data.data_fim);
-    return fim >= inicio;
+    if (data.data_inicio && data.data_fim) {
+        const inicio = new Date(data.data_inicio);
+        const fim = new Date(data.data_fim);
+        return fim >= inicio;
+    }
+    return true;
 }, {
     message: "A data de fim não pode ser anterior à data de início.",
     path: ["data_fim"],

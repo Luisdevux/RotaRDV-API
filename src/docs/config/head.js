@@ -27,6 +27,10 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const despesaPaths = (await import(new URL("../paths/despesa.js",
         import.meta.url).href + t)).default;
+    const syncPaths = (await import(new URL("../paths/sync.js",
+        import.meta.url).href + t)).default;
+    const healthPaths = (await import(new URL("../paths/health.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -38,6 +42,8 @@ const getSwaggerOptions = async () => {
     const viagemSchemas = (await import(new URL("../schemas/viagemSchema.js",
         import.meta.url).href + t)).default;
     const despesaSchemas = (await import(new URL("../schemas/despesaSchema.js",
+        import.meta.url).href + t)).default;
+    const syncSchemas = (await import(new URL("../schemas/syncSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -93,6 +99,14 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                 {
                     name: "Despesas",
                     description: "Rotas para o controle de despesas e abastecimentos"
+                },
+                {
+                    name: "Sincronização",
+                    description: "Rotas para envio (push) e recebimento (pull) offline-first"
+                },
+                {
+                    name: "Sistema",
+                    description: "Rotas de monitoramento e configurações gerais"
                 }
             ],
             paths: {
@@ -101,6 +115,8 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                 ...veiculoPaths,
                 ...viagemPaths,
                 ...despesaPaths,
+                ...syncPaths,
+                ...healthPaths,
             },
             components: {
                 securitySchemes: {
@@ -116,6 +132,7 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                     ...veiculoSchemas,
                     ...viagemSchemas,
                     ...despesaSchemas,
+                    ...syncSchemas,
                 }
             },
             security: [{
