@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gitlab-runner-tcc-despesas
+  name: gitlab-runner-rotardv
   namespace: tools
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gitlab-runner-tcc-despesas
+      app: gitlab-runner-rotardv
   template:
     metadata:
       labels:
-        app: gitlab-runner-tcc-despesas
+        app: gitlab-runner-rotardv
     spec:
-      serviceAccountName: gitlab-runner-tcc-despesas-sa
+      serviceAccountName: gitlab-runner-rotardv-sa
       containers:
       - name: gitlab-runner
         image: docker.io/gitlab/gitlab-runner:latest
@@ -21,7 +21,7 @@ spec:
         - name: RUNNER_TOKEN
           valueFrom:
             secretKeyRef:
-              name: gitlab-runner-secret-tcc-despesas
+              name: gitlab-runner-secret-rotardv
               key: runner-token
         command:
         - /bin/bash
@@ -35,6 +35,6 @@ spec:
             --docker-image docker.io/library/alpine:latest \
             --kubernetes-namespace "tools" \
             --kubernetes-helper-image "docker.io/gitlab/gitlab-runner-helper:arm64-latest" \
-            --kubernetes-service-account "gitlab-runner-tcc-despesas-sa"
+            --kubernetes-service-account "gitlab-runner-rotardv-sa"
           
           gitlab-runner run

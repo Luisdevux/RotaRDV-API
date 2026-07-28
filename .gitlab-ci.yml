@@ -3,9 +3,9 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE: luisfelipe/tcc-despesas-api:$CI_COMMIT_SHORT_SHA
-  KUBERNETES_NAMESPACE: "despesas-prod"
-  KUBERNETES_NAMESPACE_QA: "despesas-qa"
+  DOCKER_IMAGE: luisfelipe/rotardv-api:$CI_COMMIT_SHORT_SHA
+  KUBERNETES_NAMESPACE: "rotardv-prod"
+  KUBERNETES_NAMESPACE_QA: "rotardv-qa"
 
 build_job:
   stage: build
@@ -15,7 +15,7 @@ build_job:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   tags:
-    - k3s-runner-despesas
+    - k3s-runner-rotardv
   script:
     - echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"$(printf "%s:%s" "${DOCKERHUB_USER}" "${DOCKERHUB_PASS}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context "${CI_PROJECT_DIR}" --dockerfile "${CI_PROJECT_DIR}/Dockerfile" --destination "${DOCKER_IMAGE}"
@@ -24,10 +24,10 @@ deploy_job:
   stage: deploy
   image: bitnami/kubectl:latest
   tags:
-    - k3s-runner-despesas
+    - k3s-runner-rotardv
   script:
-    - kubectl set image deployment/tcc-despesas-api tcc-despesas-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE
-    - kubectl rollout status deployment/tcc-despesas-api -n $KUBERNETES_NAMESPACE
+    - kubectl set image deployment/rotardv-api rotardv-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE
+    - kubectl rollout status deployment/rotardv-api -n $KUBERNETES_NAMESPACE
   only:
     - main
 
@@ -39,7 +39,7 @@ build_job_qa:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   tags:
-    - k3s-runner-despesas
+    - k3s-runner-rotardv
   script:
     - echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"$(printf "%s:%s" "${DOCKERHUB_USER}" "${DOCKERHUB_PASS}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context "${CI_PROJECT_DIR}" --dockerfile "${CI_PROJECT_DIR}/Dockerfile" --destination "${DOCKER_IMAGE}"
@@ -48,9 +48,9 @@ deploy_job_qa:
   stage: deploy
   image: bitnami/kubectl:latest
   tags:
-    - k3s-runner-despesas
+    - k3s-runner-rotardv
   script:
-    - kubectl set image deployment/tcc-despesas-api tcc-despesas-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE_QA
-    - kubectl rollout status deployment/tcc-despesas-api -n $KUBERNETES_NAMESPACE_QA
+    - kubectl set image deployment/rotardv-api rotardv-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE_QA
+    - kubectl rollout status deployment/rotardv-api -n $KUBERNETES_NAMESPACE_QA
   only:
     - develop
