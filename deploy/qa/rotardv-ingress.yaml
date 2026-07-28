@@ -7,7 +7,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-  - host: qa.api.rotardv.eduardotartas.dpdns.org
+  - host: qa.api.rotardv.luisfelipe.dpdns.org
     http:
       paths:
       - path: /
