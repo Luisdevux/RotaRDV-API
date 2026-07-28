@@ -68,8 +68,20 @@ const veiculoRoutes = {
             tags: ["Veículos"],
             summary: "Cria um novo veículo",
             description: `
-        + Caso de uso: Permite o cadastro de um novo veículo na plataforma.
-        + Regras de Negócio: Apenas usuários com perfil "Administrador" têm permissão para criar veículos. Placa deve ser obrigatoriamente única.
+        + Caso de uso: Permite o cadastro de um novo veículo (cavalo mecânico ou carreta) na frota.
+        
+        + Função de Negócio:
+            - Adicionar novo veículo à base de dados para ser utilizado nas viagens.
+            + Recebe no corpo:
+                - **placa**, **modelo**, **combustivel_preferencial**, **capacidade_tanque**, **ano_fabricacao**.
+        
+        + Regras de Negócio: 
+            - Apenas Administradores podem criar veículos.
+            - A placa deve ser única no sistema.
+            - Validação de formatação da placa padrão Mercosul/Nacional.
+        
+        + Resultado Esperado:
+            - HTTP 201 Created retornando o veículo recém cadastrado.
             `,
             security: [{ bearerAuth: [] }],
             requestBody: {
@@ -97,7 +109,19 @@ const veiculoRoutes = {
         get: {
             tags: ["Veículos"],
             summary: "Busca um veículo específico pelo ID",
-            description: "Retorna as informações de um único veículo. Apenas Administradores ou motoristas vinculados a este veículo podem consultar.",
+            description: `
+            + Caso de uso: Visualizar os dados detalhados de um veículo da frota.
+            
+            + Função de Negócio:
+                - Retorna as informações completas de um veículo pelo seu ID.
+            
+            + Regras de Negócio:
+                - Apenas Administradores podem visualizar qualquer veículo.
+                - Motoristas só podem visualizar o veículo se estiverem atrelados a ele numa viagem em andamento.
+                
+            + Resultado Esperado:
+                - HTTP 200 OK com os detalhes do veículo.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [
                 {
@@ -121,7 +145,18 @@ const veiculoRoutes = {
         patch: {
             tags: ["Veículos"],
             summary: "Atualiza um veículo existente",
-            description: "Permite atualizar os dados de um veículo. Apenas Administradores podem atualizar.",
+            description: `
+            + Caso de uso: Atualizar as informações da frota.
+            
+            + Função de Negócio:
+                - Edição de dados do veículo (modelo, combustível, etc).
+                
+            + Regras de Negócio:
+                - Apenas Administradores podem editar dados de veículos.
+                
+            + Resultado Esperado:
+                - HTTP 200 OK com os novos dados gravados.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [
                 {
@@ -156,7 +191,19 @@ const veiculoRoutes = {
         delete: {
             tags: ["Veículos"],
             summary: "Remove um veículo",
-            description: "Deleta um veículo do sistema. Apenas Administradores podem realizar esta exclusão.",
+            description: `
+            + Caso de uso: Excluir um veículo da frota (venda, perda total, erro).
+            
+            + Função de Negócio:
+                - Remove o veículo e o impede de ser usado em novas viagens.
+            
+            + Regras de Negócio:
+                - Apenas Administradores podem excluir.
+                - Soft-delete ou validação se não há viagens ativas utilizando-o.
+                
+            + Resultado Esperado:
+                - HTTP 200 OK com mensagem de sucesso.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [
                 {

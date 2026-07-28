@@ -1,0 +1,58 @@
+# 1. ServiceAccount no namespace onde o runner RODA (tools)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-runner-rotardv-sa
+  namespace: tools
+---
+# 2. Role no namespace que o runner PRECISA ACESSAR (rotardv-prod)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-runner-deployer-rotardv
+  namespace: rotardv-prod
+rules:
+  - apiGroups: ["", "apps", "extensions"]
+    resources: ["deployments", "replicasets", "pods", "services", "secrets", "configmaps", "persistentvolumeclaims", "ingresses", "persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# 3. RoleBinding amarrando o SA (do tools) à Role (no rotardv-prod)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-runner-deployer-binding-rotardv
+  namespace: rotardv-prod
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-runner-rotardv-sa
+    namespace: tools
+roleRef:
+  kind: Role
+  name: gitlab-runner-deployer-rotardv
+  apiGroup: rbac.authorization.k8s.io
+---
+# 4. Role no namespace tools para gerenciar pods de CI
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-runner-manager-rotardv
+  namespace: tools
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec", "pods/attach", "pods/log", "secrets", "configmaps", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# 5. RoleBinding no tools
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-runner-manager-binding-rotardv
+  namespace: tools
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-runner-rotardv-sa
+    namespace: tools
+roleRef:
+  kind: Role
+  name: gitlab-runner-manager-rotardv
+  apiGroup: rbac.authorization.k8s.io

@@ -9,10 +9,18 @@ const despesaPaths = {
             summary: "Lista todas as despesas ou busca por filtros",
             description: `
         + Caso de uso: Permitir a listagem de despesas (Abastecimento, Alimentação, etc) e a sincronização com o aplicativo Mobile.
+        
+        + Função de Negócio:
+            - Retornar as despesas cadastradas paginadas.
+            + Recebe opcionalmente os filtros:
+                - **viagem_id**, **tipo**, **data_inicio**, **data_fim**.
+        
         + Regras de Negócio:
-            - Retorna as despesas paginadas.
-            - Pode filtrar por viagem_id, tipo e período (data_inicio, data_fim).
-            - **(Offline-First)**: Se o motorista(app) não enviar o \`viagem_id\`, a API retornará **todas** as despesas vinculadas a **todas as suas viagens**, ideal para realizar o "Pull Sync" do banco local em apenas uma requisição.
+            - Motoristas acessam apenas despesas de suas próprias viagens.
+            - **(Offline-First)**: Se o motorista(app) não enviar o \`viagem_id\`, a API retornará **todas** as despesas vinculadas a **todas as suas viagens**, ideal para realizar o "Pull Sync" global do banco local.
+        
+        + Resultado Esperado:
+            - HTTP 200 OK contendo os registros de despesas formatados.
       `,
             security: [{ bearerAuth: [] }],
             parameters: [
@@ -66,12 +74,22 @@ const despesaPaths = {
             tags: ["Despesas"],
             summary: "Cria uma nova despesa",
             description: `
+        + Caso de uso: Registrar um gasto ocorrido na viagem (ex: Abastecimento em posto).
+        
+        + Função de Negócio:
+            - Salvar um novo comprovante/gasto e atrelar à viagem em andamento.
+            + Recebe no corpo:
+                - Detalhes da despesa (tipo, valor, litros se for abastecimento, fotos de recibos, etc).
+        
         + Regras de Negócio:
             - Motoristas só podem registrar despesas nas suas próprias viagens (Admin pode em todas).
-            - A viagem deve estar com status "em_andamento".
+            - A viagem vinculada deve estar com status "em_andamento".
             - A data da despesa deve ser maior ou igual à data de início da viagem e não pode ser no futuro.
-            - Se for Abastecimento, o km_atual deve ser >= km_inicial da viagem.
-            - O valor total (em abastecimento) deve ser estritamente litros * valor_litro.
+            - Se for "ABASTECIMENTO", o \`km_atual\` deve ser >= \`km_inicial\` da viagem.
+            - O valor total (em abastecimento) deve ser estritamente (litros * valor_litro).
+        
+        + Resultado Esperado:
+            - HTTP 201 Created com os dados completos da despesa registrada.
             `,
             security: [{ bearerAuth: [] }],
             requestBody: {
@@ -98,6 +116,18 @@ const despesaPaths = {
         get: {
             tags: ["Despesas"],
             summary: "Busca uma despesa específica pelo ID",
+            description: `
+            + Caso de uso: Visualizar os dados específicos e comprovantes de uma despesa.
+            
+            + Função de Negócio:
+                - Retorna todos os detalhes de um lançamento, incluindo URLs de imagens armazenadas no bucket S3.
+                
+            + Regras de Negócio:
+                - O usuário deve ter permissão (ser o dono da viagem ou admin).
+                
+            + Resultado Esperado:
+                - HTTP 200 OK com os detalhes da despesa.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [
                 {
@@ -121,9 +151,17 @@ const despesaPaths = {
             tags: ["Despesas"],
             summary: "Remove uma despesa",
             description: `
+        + Caso de uso: Excluir um lançamento financeiro feito errado (antes da viagem ser concluída).
+        
+        + Função de Negócio:
+            - Remove o registro da despesa.
+            
         + Regras de Negócio:
             - É necessário ser o motorista da viagem correspondente ou Admin.
-            - A viagem deve estar "em_andamento".
+            - A exclusão direta só é permitida se a viagem ainda estiver "em_andamento".
+            
+        + Resultado Esperado:
+            - HTTP 200 OK indicando exclusão de sucesso.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
