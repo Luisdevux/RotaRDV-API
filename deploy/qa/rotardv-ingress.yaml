@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-rotardv
+  namespace: rotardv-qa
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: qa.api.rotardv.eduardotartas.dpdns.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rotardv-api-service
+            port:
+              number: 80
