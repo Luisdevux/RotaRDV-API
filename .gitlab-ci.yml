@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE: luisfelipe/rotardv-api:$CI_COMMIT_SHORT_SHA
+  DOCKER_IMAGE: $DOCKERHUB_USER/rotardv-api:$CI_COMMIT_SHORT_SHA
   KUBERNETES_NAMESPACE: "rotardv-prod"
   KUBERNETES_NAMESPACE_QA: "rotardv-qa"
 
