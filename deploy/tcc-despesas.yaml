@@ -1,0 +1,129 @@
+---
+# VOLUME PARA O MONGODB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-despesas-pvc
+  namespace: despesas-prod
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# BANCO DE DADOS (MONGODB)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: despesas-prod
+spec:
+  serviceName: "mongodb-tcc-despesas"
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: docker.io/library/mongo:8
+        envFrom:
+        - secretRef:
+            name: tcc-despesas-secrets
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: db-data
+          mountPath: /data/db
+        livenessProbe:
+          exec:
+            command:
+              - mongosh
+              - --eval
+              - db.adminCommand('ping')
+          failureThreshold: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: mongodb-despesas-pvc
+
+---
+# SERVIÇO DO BANCO (O DNS INTERNO)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-tcc-despesas
+  namespace: despesas-prod
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+
+---
+# API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tcc-despesas-api
+  namespace: despesas-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tcc-despesas-api
+  template:
+    metadata:
+      labels:
+        app: tcc-despesas-api
+    spec:
+      containers:
+      - name: tcc-despesas-api
+        image: docker.io/luisfelipe/tcc-despesas-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5040
+        envFrom:
+        - secretRef:
+            name: tcc-despesas-secrets
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5040
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5040
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+
+---
+# SERVIÇO DA API
+apiVersion: v1
+kind: Service
+metadata:
+  name: tcc-despesas-api-service
+  namespace: despesas-prod
+spec:
+  selector:
+    app: tcc-despesas-api
+  ports:
+    - port: 80
+      targetPort: 5040

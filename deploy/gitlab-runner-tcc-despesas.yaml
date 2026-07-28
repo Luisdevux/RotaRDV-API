@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner-tcc-despesas
+  namespace: tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-runner-tcc-despesas
+  template:
+    metadata:
+      labels:
+        app: gitlab-runner-tcc-despesas
+    spec:
+      serviceAccountName: gitlab-runner-tcc-despesas-sa
+      containers:
+      - name: gitlab-runner
+        image: docker.io/gitlab/gitlab-runner:latest
+        env:
+        - name: RUNNER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-runner-secret-tcc-despesas
+              key: runner-token
+        command:
+        - /bin/bash
+        - -c
+        - |
+          gitlab-runner register \
+            --non-interactive \
+            --url "https://gitlab.fslab.dev" \
+            --token "$RUNNER_TOKEN" \
+            --executor "kubernetes" \
+            --docker-image docker.io/library/alpine:latest \
+            --kubernetes-namespace "tools" \
+            --kubernetes-helper-image "docker.io/gitlab/gitlab-runner-helper:arm64-latest" \
+            --kubernetes-service-account "gitlab-runner-tcc-despesas-sa"
+          
+          gitlab-runner run

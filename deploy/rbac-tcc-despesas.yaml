@@ -1,0 +1,58 @@
+# 1. ServiceAccount no namespace onde o runner RODA (tools)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-runner-tcc-despesas-sa
+  namespace: tools
+---
+# 2. Role no namespace que o runner PRECISA ACESSAR (despesas-prod)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-runner-deployer-despesas
+  namespace: despesas-prod
+rules:
+  - apiGroups: ["", "apps", "extensions"]
+    resources: ["deployments", "replicasets", "pods", "services", "secrets", "configmaps", "persistentvolumeclaims", "ingresses", "persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# 3. RoleBinding amarrando o SA (do tools) à Role (no despesas-prod)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-runner-deployer-binding-despesas
+  namespace: despesas-prod
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-runner-tcc-despesas-sa
+    namespace: tools
+roleRef:
+  kind: Role
+  name: gitlab-runner-deployer-despesas
+  apiGroup: rbac.authorization.k8s.io
+---
+# 4. Role no namespace tools para gerenciar pods de CI
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-runner-manager-tcc-despesas
+  namespace: tools
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec", "pods/attach", "pods/log", "secrets", "configmaps", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# 5. RoleBinding no tools
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-runner-manager-binding-tcc-despesas
+  namespace: tools
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-runner-tcc-despesas-sa
+    namespace: tools
+roleRef:
+  kind: Role
+  name: gitlab-runner-manager-tcc-despesas
+  apiGroup: rbac.authorization.k8s.io
