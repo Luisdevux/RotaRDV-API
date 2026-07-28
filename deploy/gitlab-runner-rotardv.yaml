@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner-rotardv
+  namespace: tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-runner-rotardv
+  template:
+    metadata:
+      labels:
+        app: gitlab-runner-rotardv
+    spec:
+      serviceAccountName: gitlab-runner-rotardv-sa
+      containers:
+      - name: gitlab-runner
+        image: docker.io/gitlab/gitlab-runner:latest
+        env:
+        - name: RUNNER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-runner-secret-rotardv
+              key: runner-token
+        command:
+        - /bin/bash
+        - -c
+        - |
+          gitlab-runner register \
+            --non-interactive \
+            --url "https://gitlab.fslab.dev" \
+            --token "$RUNNER_TOKEN" \
+            --executor "kubernetes" \
+            --docker-image docker.io/library/alpine:latest \
+            --kubernetes-namespace "tools" \
+            --kubernetes-helper-image "docker.io/gitlab/gitlab-runner-helper:arm64-latest" \
+            --kubernetes-service-account "gitlab-runner-rotardv-sa"
+          
+          gitlab-runner run

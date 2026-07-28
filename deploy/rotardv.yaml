@@ -1,0 +1,129 @@
+---
+# VOLUME PARA O MONGODB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-rotardv-pvc
+  namespace: rotardv-prod
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# BANCO DE DADOS (MONGODB)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: rotardv-prod
+spec:
+  serviceName: "mongodb-rotardv"
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: docker.io/library/mongo:8
+        envFrom:
+        - secretRef:
+            name: rotardv-secrets
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: db-data
+          mountPath: /data/db
+        livenessProbe:
+          exec:
+            command:
+              - mongosh
+              - --eval
+              - db.adminCommand('ping')
+          failureThreshold: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: mongodb-rotardv-pvc
+
+---
+# SERVIÇO DO BANCO (O DNS INTERNO)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-rotardv
+  namespace: rotardv-prod
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+
+---
+# API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rotardv-api
+  namespace: rotardv-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rotardv-api
+  template:
+    metadata:
+      labels:
+        app: rotardv-api
+    spec:
+      containers:
+      - name: rotardv-api
+        image: docker.io/luisfelipe/rotardv-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5040
+        envFrom:
+        - secretRef:
+            name: rotardv-secrets
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5040
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5040
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+
+---
+# SERVIÇO DA API
+apiVersion: v1
+kind: Service
+metadata:
+  name: rotardv-api-service
+  namespace: rotardv-prod
+spec:
+  selector:
+    app: rotardv-api
+  ports:
+    - port: 80
+      targetPort: 5040

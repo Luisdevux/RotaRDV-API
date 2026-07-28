@@ -14,6 +14,7 @@ import usuarioRoutes from './usuarioRoutes.js';
 import veiculoRoutes from './veiculoRoutes.js';
 import viagemRoutes from './viagemRoutes.js';
 import despesaRoutes from './despesaRoutes.js';
+import syncRoutes from './syncRoutes.js';
 
 dotenv.config();
 
@@ -53,7 +54,8 @@ const routes = (app) => {
         usuarioRoutes,
         veiculoRoutes,
         viagemRoutes,
-        despesaRoutes
+        despesaRoutes,
+        syncRoutes
     );
 };
 
