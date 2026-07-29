@@ -95,7 +95,7 @@ spec:
             name: rotardv-secrets
         livenessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 5040
             scheme: HTTP
           initialDelaySeconds: 30
@@ -105,7 +105,7 @@ spec:
           successThreshold: 1
         readinessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 5040
             scheme: HTTP
           initialDelaySeconds: 10
