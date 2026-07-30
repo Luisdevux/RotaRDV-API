@@ -82,8 +82,8 @@ const syncRoutes = {
                 {
                     name: "updatedAfter",
                     in: "query",
-                    schema: { type: "string", format: "date-time" },
-                    description: "Retornar apenas registros criados/atualizados após esta data"
+                    schema: { type: "string", example: "30/07/2026" },
+                    description: "Retornar apenas registros criados/atualizados após esta data. Aceita o formato ISO-8601 (ex: 2026-07-30T00:00:00Z) ou o formato local (ex: 30/07/2026)."
                 }
             ],
             responses: {

@@ -8,3 +8,4 @@ export { default as messages } from './messages.js';
 export { default as StatusService } from './StatusService.js';
 export { default as ensurePermission } from './PermissionHelper.js';
 export { default as asyncWrapper } from '../../middlewares/asyncWrapper.js';
+export { default as DateHelper } from './DateHelper.js';
