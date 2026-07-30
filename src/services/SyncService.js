@@ -2,6 +2,7 @@
 
 import Viagem from '../models/Viagem.js';
 import Despesa from '../models/Despesa.js';
+import { DateHelper } from '../utils/helpers/index.js';
 
 class SyncService {
     async pushSync(usuarioLogado, viagens, despesas) {
@@ -87,8 +88,8 @@ class SyncService {
 
         // Delta Sync: Retornar apenas registros criados ou editados após a última sincronização
         if (updatedAfter) {
-            const dateLimit = new Date(updatedAfter);
-            if (!isNaN(dateLimit)) {
+            const dateLimit = DateHelper.parseFlexibleDate(updatedAfter);
+            if (dateLimit) {
                 queryViagem.updatedAt = { $gt: dateLimit };
                 queryDespesa.updatedAt = { $gt: dateLimit };
             }
