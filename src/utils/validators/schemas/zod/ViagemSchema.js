@@ -2,11 +2,25 @@
 
 import { z } from 'zod';
 import objectIdSchema from './ObjectIdSchema.js';
+import { DateHelper } from '../../../helpers/index.js';
 
 const LocalSchema = z.object({
     cidade: z.string().nonempty('A cidade é obrigatória.'),
     estado: z.string().nonempty('O estado é obrigatório.').length(2, 'O estado deve ser a sigla (ex: SP).'),
 });
+
+const DateFlexible = z.preprocess((arg) => {
+    if (!arg) return arg;
+    if (arg instanceof Date) return arg;
+    if (typeof arg === 'string') {
+        const parsed = DateHelper.parseFlexibleDate(arg);
+        return parsed || arg;
+    }
+    return arg;
+}, z.date({
+    required_error: 'A data é obrigatória.',
+    invalid_type_error: 'Formato de data inválido. Use ISO (YYYY-MM-DD) ou formato BR (DD/MM/YYYY).',
+}));
 
 const ViagemBaseSchema = z.object({
     _id: z.string().uuid('UUID inválido.').optional(),
@@ -14,8 +28,8 @@ const ViagemBaseSchema = z.object({
     veiculo_id: objectIdSchema,
     origem: LocalSchema,
     destino: LocalSchema,
-    data_inicio: z.string().datetime({ message: 'Data de início inválida.' }).or(z.date()),
-    data_fim: z.string().datetime({ message: 'Data de fim inválida.' }).or(z.date()).nullable().optional().default(null),
+    data_inicio: DateFlexible,
+    data_fim: DateFlexible.nullable().optional().default(null),
     km_inicial: z.number().min(0, 'KM inicial não pode ser negativo.'),
     km_final: z.number().min(0, 'KM final não pode ser negativo.').nullable().optional().default(null),
     descricao: z.string().optional().default(''),

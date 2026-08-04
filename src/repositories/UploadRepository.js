@@ -38,7 +38,7 @@ class UploadRepository {
             return publicUrl;
         } catch (error) {
             console.error('Erro no upload para Garage:', error);
-            throw new Error('Falha ao fazer upload do arquivo. Tente novamente mais tarde.');
+            throw new Error('Falha ao fazer upload do arquivo. Tente novamente mais tarde.', { cause: error });
         }
     }
 
@@ -59,7 +59,7 @@ class UploadRepository {
             return Buffer.concat(chunks);
         } catch (error) {
             console.error('Erro no download do Garage:', error);
-            throw new Error('Arquivo não encontrado ou falha ao baixar.');
+            throw new Error('Arquivo não encontrado ou falha ao baixar.', { cause: error });
         }
     }
 
@@ -82,7 +82,7 @@ class UploadRepository {
         } catch (error) {
             console.error(`Erro ao deletar arquivo ${fileNameOrUrl} do Garage:`, error.message);
             // IMPORTANTE: Lançar erro para que a lógica de retry em background do UploadService saiba que falhou
-            throw new Error('Falha ao deletar o arquivo do storage.');
+            throw new Error('Falha ao deletar o arquivo do storage.', { cause: error });
         }
     }
 }

@@ -75,11 +75,14 @@ Diferente de sistemas convencionais onde os totais são salvos em colunas estát
 
 ### Como funciona na prática
 
-A lógica de agregação reside no `ViagemService`. Ao solicitar os detalhes de uma viagem:
-1.  A API busca os dados básicos da viagem.
-2.  Executa um pipeline de `$aggregate` do MongoDB na coleção de despesas, filtrando pelo ID da viagem.
-3.  Agrupa os valores pelo campo `tipo` e calcula o `total_geral`.
-4.  Injeta esse objeto `resumo_financeiro` no JSON de resposta.
+A lógica de agregação reside no `ViagemService._calcularResumoFinanceiro`. Ao solicitar os detalhes de uma viagem:
+1. A API busca os dados cadastrais da viagem (incluindo `km_inicial` e `km_final`).
+2. Executa um pipeline de `$aggregate` do MongoDB na coleção `despesas`, agrupando os valores totais por categoria (`tipo`) e somando os `litros` quando o tipo for `ABASTECIMENTO`.
+3. Calcula métricas operacionais em tempo real:
+   * **`km_percorrido`**: Diferença entre `km_final` e `km_inicial`.
+   * **`total_litros`**: Soma dos litros abastecidos em toda a viagem.
+   * **`media_consumo`**: Relação $\text{km\_percorrido} / \text{total\_litros}$ ($\text{km/l}$), arredondada para duas casas decimais.
+4. Injeta o objeto estruturado `resumo_financeiro` no JSON de resposta da viagem.
 
 ## Conclusão
 

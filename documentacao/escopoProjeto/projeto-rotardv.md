@@ -75,19 +75,23 @@ Acompanhamento do que o projeto já atende de regra de arquitetura real pronta p
 - [x] Estrutura montada de Reboque e modelo da cavalaria de eixo no veículo pai.
 - [x] Bloqueio semântico: Condutores conseguem enxergar quem dirige, mas somente contas Admin alteram estrutura corporativa frota.
 
-### 🛣️ Controle de Viagens *(Status: Mapeado)*
-- [ ] `POST`: Validação inteligente de GPS (Origens, Destino e Odômetro inicial) construindo a "Fotografia Snapshot" atrelada no lançamento.
-- [ ] `GET`: Listagem dos blocos rodoviários indexando em `EM_ANDAMENTO`, `CONCLUIDA` e `CANCELADA`.
-- [ ] `PATCH`: Fechamento cíclico processando auditorias na saída contra checagem final (Se as datas das despesas estouraram o horário da viagem e somatório base).
+### 🛣️ Controle de Viagens *(Status: ✅ Implementado)*
+- [x] `POST /viagens`: Criação de viagem com geração automática de **Snapshots Imutáveis** de motorista (`usuario_snapshot`) e veículo (`veiculo_snapshot`), garantindo consistência histórica.
+- [x] Trava de consistência de estado: Bloqueio automático de criação de nova viagem se o motorista já possuir uma viagem com status `em_andamento`.
+- [x] `GET /viagens` e `GET /viagens/:id`: Listagem paginada e consulta detalhada com injeção em tempo real de **Resumo Financeiro Dinâmico** (`total_geral`, `por_categoria`, métricas de `km_percorrido`, `total_litros` e `media_consumo` km/l via aggregation pipeline).
+- [x] `PATCH /viagens/:id`: Atualização de dados da viagem e fechamento de ciclo operacional (`em_andamento`, `concluída`, `cancelada`) com validação de odômetro final.
+- [x] `DELETE /viagens/:id`: Exclusão controlada de viagens e limpeza associada respeitando controle de permissão (Ownership / Admin).
 
-### 🧾 Caixa e Despesas *(Status: Mapeado)*
-- [ ] Criação massiva referenciando UUID para tolerar idenpotência (Evitar celular sem internet enviar 10 vezes mesma janta de R$ 50 via loop delay de rede).
-- [ ] Restrição no `Schema Zod` para forçar tipologia base em `ABASTECIMENTO | ALIMENTACAO | MANUTENCAO | PEDAGIO | OUTROS`.
-- [ ] Isolamento de microserviço transferindo processamento Multipart Form para o MinIO de notas fiscais gerando URIs independentes.
-- [ ] Sem redundância matemática. A API fará os cálculos de totalização dinâmica ao fechar Viagem impedindo falsificações cruzadas.
+### 🧾 Caixa e Despesas *(Status: ✅ Implementado)*
+- [x] Modelagem polimórfica com **Mongoose Discriminators** (`Single Collection Inheritance`) para as categorias: `ABASTECIMENTO`, `ALIMENTACAO`, `MANUTENCAO`, `PEDAGIO` e `OUTROS`.
+- [x] `POST /despesas`: Criação de despesas com validações de integridade rígidas (a viagem precisa estar `em_andamento`, a data da despesa não pode ser anterior à data de início da viagem, e o KM de abastecimento não pode ser inferior ao KM inicial da viagem).
+- [x] `GET /despesas` e `GET /despesas/:id`: Listagem com filtros por viagem e paginação, protegida por ownership.
+- [x] `DELETE /despesas/:id`: Exclusão de despesas com verificação de status ativo da viagem e permissão do motorista.
+- [x] Desacoplamento de fotos e comprovantes fiscais com processamento via Sharp e armazenamento persistente em S3 (MinIO/Garage).
 
-### 🔔 Comunicação (Notificações) *(Status: Mapeado)*
-- [ ] Lógica Pub/Sub gerando caixa de lembretes ao motorista sem bloquear os threads da engine Express por atraso no backend.
+### 🔄 Sincronização Offline-First (Sync Engine) *(Status: ✅ Implementado)*
+- [x] `POST /sync/push`: Sincronização bidirecional em lote com `bulkWrite` tolerante a falhas (`ordered: false`), operando via UUIDs v4 para idempotência absoluta (Upsert de viagens/despesas e exclusão lógica).
+- [x] `GET /sync/pull`: Delta Sync incremental filtrando registros alterados após timestamp (`updatedAfter`) para otimizar largura de banda móvel.
 
 ---
 

@@ -278,7 +278,7 @@ class AuthService {
         }
 
         const accesstoken = await this.TokenUtil.generateAccessToken(id);
-        let refreshtoken = userEncontrado.refreshtoken;
+        const refreshtoken = userEncontrado.refreshtoken;
 
         // Armazenar apenas o refreshtoken; o accessToken é stateless.
         await this.repository.armazenarTokens(id, null, refreshtoken);
