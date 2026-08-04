@@ -23,7 +23,7 @@ async function setupGarage() {
             console.info(`Bucket "${bucketName}" já existe no Garage.`);
         }
     } catch (erro) {
-        throw new Error(`Erro ao verificar/criar o bucket "${bucketName}": ${erro.message}`);
+        throw new Error(`Erro ao verificar/criar o bucket "${bucketName}": ${erro.message}`, { cause: erro });
     }
 }
 

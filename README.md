@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🧾 RDV - Registro de Despesas de Viagens
+# 🧾 RotaRDV - Registro de Despesas de Viagens
 
-**API RESTful para gerenciamento de despesas de viagens em transportadoras rodoviárias.**
+**API RESTful para Gestão Operacional e Financeira de Frotas Rodoviárias.**
 
-Permite registrar viagens, despesas detalhadas por tipo (abastecimento, alimentação, pedágio, manutenção e outros) e gerenciar perfil de usuário.
+Permite registrar viagens, gerenciar frotas e motoristas, lançar despesas polimórficas detalhadas com anexos em S3 e realizar **sincronização bidirecional resiliente sob o paradigma Offline-First**.
 
 ![Node.js](https://img.shields.io/badge/Node.js-22+-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5.2-000000?style=for-the-badge&logo=express&logoColor=white)
@@ -17,7 +17,7 @@ Permite registrar viagens, despesas detalhadas por tipo (abastecimento, alimenta
 ![Jest](https://img.shields.io/badge/Jest-30-C21325?style=flat-square&logo=jest&logoColor=white)
 ![ESLint](https://img.shields.io/badge/ESLint-9-4B32C3?style=flat-square&logo=eslint&logoColor=white)
 ![Prettier](https://img.shields.io/badge/Prettier-3-F7B93E?style=flat-square&logo=prettier&logoColor=black)
-![Swagger](https://img.shields.io/badge/Swagger-Docs-85EA2D?style=flat-square&logo=swagger&logoColor=black)
+![Swagger](https://img.shields.io/badge/Swagger-OpenAPI_3.0-85EA2D?style=flat-square&logo=swagger&logoColor=black)
 
 </div>
 
@@ -27,33 +27,35 @@ Permite registrar viagens, despesas detalhadas por tipo (abastecimento, alimenta
 
 - [Tecnologias](#-tecnologias)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Instalação](#-instalação)
+- [Instalação e Execução](#-instalação-e-execução)
 - [Variáveis de Ambiente](#-variáveis-de-ambiente)
 - [Scripts npm](#-scripts-npm)
 - [Docker](#-docker)
-- [CI/CD](#-cicd)
 - [Arquitetura da API](#-arquitetura-da-api)
-- [Usando os Utilitários](#-usando-os-utilitários)
+- [Mecanismo de Sincronização Offline-First](#-mecanismo-de-sincronização-offline-first)
+- [Catálogo de Endpoints (Rotas da API)](#-catálogo-de-endpoints-rotas-da-api)
+- [Usando os Utilitários e Helpers](#-usando-os-utilitários-e-helpers)
 - [Convenções do Projeto](#-convenções-do-projeto)
-- [Contribuindo](#-contribuindo)
 - [Licença](#-licença)
 
 ---
 
 ## 🛠 Tecnologias
 
-<details>
-<summary><b>Backend</b></summary>
+<details open>
+<summary><b>Backend & Database</b></summary>
 
 | Tecnologia | Versão | Descrição |
 | :--- | :---: | :--- |
-| ![Node.js](https://img.shields.io/badge/-Node.js-339933?style=flat-square&logo=node.js&logoColor=white) | 22+ | Runtime JavaScript (ES Modules) |
-| ![Express](https://img.shields.io/badge/-Express-000000?style=flat-square&logo=express&logoColor=white) | 5.2 | Web framework |
-| ![MongoDB](https://img.shields.io/badge/-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | 8+ | Banco de dados NoSQL |
-| ![Mongoose](https://img.shields.io/badge/-Mongoose-880000?style=flat-square&logo=mongoose&logoColor=white) | 9 | ODM para MongoDB |
-| `mongoose-paginate-v2` | 1.9 | Paginação automática |
-| ![JWT](https://img.shields.io/badge/-JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white) | 9 | Autenticação com access/refresh/recovery tokens |
-| `bcryptjs` | 3 | Hash seguro de senhas |
+| ![Node.js](https://img.shields.io/badge/-Node.js-339933?style=flat-square&logo=node.js&logoColor=white) | 22+ | Runtime JavaScript (ES Modules nativo) |
+| ![Express](https://img.shields.io/badge/-Express-000000?style=flat-square&logo=express&logoColor=white) | 5.2 | Web framework minimalista e rápido |
+| ![MongoDB](https://img.shields.io/badge/-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | 8+ | Banco de dados orientado a documentos |
+| ![Mongoose](https://img.shields.io/badge/-Mongoose-880000?style=flat-square&logo=mongoose&logoColor=white) | 9 | ODM com suporte a Discriminators e Hooks |
+| `mongoose-paginate-v2` | 1.9 | Paginação otimizada com metadados estruturados |
+| ![JWT](https://img.shields.io/badge/-JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white) | 9 | Autenticação stateless (Access, Refresh e Recovery Tokens) |
+| `bcryptjs` | 3 | Hash criptográfico unidirecional de senhas |
+| `google-auth-library` | 10 | Validação de ID Tokens do Google OAuth2 |
+| `@ruanlopes1350/hermes-client` | 1.0 | Cliente HTTP para despache de e-mails transacionais e notificações |
 
 </details>
 
@@ -62,59 +64,35 @@ Permite registrar viagens, despesas detalhadas por tipo (abastecimento, alimenta
 
 | Tecnologia | Descrição |
 | :--- | :--- |
-| ![Helmet](https://img.shields.io/badge/-Helmet-000?style=flat-square) | Headers HTTP de segurança com CSP |
-| `cors` | Cross-Origin Resource Sharing |
-| `express-rate-limit` | Rate limiting em 3 níveis (auth, strict, public) |
-| ![Zod](https://img.shields.io/badge/-Zod_4-3E67B1?style=flat-square&logo=zod&logoColor=white) | Validação de schemas em runtime |
-| `cpf-cnpj-validator` | Validação de documentos brasileiros (CPF/CNPJ) |
-| `compression` | Compressão gzip de respostas |
+| ![Helmet](https://img.shields.io/badge/-Helmet-000?style=flat-square) | Headers HTTP de segurança rigorosos com CSP customizado |
+| `cors` | Controle granular de Cross-Origin Resource Sharing |
+| `express-rate-limit` | Rate limiting em 3 níveis (auth, strict para login/recover, e public) |
+| ![Zod](https://img.shields.io/badge/-Zod_4-3E67B1?style=flat-square&logo=zod&logoColor=white) | Validação estrita de contratos de entrada (Body, Params, Queries) |
+| `cpf-cnpj-validator` | Validação matemática de documentos brasileiros (CPF) |
+| `dompurify` + `jsdom` | Sanitização rigorosa de arquivos vetoriais SVG contra ataques XSS |
+| `compression` | Compressão gzip automática de payloads HTTP |
 
 </details>
 
 <details>
-<summary><b>Armazenamento</b></summary>
+<summary><b>Armazenamento & Mídia</b></summary>
 
 | Tecnologia | Descrição |
 | :--- | :--- |
-| ![MinIO](https://img.shields.io/badge/-MinIO/Garage-C72E49?style=flat-square&logo=minio&logoColor=white) | Armazenamento S3-compatible de arquivos e imagens |
-| `express-fileupload` | Upload de arquivos (limite 50MB) |
-| `sharp` | Processamento e otimização de imagens |
-| `multer` | Middleware de upload |
+| ![MinIO](https://img.shields.io/badge/-MinIO/Garage-C72E49?style=flat-square&logo=minio&logoColor=white) | Armazenamento de alta performance S3-Compatible |
+| `express-fileupload` | Middleware de recepção de arquivos multipart (limite de 50MB) |
+| `sharp` | Compressão inteligente para JPEG progressivo e redimensionamento |
 
 </details>
 
 <details>
-<summary><b>Monitoramento & Logging</b></summary>
+<summary><b>Logging & Observabilidade</b></summary>
 
 | Tecnologia | Descrição |
 | :--- | :--- |
-| ![Winston](https://img.shields.io/badge/-Winston-000?style=flat-square) | Logging estruturado com 3 transports (console, error file, combined file) |
-| `winston-daily-rotate-file` | Rotação automática de logs diários (retenção de 30 dias) |
-
-</details>
-
-<details>
-<summary><b>Testes</b></summary>
-
-| Tecnologia | Descrição |
-| :--- | :--- |
-| ![Jest](https://img.shields.io/badge/-Jest_30-C21325?style=flat-square&logo=jest&logoColor=white) | Framework de testes com cobertura |
-| `supertest` | Testes de integração HTTP |
-| `mongodb-memory-server` | MongoDB em memória para testes isolados |
-| `@faker-js/faker` | Geração de dados fake para testes e seeds |
-
-</details>
-
-<details>
-<summary><b>Desenvolvimento</b></summary>
-
-| Tecnologia | Descrição |
-| :--- | :--- |
-| `nodemon` | Auto-reload em desenvolvimento |
-| ![ESLint](https://img.shields.io/badge/-ESLint_9-4B32C3?style=flat-square&logo=eslint&logoColor=white) | Linting de código (flat config) |
-| ![Prettier](https://img.shields.io/badge/-Prettier-F7B93E?style=flat-square&logo=prettier&logoColor=black) | Formatação automática |
-| ![Docker](https://img.shields.io/badge/-Docker-2496ED?style=flat-square&logo=docker&logoColor=white) | Containerização (dev + prod) |
-| `babel` | Transpilação de ES Modules para compatibilidade com Jest |
+| ![Winston](https://img.shields.io/badge/-Winston-000?style=flat-square) | Logging estruturado multinível com identificador único `errorId` |
+| `winston-daily-rotate-file` | Rotação diária automatizada de logs com política de retenção de 30 dias |
+| `swagger-ui-express` | Interface interativa OpenAPI 3.0 para exploração e testes de endpoints |
 
 </details>
 
@@ -122,238 +100,212 @@ Permite registrar viagens, despesas detalhadas por tipo (abastecimento, alimenta
 
 ## 📁 Estrutura do Projeto
 
-<details>
-<summary><b>✅ Implementado</b> (clique para expandir)</summary>
+A arquitetura do projeto segue o padrão **Layered Architecture** com segregação estrita de responsabilidades:
 
 ```
 tcc-despesas-api/
-├── 📄 server.js                      # Ponto de entrada da aplicação
-├── 📦 package.json                   # Dependências e scripts
-├── 🐳 Dockerfile                     # Imagem Docker (node:22)
-├── 🐳 docker-compose.yml             # Docker Compose de produção
-├── 🐳 docker-compose.dev.yml         # Docker Compose de desenvolvimento
-├── 🔄 .gitlab-ci.yml                 # Pipeline CI/CD (SAST + Secret Detection)
-├── 🧪 jest.setup.js                  # Silencia console durante testes
-├── ⚙️ nodemon.json                   # Configuração do hot-reload
-├── ⚙️ eslint.config.js               # ESLint flat config (ES2024)
-├── ⚙️ .prettierrc                    # Prettier para formatação
-├── ⚙️ .prettierignore                # Arquivos ignorados pelo Prettier
-├── ⚙️ .editorconfig                  # EditorConfig (2 espaços, LF, UTF-8)
-├── ⚙️ .npmrc                         # Desabilita download automático do mongodb-memory-server
-├── 🔐 .env.example                   # Exemplo de variáveis de ambiente
+├── 📄 server.js                          # Ponto de inicialização do servidor HTTP
+├── 📦 package.json                       # Metadados, scripts e dependências
+├── 🐳 Dockerfile                         # Configuração de build da imagem de produção
+├── 🐳 docker-compose.yml                 # Orquestração do MongoDB e API (Produção)
+├── 🐳 docker-compose.dev.yml             # Orquestração com live reload (Desenvolvimento)
+├── 🔄 .gitlab-ci.yml                     # Pipeline CI/CD (SAST & Secret Detection)
+├── ⚙️ nodemon.json                       # Configuração de hot-reload
+├── ⚙️ eslint.config.js                   # Padronização de código ESLint (Flat Config)
+├── ⚙️ .prettierrc                        # Regras de formatação Prettier
+├── 🔐 .env.example                       # Modelo de variáveis de ambiente
+├── 📂 documentacao/                      # Documentações de escopo, modelagem e requisitos
+│   ├── escopoProjeto/                    # Projeto, Offline-First e Modelagem de Despesas
+│   └── requisitos/                       # Especificação completa de Requisitos (RF/RNF)
 │
-├── src/
-│   ├── 🚀 app.js                     # Configuração Express com middlewares
-│   │
-│   ├── config/
-│   │   ├── dbConnect.js               # Conexão com MongoDB (config por ambiente)
-│   │   ├── garageConnect.js           # Cliente MinIO/Garage para armazenamento S3
-│   │   └── setupGarage.js             # Inicialização do bucket no Garage
-│   │
-│   ├── middlewares/
-│   │   ├── AuthMiddleware.js          # Autenticação JWT + verificação de refresh token
-│   │   ├── RateLimitMiddleware.js     # Rate limiting em 3 níveis
-│   │   ├── LogRoutesMiddleware.js     # Log de rotas (IP, método, URL)
-│   │   └── asyncWrapper.js            # Wrapper para tratamento de erros async
-│   │
-│   └── utils/
-│       ├── logger.js                  # Winston logger com rotação e limpeza automática
-│       ├── AuthHelper.js              # Hash/comparação de senhas, tokens aleatórios
-│       ├── TokenUtil.js               # Geração e decodificação de JWT (3 tipos)
-│       │
-│       ├── errors/
-│       │   ├── AuthenticationError.js # Erro de autenticação (status 498)
-│       │   └── TokenExpiredError.js   # Erro de token expirado (status 498)
-│       │
-│       ├── helpers/
-│       │   ├── CommonResponse.js      # Respostas padronizadas { message, data, errors }
-│       │   ├── CustomError.js         # Classe de erro operacional customizado
-│       │   ├── HttpStatusCodes.js     # Constantes HTTP (mensagens em português)
-│       │   ├── PermissionHelper.js    # Verificação de permissões (admin/dono)
-│       │   ├── StatusService.js       # Resolução de mensagens por código/tipo
-│       │   ├── errorHandler.js        # Middleware global de erros (12 tipos)
-│       │   ├── messages.js            # Dicionário centralizado de mensagens (pt-BR)
-│       │   ├── mongooseBrazilianDatePlugin.js  # Plugin de datas dd/MM/yyyy
-│       │   └── index.js              # Barrel export de todos os helpers
-│       │
-│       └── validators/
-│           └── schemas/zod/
-│               ├── LoginSchema.js     # Validação de login (email + senha forte)
-│               ├── ObjectIdSchema.js  # Validação de MongoDB ObjectId
-│               ├── UsuarioSchema.js   # Validação de usuário (criação/atualização)
-│               └── querys/
-│                   ├── CommonQuerySchema.js   # Paginação e validação de ID
-│                   └── UsuarioQuerySchema.js  # Filtros de busca de usuário
+└── src/
+    ├── 🚀 app.js                         # Instanciação do Express e pipeline de middlewares
+    │
+    ├── ⚙️ config/                        # Conexões e clientes de infraestrutura
+    │   ├── dbConnect.js                  # Conexão resiliente com o MongoDB
+    │   ├── garageConnect.js              # Cliente S3 (MinIO/Garage)
+    │   ├── hermesClient.js               # Cliente de notificações/emails Hermes
+    │   └── setupGarage.js                # Provisionamento automático de buckets S3
+    │
+    ├── 🎮 controllers/                  # Manipuladores de requisições HTTP
+    │   ├── AuthController.js             # Login, signup, google, tokens e verificação
+    │   ├── DespesaController.js          # Criação, listagem e remoção de despesas
+    │   ├── SyncController.js             # Push e Pull de sincronização offline-first
+    │   ├── UsuarioController.js          # CRUD e gestão de status e fotos de usuários
+    │   ├── VeiculoController.js          # CRUD da frota e reboques
+    │   └── ViagemController.js           # Ciclo de vida e resumo financeiro de viagens
+    │
+    ├── 💼 services/                      # Regras de negócio e casos de uso
+    │   ├── AuthService.js                # Autenticação, OAuth2, senhas e email
+    │   ├── DespesaService.js             # Lançamento polimórfico e validações operacionais
+    │   ├── SyncService.js                # Motor de reconciliação em lote (bulkWrite)
+    │   ├── UploadService.js              # Otimização Sharp, SVG sanitizer e retry S3
+    │   ├── UsuarioService.js             # Gestão de permissões e perfis
+    │   ├── VeiculoService.js             # Gestão de frota e duplicidades
+    │   └── ViagemService.js              # Snapshots imutáveis e cálculo de consumo/totais
+    │
+    ├── 🗄️ repositories/                  # Abstração de persistência e queries NoSQL
+    │   ├── BaseRepository.js             # Repositório genérico com paginação integrada
+    │   ├── DespesaRepository.js          # Queries e agregações de despesas
+    │   ├── UploadRepository.js           # Operações diretas no storage S3
+    │   ├── UsuarioRepository.js          # Queries com projections e busca por documento
+    │   ├── VeiculoRepository.js          # Queries da frota
+    │   └── ViagemRepository.js           # Queries de viagens com populated references
+    │
+    ├── 📝 models/                        # Esquemas Mongoose e Discriminators
+    │   ├── Usuario.js                    # Modelo de usuário com credenciais e status
+    │   ├── Veiculo.js                    # Modelo de veículo e conjunto de reboques
+    │   ├── Viagem.js                     # Modelo de viagem com snapshots imutáveis (UUID)
+    │   ├── Despesa.js                    # Modelo base polimórfico de despesa (UUID)
+    │   ├── DespesaAbastecimento.js       # Discriminator ABASTECIMENTO (litros, KM, combustível)
+    │   ├── DespesaAlimentacao.js         # Discriminator ALIMENTACAO (tipo de refeição)
+    │   ├── DespesaManutencao.js          # Discriminator MANUTENCAO (oficina mecânica)
+    │   └── DespesaPedagio.js             # Discriminator PEDAGIO (praça de pedágio)
+    │
+    ├── 🎯 routes/                        # Definição e roteamento de endpoints
+    │   ├── index.js                      # Agregador central de rotas, docs e health
+    │   ├── authRoutes.js                 # Rotas públicas e sensíveis de autenticação
+    │   ├── despesaRoutes.js              # Rotas de gestão de despesas
+    │   ├── syncRoutes.js                 # Rotas do Sync Engine (push e pull)
+    │   ├── usuarioRoutes.js              # Rotas de gestão de usuários
+    │   ├── veiculoRoutes.js              # Rotas de gestão de veículos
+    │   └── viagemRoutes.js               # Rotas de controle de viagens
+    │
+    ├── 🛡️ middlewares/                   # Interceptadores de requisições
+    │   ├── AuthMiddleware.js             # Validação de JWT Bearer e sessão ativa
+    │   ├── LogRoutesMiddleware.js        # Log em tempo real de tráfego de rotas
+    │   ├── RateLimitMiddleware.js        # Limitadores de requisições por IP
+    │   └── asyncWrapper.js               # Envelopador assíncrono para captura de exceções
+    │
+    ├── 🌱 seeds/                         # Povoamento inicial de banco de dados
+    │   ├── seeds.js                      # Orquestrador central dos seeds
+    │   ├── seedsUsuario.js               # Injeção de usuários admin e motoristas padrão
+    │   ├── seedsVeiculo.js               # Injeção de caminhões e carretas
+    │   ├── seedsViagem.js                # Injeção de viagens de teste
+    │   └── seedsDespesa.js               # Injeção de despesas polimórficas de teste
+    │
+    ├── 📚 docs/                          # Especificação OpenAPI / Swagger UI
+    │   ├── config/head.js                # Metadados e configuração do Swagger
+    │   ├── paths/                        # Documentação modular por rota
+    │   └── schemas/                      # Esquemas de entrada e saída documentados
+    │
+    └── 💡 utils/                         # Utilitários, helpers e validações
+        ├── AuthHelper.js                 # Utilitário de hash e comparação de senhas
+        ├── TokenUtil.js                  # Gerenciador de ciclo de vida de tokens JWT
+        ├── logger.js                     # Configuração Winston com rotação de arquivos
+        ├── helpers/                      # Helpers de resposta, erro e plugins de data
+        └── validators/schemas/zod/       # Schemas Zod de validação em tempo de execução
 ```
-
-</details>
-
-<details>
-<summary><b>⏳ Em Desenvolvimento</b> (clique para expandir)</summary>
-
-```
-src/
-├── 🎯 routes/                   # Express Routes
-├── 🎮 controllers/              # Controllers
-├── 💼 service/                  # Business Logic
-├── 🗄️ repository/               # Data Access Layer
-├── 📝 models/                   # Mongoose Models
-├── 🌱 seeds/                    # Seeding de dados iniciais
-├── 📚 docs/                     # Swagger documentation
-└── 🧪 test/                     # Testes com Jest + Supertest
-```
-
-</details>
 
 ---
 
-## 🚀 Instalação
+## 🚀 Instalação e Execução
 
-### Requisitos
+### Pré-requisitos
 
-| Requisito | Versão |
-| :--- | :--- |
-| ![Node.js](https://img.shields.io/badge/-Node.js-339933?style=flat-square&logo=node.js&logoColor=white) | 22+ |
-| ![MongoDB](https://img.shields.io/badge/-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | 8+ |
-| ![Docker](https://img.shields.io/badge/-Docker-2496ED?style=flat-square&logo=docker&logoColor=white) | Recomendado |
+* **Node.js**: v22.0.0 ou superior
+* **MongoDB**: v8.0 ou superior (ou via Docker)
+* **Docker & Docker Compose** *(opcional, mas recomendado)*
 
-### Setup Local
+### 1. Clonar e Instalar Dependências
 
 ```bash
-# Clonar o repositório
 git clone https://gitlab.fslab.dev/tcc-registro-de-despesas-luis/tcc-despesas-api.git
 cd tcc-despesas-api
-
-# Instalar dependências
 npm install
-
-# Configurar variáveis de ambiente
-cp .env.example .env
-# Editar .env com suas configurações (importante: JWT_SECRET_*, GARAGE_*)
 ```
 
-### Executar em Desenvolvimento
+### 2. Configurar o Ambiente
 
-**Opção 1: Com Docker (recomendado)** 🐳
 ```bash
-# Inicia MongoDB e a API com hot-reload via Docker Compose
+cp .env.example .env
+```
+Edite o arquivo `.env` preenchendo as chaves secretas de JWT, credenciais do MongoDB, Storage S3 (Garage/MinIO), Hermes Client e Google OAuth.
+
+### 3. Execução em Modo de Desenvolvimento
+
+**Com Docker Compose (Recomendado):**
+```bash
 npm run dev
 ```
 
-**Opção 2: Localmente (sem Docker)**
+**Localmente (Node.js nativo com Nodemon):**
 ```bash
-# MongoDB deve estar rodando separadamente
 npm run dev:local
 ```
 
-### Executar em Produção
+### 4. Povoar o Banco de Dados com Dados Iniciais (Seeds)
 
 ```bash
-# Com Docker
-npm run start
-
-# Localmente (sem Docker)
-npm run start:local
-```
-
-### Seeding de Dados
-
-```bash
-# Com Docker em execução
+# Se estiver executando com Docker
 npm run seed
 
-# Localmente (sem Docker)
+# Se estiver executando localmente
 npm run seed:local
 ```
 
-### Testes
+### 5. Acessar a Documentação Interativa
 
-```bash
-# Executar todos os testes com cobertura
-npm test
-
-# Executar teste específico
-npx jest src/test/seu-teste.test.js
-```
+Com o servidor rodando, acesse no navegador:
+👉 **[http://localhost:5040/docs](http://localhost:5040/docs)** (ou na porta configurada em `API_PORT`).
 
 ---
 
 ## 🔐 Variáveis de Ambiente
 
-<details>
-<summary><b>🗄️ Banco de Dados MongoDB</b></summary>
+<details open>
+<summary><b>🗄️ Banco de Dados & Aplicação</b></summary>
 
 | Variável | Descrição | Exemplo |
 | :--- | :--- | :--- |
-| `DB_URL` | URL de conexão MongoDB | `mongodb://localhost:27017/appDespesas` |
-| `DB_URL_TEST` | URL para testes | `mongodb://localhost:27017/appDespesas_teste` |
-| `MONGO_SERVER_SELECTION_TIMEOUT_MS` | Timeout de seleção de servidor | `7000` |
-| `MONGO_SOCKET_TIMEOUT_MS` | Timeout de socket | `45000` |
-| `MONGO_CONNECT_TIMEOUT_MS` | Timeout de conexão | `10000` |
-| `MONGO_MAX_POOL_SIZE` | Tamanho máximo do pool de conexões | `10` |
+| `DB_URL` | URI de conexão com o MongoDB | `mongodb://localhost:27017/appDespesas` |
+| `API_PORT` | Porta de escuta da API HTTP | `5040` |
+| `NODE_ENV` | Ambiente de execução (`development` / `production`) | `development` |
+| `DEBUGLOG` | Habilita logs detalhados de requisições no console | `true` |
+| `SALT_LENGTH` | Fator de custo do algoritmo bcrypt para senhas | `10` |
 
 </details>
 
 <details>
-<summary><b>⚙️ Aplicação</b></summary>
+<summary><b>🔑 Segurança e Autenticação (JWT & Google)</b></summary>
 
-| Variável | Descrição | Padrão |
+| Variável | Descrição | Padrão / Exemplo |
 | :--- | :--- | :--- |
-| `API_PORT` | Porta da API | `3000` |
-| `NODE_ENV` | Ambiente (development/production) | `development` |
-| `DEBUGLOG` | Ativar logs de debug de rotas | `true` |
-| `SALT_LENGTH` | Rounds do bcrypt para hash de senha | `10` |
+| `JWT_SECRET_ACCESS_TOKEN` | Segredo de assinatura do Access Token (mín. 32 caracteres) | `segredo_super_seguro_access_jwt_32c` |
+| `JWT_SECRET_REFRESH_TOKEN` | Segredo de assinatura do Refresh Token (mín. 32 caracteres) | `segredo_super_seguro_refresh_jwt_32` |
+| `JWT_SECRET_PASSWORD_RECOVERY` | Segredo para tokens de recuperação de senha | `segredo_super_seguro_recupera_jwt32` |
+| `JWT_ACCESS_TOKEN_EXPIRATION` | Tempo de vida do Access Token | `2m` |
+| `JWT_REFRESH_TOKEN_EXPIRATION` | Tempo de vida do Refresh Token | `3d` |
+| `JWT_PASSWORD_RECOVERY_EXPIRATION`| Tempo de vida do token de recuperação | `1h` |
+| `SINGLE_SESSION_REFRESH_TOKEN` | Força expiração do refresh token a cada renovação | `false` |
+| `GOOGLE_CLIENT_ID` | Client ID do Google OAuth2 para autenticação federada | `seu-client-id.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Client Secret do Google OAuth2 | `seu-client-secret` |
 
 </details>
 
 <details>
-<summary><b>🔑 JWT (Autenticação)</b></summary>
-
-| Variável | Descrição | Padrão |
-| :--- | :--- | :--- |
-| `JWT_SECRET_ACCESS_TOKEN` | Segredo do access token | *(mínimo 32 caracteres)* |
-| `JWT_SECRET_REFRESH_TOKEN` | Segredo do refresh token | *(mínimo 32 caracteres)* |
-| `JWT_SECRET_PASSWORD_RECOVERY` | Segredo do token de recuperação | *(mínimo 32 caracteres)* |
-| `JWT_ACCESS_TOKEN_EXPIRATION` | Expiração do access token | `2m` |
-| `JWT_REFRESH_TOKEN_EXPIRATION` | Expiração do refresh token | `3d` |
-| `JWT_PASSWORD_RECOVERY_EXPIRATION` | Expiração do recovery token | `1h` |
-| `SINGLE_SESSION_REFRESH_TOKEN` | Apenas 1 refresh por login | `false` |
-
-</details>
-
-<details>
-<summary><b>☁️ Garage/MinIO (Armazenamento S3)</b></summary>
+<summary><b>☁️ Armazenamento S3 (MinIO / Garage)</b></summary>
 
 | Variável | Descrição | Exemplo |
 | :--- | :--- | :--- |
-| `GARAGE_ENDPOINT` | Endpoint do servidor (sem protocolo) | `localhost` |
-| `GARAGE_PORT` | Porta do Garage | `9000` |
-| `GARAGE_USE_SSL` | Usar SSL (true/false) | `false` |
-| `GARAGE_PUBLIC_URL` | URL pública para acessar imagens | `http://localhost:9000` |
-| `GARAGE_ACCESS_KEY` | Chave de acesso | *(obrigatório)* |
-| `GARAGE_SECRET_KEY` | Chave secreta | *(obrigatório)* |
-| `GARAGE_BUCKET_FOTOS` | Nome do bucket para fotos | *(obrigatório)* |
+| `GARAGE_ENDPOINT` | Hostname do servidor S3 (sem http/https) | `localhost` |
+| `GARAGE_PORT` | Porta do servidor S3 | `9000` |
+| `GARAGE_USE_SSL` | Indica se utiliza conexão SSL/TLS | `false` |
+| `GARAGE_PUBLIC_URL` | URL base pública de acesso às imagens | `http://localhost:9000` |
+| `GARAGE_ACCESS_KEY` | Access Key do S3 | `garage_access_key` |
+| `GARAGE_SECRET_KEY` | Secret Key do S3 | `garage_secret_key` |
+| `GARAGE_BUCKET_FOTOS` | Nome do bucket para fotos e comprovantes | `rotardv-fotos` |
 
 </details>
 
 <details>
-<summary><b>📊 Logging</b></summary>
-
-| Variável | Descrição | Padrão |
-| :--- | :--- | :--- |
-| `LOG_ENABLED` | Habilitar sistema de logs | `true` |
-| `LOG_LEVEL` | Nível mínimo de log | `info` |
-| `LOG_MAX_SIZE_GB` | Tamanho máximo total dos logs (GB) | `50` |
-
-</details>
-
-<details>
-<summary><b>📚 Swagger</b></summary>
+<summary><b>📧 Notificações & Emails (Hermes Client)</b></summary>
 
 | Variável | Descrição | Exemplo |
 | :--- | :--- | :--- |
-| `SWAGGER_DEV_URL` | URL base em desenvolvimento | `http://localhost:3000/` |
-| `SWAGGER_PROD_URL` | URL base em produção | `http://localhost:3000/prod` |
+| `HERMES_API_KEY` | Chave de API para despacho de emails via Hermes | `hermes_chave_secreta` |
+| `HERMES_BASE_URL` | URL base do microserviço Hermes | `https://api.hermes.qa.fslab.dev` |
+| `API_BASE_URL` | URL base pública da própria API para links de verificação | `http://localhost:5040` |
 
 </details>
 
@@ -363,258 +315,197 @@ npx jest src/test/seu-teste.test.js
 
 | Script | Comando | Descrição |
 | :--- | :--- | :--- |
-| `dev` | `docker compose -f docker-compose.dev.yml up --build --force-recreate` | 🐳 Dev com Docker (MongoDB + API + hot-reload) |
-| `dev:local` | `npx nodemon server.js` | 💻 Dev local com auto-reload |
-| `start` | `docker compose -f docker-compose.yml up --build` | 🐳 Produção com Docker |
-| `start:local` | `node server.js` | 💻 Produção local sem Docker |
-| `seed` | `docker exec -it api-despesas node src/seeds/seeds.js` | 🌱 Popula dados iniciais (Docker) |
-| `seed:local` | `node src/seeds/seeds.js` | 🌱 Popula dados iniciais (local) |
-| `test` | `jest --coverage --detectOpenHandles` | 🧪 Executa testes com cobertura |
-| `lint` | `eslint .` | 🔍 Verifica linting |
-| `lint:fix` | `eslint . --fix` | 🔧 Corrige problemas de linting |
-| `format` | `prettier --write .` | ✨ Formata código com Prettier |
-| `format:check` | `prettier --check .` | 🔍 Verifica formatação sem alterar |
-
----
-
-## 🐳 Docker
-
-### Produção (`docker-compose.yml`)
-
-Dois serviços na rede `despesas-network`:
-
-| Serviço | Imagem | Porta | Detalhes |
-| :--- | :--- | :---: | :--- |
-| `mongodb-despesas` | `mongo:8` | `27018:27017` | Healthcheck + volume persistente |
-| `api-despesas` | Build local | `5040:5040` | restart: `unless-stopped` |
-
-```bash
-npm run start
-```
-
-### Desenvolvimento (`docker-compose.dev.yml`)
-
-Mesmo setup com diferenças:
-- 📂 Código-fonte montado como volume (hot-reload com nodemon)
-- `NODE_ENV=development`
-- 🔇 Logs do MongoDB desabilitados
-
-```bash
-npm run dev
-```
-
----
-
-## 🔄 CI/CD
-
-Pipeline GitLab CI (`.gitlab-ci.yml`) com dois estágios de segurança:
-
-```mermaid
-graph LR
-    A[📥 Push/MR] --> B[🔍 SAST]
-    B --> C[🔐 Secret Detection]
-    style A fill:#f9f,stroke:#333
-    style B fill:#bbf,stroke:#333
-    style C fill:#bfb,stroke:#333
-```
-
-| Estágio | Descrição |
-| :--- | :--- |
-| `test` | 🔍 SAST - análise estática de segurança do código |
-| `secret-detection` | 🔐 Detecção de credenciais/segredos commitados |
+| `npm run dev` | `docker compose -f docker-compose.dev.yml up --build --force-recreate` | Inicia ambiente de desenvolvimento completo no Docker com Hot-Reload |
+| `npm run dev:local` | `npx nodemon server.js` | Inicia a API localmente com recarregamento automático |
+| `npm run start` | `docker compose -f docker-compose.yml up --build` | Inicia o stack de produção em containers isolados |
+| `npm run start:local` | `node server.js` | Inicia a API diretamente com Node.js |
+| `npm run seed` | `docker exec -it api-despesas node src/seeds/seeds.js` | Executa a população de dados de teste dentro do container Docker |
+| `npm run seed:local` | `node src/seeds/seeds.js` | Executa o seed diretamente no banco local configurado |
+| `npm test` | `jest --coverage --detectOpenHandles` | Executa a suíte de testes com relatório de cobertura |
+| `npm run lint` | `eslint .` | Analisa a conformidade do código com as regras de Linting |
+| `npm run lint:fix` | `eslint . --fix` | Corrige automaticamente inconsistências de estilo e sintaxe |
+| `npm run format` | `prettier --write .` | Formata todos os arquivos do projeto segundo o `.prettierrc` |
 
 ---
 
 ## 🏗 Arquitetura da API
 
-### Padrão em Camadas
+### Fluxo de Requisição em Camadas
 
 ```mermaid
 graph TD
-    A[🌐 HTTP Request] --> B[🛡️ Middlewares]
-    B --> C[🎯 Routes]
-    C --> D[🎮 Controllers]
-    D --> E[💼 Services]
-    E --> F[🗄️ Repository]
-    F --> G[📝 Models / Mongoose]
-    G --> H[(🍃 MongoDB)]
+    A[🌐 Cliente / App Mobile] --> B[🛡️ Middlewares Segurança / Rate-Limit / Auth]
+    B --> C[🎯 Routes + Interceptador Zod]
+    C --> D[🎮 Controller]
+    D --> E[💼 Service - Regras de Negócio & Ownership]
+    E --> F[🗄️ Repository - Abstração NoSQL]
+    E --> G[☁️ UploadService - Sharp & S3 Garage]
+    F --> H[📝 Models & Discriminators Mongoose]
+    H --> I[(🍃 MongoDB)]
 
-    style A fill:#e1f5fe
-    style B fill:#fff3e0
-    style C fill:#f3e5f5
-    style D fill:#e8f5e9
-    style E fill:#fce4ec
-    style F fill:#fff8e1
-    style G fill:#e0f2f1
-    style H fill:#e8eaf6
+    style A fill:#e1f5fe,stroke:#0288d1
+    style B fill:#fff3e0,stroke:#f57c00
+    style C fill:#f3e5f5,stroke:#7b1fa2
+    style D fill:#e8f5e9,stroke:#388e3c
+    style E fill:#fce4ec,stroke:#c2185b
+    style F fill:#fff8e1,stroke:#ffa000
+    style G fill:#ede7f6,stroke:#512da8
+    style H fill:#e0f2f1,stroke:#00796b
+    style I fill:#e8eaf6,stroke:#303f9f
 ```
 
-> ⚠️ Atualmente, apenas as camadas de **Middlewares** e **Utils** estão implementadas. As camadas de Routes, Controllers, Services, Repository e Models estão em desenvolvimento.
+### Modelagem Polimórfica de Despesas (Single Collection Inheritance)
 
-### Cadeia de Middlewares
+Para viabilizar consultas unificadas de despesas por viagem sem degradação de desempenho por múltiplos *joins*, a API adota **Mongoose Discriminators** na coleção `despesas`:
 
-```
- ┌─────────────────────────────────────────────────────────────┐
- │  1. 🛡️  helmet()              → Headers de segurança + CSP  │
- │  2. 🌐  cors()                → Cross-origin access         │
- │  3. 📦  compression()         → Compressão gzip             │
- │  4. 📋  express.json()        → Parse de body JSON          │
- │  5. 📎  expressFileUpload()   → Upload de arquivos (50MB)   │
- │  6. 🔀  trust proxy           → IP correto atrás de proxy   │
- │  7. 📝  express.urlencoded()  → Parse de form data          │
- │  8. 📂  static /public        → Arquivos estáticos          │
- │  9. 🎯  routes(app)           → Rotas da aplicação          │
- │ 10. ❓  404 handler           → Rotas não encontradas       │
- │ 11. 🚨  errorHandler          → Tratamento global de erros  │
- └─────────────────────────────────────────────────────────────┘
-```
-
-### 🔒 Autenticação JWT (3 tokens)
-
-| Token | Secret | Expiração | Uso |
-| :--- | :--- | :---: | :--- |
-| 🟢 Access Token | `JWT_SECRET_ACCESS_TOKEN` | 2 min | Acesso à API |
-| 🔵 Refresh Token | `JWT_SECRET_REFRESH_TOKEN` | 3 dias | Renovação do access token |
-| 🟡 Recovery Token | `JWT_SECRET_PASSWORD_RECOVERY` | 1 hora | Recuperação de senha |
-
-> O `AuthMiddleware` verifica o access token **e** confirma a existência do refresh token no banco (dupla validação), permitindo invalidação server-side de sessões.
-
-### 🚦 Rate Limiting (3 níveis)
-
-| Nível | Janela | Max Req | Uso |
-| :--- | :---: | :---: | :--- |
-| `authRateLimit` | 15 min | 100 | Rotas autenticadas |
-| `strictRateLimit` | 5 min | 50 | Operações sensíveis (login) |
-| `publicRateLimit` | 15 min | 100 | Endpoints públicos |
-
-### 🚨 Tratamento de Erros
-
-O `errorHandler` trata **12 tipos de erros** distintos com respostas padronizadas:
-
-| Tipo de Erro | Status | Descrição |
-| :--- | :---: | :--- |
-| `ZodError` | `400` | Validação de schema falhou |
-| MongoDB duplicate key (11000) | `409` | Campo com valor duplicado |
-| Mongoose `ValidationError` | `400` | Validação de modelo |
-| `AuthenticationError` | `498` | Falha de autenticação |
-| `TokenExpiredError` | `498` | Token expirado |
-| `CustomError` (tokenExpired) | `401` | Token expirado (operacional) |
-| Mongoose `CastError` | `400` | Valor inválido para campo |
-| `BSONError` / `BSONTypeError` | `400` | Formato de identificador inválido |
-| Mongoose `StrictModeError` | `400` | Campo não permitido |
-| `SyntaxError` (JSON) | `400` | JSON malformado |
-| `TypeError` | `400` | Erro de tipo (UUID em produção) |
-| Erros não tratados | `500` | Erro interno (UUID para rastreabilidade) |
-
-> Todos os erros recebem um `errorId` (UUID) para rastreabilidade nos logs.
-
-### 📤 Resposta Padronizada
-
-Todas as respostas seguem o formato:
-
-```json
-{
-  "message": "Mensagem descritiva",
-  "data": { "..." },
-  "errors": [{ "path": "campo", "message": "detalhe" }]
-}
-```
+* **Esquema Base (`Despesa`):** `_id` (UUID), `viagem_id` (UUID), `tipo`, `valor_total`, `data`, `local`, `descricao`, `foto_anexo`, `createdAt`, `updatedAt`.
+* **Sub-esquema `ABASTECIMENTO`:** `litros`, `valor_litro`, `tipo_combustivel`, `km_atual`.
+* **Sub-esquema `ALIMENTACAO`:** `tipo_refeicao` (café, almoço, jantar, etc.).
+* **Sub-esquema `MANUTENCAO`:** `oficina_nome`.
+* **Sub-esquema `PEDAGIO`:** `praca_nome`.
+* **Sub-esquema `OUTROS`:** Campos herdados do esquema base.
 
 ---
 
-## 💡 Usando os Utilitários
+## 🔄 Mecanismo de Sincronização Offline-First
+
+O sistema foi arquitetado para operar em cenários de conectividade instável ou inexistente nas rodovias brasileiras:
+
+1. **Geração Distribuída de Identificadores (UUID v4):** Tanto as viagens quanto as despesas têm seus identificadores `_id` gerados como strings UUID v4 no aplicativo móvel. Isso garante que múltiplos registros criados offline nunca gerem conflito de chave primária ao sincronizar.
+2. **Push Sync em Lote (`POST /sync/push`):**
+   * Processa arrays de `viagens` e `despesas` em uma única requisição.
+   * Utiliza a operação `bulkWrite` do MongoDB com `{ ordered: false }` para que falhas pontuais não interrompam os demais registros.
+   * Realiza **Upsert** automático (criação se novo, atualização se existente) e **Deleção Lógica** quando o registro contém `is_deleted: true`.
+   * Aplica travas rígidas de **Ownership**: o motorista só sincroniza registros vinculados à sua própria conta.
+3. **Pull / Delta Sync Incremental (`GET /sync/pull?updatedAfter=...`):**
+   * O aplicativo envia o timestamp da última sincronização bem-sucedida.
+   * A API retorna exclusivamente os registros criados ou modificados após essa data, economizando banda de rede e processamento no dispositivo.
+4. **Resumo Financeiro On-the-Fly:**
+   * Em vez de totalizadores estáticos gravados na viagem sujeitos a inconsistências de concorrência durante sincronizações assíncronas, a API recalcula os totais e médias de consumo (`km/l`) dinamicamente via MongoDB Aggregation Pipeline no momento da consulta.
+
+---
+
+## 📡 Catálogo de Endpoints (Rotas da API)
+
+### 🔐 1. Autenticação (`/`)
+
+| Método | Endpoint | Protegido | Descrição |
+| :---: | :--- | :---: | :--- |
+| `POST` | `/signup` | Não | Cadastro público de novos motoristas |
+| `POST` | `/login` | Não | Login com e-mail e senha (gera Access & Refresh Token) |
+| `POST` | `/logout` | Não | Encerra a sessão e revoga o Refresh Token |
+| `POST` | `/refresh` | Não | Emite novo Access Token a partir do Refresh Token |
+| `POST` | `/google` | Não | Autenticação federada com Google OAuth2 Token |
+| `GET` | `/verificar-email` | Não | Valida o token de confirmação de e-mail |
+| `POST` | `/recover` | Não | Solicita código de 6 dígitos para recuperação de senha |
+| `PATCH` | `/password/reset` | Não | Redefine a senha informando o código recebido |
+
+### 👤 2. Gestão de Usuários (`/usuarios`)
+
+| Método | Endpoint | Protegido | Perfil | Descrição |
+| :---: | :--- | :---: | :---: | :--- |
+| `GET` | `/usuarios` | Sim | Admin | Lista usuários com paginação e filtros |
+| `GET` | `/usuarios/:id` | Sim | Dono / Admin | Retorna dados cadastrais do usuário |
+| `POST` | `/usuarios` | Sim | Admin | Criação administrativa de usuário |
+| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin | Atualização de dados cadastrais |
+| `PATCH` | `/usuarios/:id/status` | Sim | Admin | Altera status entre `ativo` e `inativo` |
+| `DELETE` | `/usuarios/:id` | Sim | Admin | Exclusão de usuário do sistema |
+| `POST` | `/usuarios/:id/foto` | Sim | Dono / Admin | Upload ou substituição de foto de perfil |
+| `DELETE` | `/usuarios/:id/foto` | Sim | Dono / Admin | Remoção da foto de perfil |
+
+### 🚛 3. Gestão de Frota (`/veiculos`)
+
+| Método | Endpoint | Protegido | Perfil | Descrição |
+| :---: | :--- | :---: | :---: | :--- |
+| `GET` | `/veiculos` | Sim | Qualquer | Lista veículos da frota com paginação |
+| `GET` | `/veiculos/:id` | Sim | Qualquer | Detalhes do veículo e reboques engatados |
+| `POST` | `/veiculos` | Sim | Admin | Cadastro de veículo de tração e conjunto |
+| `PATCH` | `/veiculos/:id` | Sim | Admin | Atualização dos dados do veículo |
+| `DELETE` | `/veiculos/:id` | Sim | Admin | Exclusão de veículo da frota |
+
+### 🛣️ 4. Controle de Viagens (`/viagens`)
+
+| Método | Endpoint | Protegido | Perfil | Descrição |
+| :---: | :--- | :---: | :---: | :--- |
+| `GET` | `/viagens` | Sim | Dono / Admin | Lista viagens (filtradas automaticamente por motorista) |
+| `GET` | `/viagens/:id` | Sim | Dono / Admin | Detalhes da viagem com injeção do **Resumo Financeiro** |
+| `POST` | `/viagens` | Sim | Dono / Admin | Inicia nova viagem e grava snapshots imutáveis |
+| `PATCH` | `/viagens/:id` | Sim | Dono / Admin | Atualiza dados ou encerra a viagem (`concluída`) |
+| `DELETE` | `/viagens/:id` | Sim | Dono / Admin | Remove o registro da viagem |
+
+### 🧾 5. Gestão de Despesas (`/despesas`)
+
+| Método | Endpoint | Protegido | Perfil | Descrição |
+| :---: | :--- | :---: | :---: | :--- |
+| `GET` | `/despesas` | Sim | Dono / Admin | Lista despesas paginadas com filtro por `viagem_id` |
+| `GET` | `/despesas/:id` | Sim | Dono / Admin | Consulta os detalhes de uma despesa específica |
+| `POST` | `/despesas` | Sim | Dono / Admin | Lança despesa polimórfica em viagem em andamento |
+| `DELETE` | `/despesas/:id` | Sim | Dono / Admin | Remove despesa de viagem em andamento |
+
+### 🔄 6. Motor de Sincronização Offline-First (`/sync`)
+
+| Método | Endpoint | Protegido | Perfil | Descrição |
+| :---: | :--- | :---: | :---: | :--- |
+| `POST` | `/sync/push` | Sim | Motorista | Envio em lote de viagens e despesas (Upsert/Delete) |
+| `GET` | `/sync/pull` | Sim | Motorista | Download delta de viagens e despesas atualizadas |
+
+### 🩺 7. Saúde & Documentação
+
+| Método | Endpoint | Protegido | Descrição |
+| :---: | :--- | :---: | :--- |
+| `GET` | `/health` | Não | Relatório de status da API e conexão do MongoDB |
+| `GET` | `/docs` | Não | Interface visual interativa Swagger UI |
+
+---
+
+## 💡 Usando os Utilitários e Helpers
 
 <details>
-<summary><b>📤 CommonResponse</b></summary>
+<summary><b>📤 Respostas Padronizadas (CommonResponse)</b></summary>
 
 ```javascript
 import { CommonResponse } from './utils/helpers/index.js';
 
-CommonResponse.success(res, data, 200, 'Operação realizada');
-CommonResponse.created(res, data, 'Recurso criado');
-CommonResponse.error(res, 400, 'validationError', 'campo', errors);
-CommonResponse.serverError(res, 'Erro interno');
+// Sucesso 200 OK
+CommonResponse.success(res, { usuario }, 200, 'Usuário recuperado com sucesso.');
+
+// Criação 201 Created
+CommonResponse.created(res, { viagem }, 'Viagem iniciada com sucesso.');
+
+// Erro Padronizado
+CommonResponse.error(res, 400, 'validationError', 'email', [{ message: 'E-mail inválido.' }]);
 ```
 
 </details>
 
 <details>
-<summary><b>✅ Validação com Zod</b></summary>
+<summary><b>🛡️ Verificação de Permissão Contextual (ensurePermission)</b></summary>
 
 ```javascript
-import { LoginSchema } from './utils/validators/schemas/zod/LoginSchema.js';
-import { UsuarioSchema, UsuarioUpdateSchema } from './utils/validators/schemas/zod/UsuarioSchema.js';
-import { PaginationQuerySchema } from './utils/validators/schemas/zod/querys/CommonQuerySchema.js';
+import { ensurePermission } from './utils/helpers/index.js';
 
-const loginData = LoginSchema.parse(req.body);
-const userData = UsuarioSchema.parse(req.body);
-const updateData = UsuarioUpdateSchema.parse(req.body);
-const query = PaginationQuerySchema.parse(req.query);
-```
-
-</details>
-
-<details>
-<summary><b>🔑 Autenticação</b></summary>
-
-```javascript
-import AuthMiddleware from './middlewares/AuthMiddleware.js';
-import TokenUtil from './utils/TokenUtil.js';
-import AuthHelper from './utils/AuthHelper.js';
-
-// Proteger rota
-router.get('/rota', AuthMiddleware, callback);
-
-// Gerar tokens
-const accessToken = TokenUtil.generateAccessToken(userId);
-const refreshToken = TokenUtil.generateRefreshToken(userId);
-
-// Hash de senha
-const hash = await AuthHelper.hashPassword(senha);
-const isValid = await AuthHelper.comparePassword(senha, hash);
-```
-
-</details>
-
-<details>
-<summary><b>📊 Logger</b></summary>
-
-```javascript
-import logger from './utils/logger.js';
-
-logger.info('Mensagem informativa');
-logger.error('Erro da aplicação', { errorId, stack });
-logger.warn('Aviso importante');
-```
-
-</details>
-
-<details>
-<summary><b>🚨 Tratamento de Erros Customizado</b></summary>
-
-```javascript
-import { CustomError, HttpStatusCodes } from './utils/helpers/index.js';
-
-throw new CustomError({
-  statusCode: HttpStatusCodes.NOT_FOUND.code,
-  errorType: 'resourceNotFound',
-  field: 'usuario',
-  details: [{ message: 'Usuário não encontrado' }],
+// Valida se o usuário logado é o proprietário do recurso ou Administrador
+ensurePermission({
+    usuarioLogado: req.user,
+    isOwner: String(viagem.usuario_id) === String(req.user._id),
+    field: 'Viagem',
+    customMessage: 'Você não tem permissão para alterar esta viagem.'
 });
 ```
 
 </details>
 
 <details>
-<summary><b>🔐 Verificação de Permissão</b></summary>
+<summary><b>🚨 Erros Operacionais (CustomError)</b></summary>
 
 ```javascript
-import { ensurePermission } from './utils/helpers/index.js';
+import { CustomError, HttpStatusCodes } from './utils/helpers/index.js';
 
-ensurePermission({
-  usuarioLogado: req.user,
-  targetId: req.params.id,
-  field: 'usuario',
+throw new CustomError({
+    statusCode: HttpStatusCodes.CONFLICT.code,
+    errorType: 'businessRuleError',
+    field: 'status',
+    customMessage: 'Já existe uma viagem em andamento para este condutor.'
 });
 ```
 
@@ -624,30 +515,20 @@ ensurePermission({
 
 ## 📏 Convenções do Projeto
 
-| Convenção | Padrão |
-| :--- | :--- |
-| **Variáveis JS** | `camelCase` |
-| **Variáveis de ambiente** | `UPPER_CASE` |
-| **Arquivos (classes)** | `PascalCase.js` |
-| **Arquivos (utils/helpers)** | `camelCase.js` |
-| **Respostas da API** | Sempre via `CommonResponse` |
-| **Validação de input** | Sempre com Zod antes de processar |
-| **Erros operacionais** | Sempre via `CustomError` |
-| **Logging** | Sempre via Winston logger |
-| **Rotas async** | Sempre com `asyncWrapper` |
+* **Arquitetura:** Layered Architecture estrita (`Router -> Controller -> Service -> Repository -> Model`).
+* **Estilo de Código:** Padrão ES Modules (`import/export`), ESLint 9 + Prettier.
+* **Validação:** 100% dos dados externos são validados via esquemas Zod antes do processamento.
+* **Idempotência:** IDs de entidades sincronizáveis operam sob o padrão UUID v4 gerados no cliente.
+* **Segurança:** Senhas com salt bcrypt, tokens JWT com dupla validação de sessão e rate limiting ativo.
 
 ---
 
 ## 📄 Licença
 
-Este projeto está licenciado sob a **MIT License** - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
----
+Este projeto é desenvolvido para fins acadêmicos e profissionais sob a licença **MIT**. Consulte o arquivo [LICENSE](LICENSE) para maiores informações.
 
 <div align="center">
 
-Desenvolvido por **Luis Felipe Lopes**
-
-![Node.js](https://img.shields.io/badge/Made_with-Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+Desenvolvido por **Luis Felipe Lopes** 🚛
 
 </div>

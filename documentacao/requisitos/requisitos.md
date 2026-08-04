@@ -1,77 +1,104 @@
 <p align="center">
   <img src="https://img.shields.io/badge/System-Requirements-02303A?style=for-the-badge&logo=notion&logoColor=white" alt="Requisitos"/>
   <img src="https://img.shields.io/badge/Status-Aprovado-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Status"/>
+  <img src="https://img.shields.io/badge/Architecture-Offline--First-3E67B1?style=for-the-badge" alt="Offline-First"/>
 </p>
 
 # 📋 Especificação Funcional e Tecnológica
 
-Este documento consolida os **Requisitos Funcionais (RF)** e **Requisitos Não Funcionais (RNF)** da API do RotaRDV, levantados com base na arquitetura central focada no registro de despesas de viagens logísticas (Offline-First).
+Este documento consolida os **Requisitos Funcionais (RF)** e **Requisitos Não Funcionais (RNF)** da API do **RotaRDV (Registro de Despesas de Viagens)**, desenvolvida sob o paradigma **Offline-First** para transportadoras rodoviárias.
 
 ---
 
 ## 🎯 Requisitos Funcionais (RF)
-Os Requisitos Funcionais descrevem **o que o sistema deve fazer**, englobando as regras de negócio intrínsecas a cada módulo e as ações permitidas aos usuários (Roles).
 
-### 🔐 1. Autenticação e Perfis (Roles)
+Os Requisitos Funcionais descrevem **o que o sistema faz**, mapeando as regras de negócio, fluxos de permissão (RBAC/ABAC) e integrações de cada módulo.
+
+### 🔐 1. Autenticação e Gestão de Contas
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-01** | O sistema deve permitir que o setor Administrativo cadastre novos motoristas com nome, e-mail, senha e documento (CPF). | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-02** | O sistema deve autenticar usuários e gerar um Token JWT (`Bearer`) para gestão e segurança da sessão. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-03** | O sistema deve permitir a renovação contínua da sessão via mecanismo de `Refresh Token`. | *Usuário logado* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-04** | O sistema deve oferecer suporte a alteração de dados do perfil e substituição de foto via Upload Multipart. | *Motorista / Admin* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
-| **RF-05** | Perfis administrativos devem ser os únicos capazes de inativar prontamente a conta de outros condutores. | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-01** | O sistema deve permitir o cadastro de motoristas e administradores (Signup/Admin) com validação de CPF único, nome, e-mail e senha com hash seguro. | *Usuário / Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-02** | O sistema deve suportar autenticação federada via **Google OAuth2** (`POST /google`), vinculando ou criando automaticamente o usuário na base. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-03** | O sistema deve exigir a **confirmação de e-mail** (`GET /verificar-email`) antes de autorizar o login local, despachando tokens de verificação com validade temporal via e-mail transacional (Hermes Client). | *Sistema / Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-04** | O sistema deve autenticar usuários (`POST /login`) gerando um **Access Token** JWT de curta duração (2 min) e um **Refresh Token** de longa duração (3 dias) persistido no banco para validação de sessão. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-05** | O sistema deve disponibilizar endpoint para renovação transparente de sessão (`POST /refresh`) e encerramento de sessão (`POST /logout`), invalidando o Refresh Token no banco. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-06** | O sistema deve disponibilizar fluxo seguro de recuperação de senha (`POST /recover` e `PATCH /password/reset`) via código numérico de 6 dígitos com expiração temporal enviado por e-mail. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-07** | O sistema deve suportar upload, substituição e deleção de foto de perfil (`POST/DELETE /usuarios/:id/foto`) via Multipart Form-Data com persistência em Storage S3 (MinIO/Garage). | *Motorista / Admin* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
+| **RF-08** | Somente perfis administrativos podem alterar o status de ativação (`PATCH /usuarios/:id/status` entre `ativo` e `inativo`) ou excluir cadastros de usuários. | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+
+---
 
 ### 🚛 2. Gestão de Frota (Veículos)
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-06** | O sistema deve permitir o cadastro de veículos (cavalos mecânicos) com placa única. | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-07** | O veículo deve opcionalmente suportar o registro interno de um conjunto de Reboques/Carretas (modelo, ano e placas associadas). | *Admin* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
-| **RF-08** | Somente contas com a role Admin devem inserir ou excluir a frota, enquanto o motorista pode apenas "Listar/Ter visão" dos dados do seu próprio caminhão engatado (Ownership). | *Admin / Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-09** | O sistema deve permitir o cadastro de veículos de tração (cavalos mecânicos) com placa única validada e tipo de combustível preferencial (`DIESEL_S10`, `DIESEL_S500`, `GASOLINA`, `ETANOL`, `ARLA_32`, `OUTRO`). | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-10** | O veículo deve suportar o registro estruturado de reboques/carretas associadas (modelo, ano de fabricação e array de placas do conjunto bitrem/rodotrem). | *Admin* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
+| **RF-11** | Somente contas com perfil Admin podem criar, editar ou excluir veículos; motoristas podem apenas listar e consultar dados do caminhão vinculado. | *Admin / Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+
+---
 
 ### 🛣️ 3. Controle de Viagens
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-09** | O sistema deve permitir a abertura de uma nova viagem informando a origem, o destino e o km (odômetro) inicial. | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-10** | Na abertura da viagem, a API deve **gerar um Snapshot (fotografia atemporal)** do bloco do motorista e dos dados lidos do veículo neste exato dia para congelar no histórico. | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-11** | O usuário deve listar e gerenciar suas próprias viagens de acordo com os estágios vitais (`EM_ANDAMENTO`, `CONCLUIDA`, `CANCELADA`). | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-12** | O sistema deve computar a finalização da viagem, calculando e exibindo automaticamente a somatória de km percorrido total contra os lançamentos financeiros inseridos. | *Motorista / Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-12** | O sistema deve permitir a abertura de uma nova viagem informando origem (cidade/UF), destino (cidade/UF), odômetro inicial (`km_inicial`), data de início e veículo. | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-13** | Na abertura da viagem, a API deve **gerar Snapshots Imutáveis** dos dados do motorista (`usuario_snapshot`) e do veículo completo com reboques (`veiculo_snapshot`), congelando o histórico contra alterações cadastrais futuras. | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-14** | A API deve impedir que um motorista inicie uma nova viagem caso já possua outra viagem com status `em_andamento` no sistema. | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-15** | O motorista e a transportadora podem acompanhar o ciclo de vida da viagem pelos status: `em_andamento`, `concluída` e `cancelada`. | *Motorista / Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-16** | Na consulta da viagem (`GET /viagens/:id`), a API deve calcular e injetar em tempo real um **Resumo Financeiro Dinâmico** (`resumo_financeiro`), contendo: total geral de gastos, subtotais por categoria (`ABASTECIMENTO`, `ALIMENTACAO`, `MANUTENCAO`, `PEDAGIO`, `OUTROS`), km percorrido total, litros totais abastecidos e média de consumo calculada (km/l). | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 
-### 🧾 4. Gestão de Despesas e Fechamento de Caixa
+---
+
+### 🧾 4. Gestão de Despesas (Polimorfismo & Discriminators)
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-13** | O sistema deve aceitar e atrelar injeções de despesas geradas fora de rede apenas numa viagem atualmente em andamento. | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-14** | O tipo de gasto financeiro não será digitável, operando bloqueado apenas com as frentes: `ABASTECIMENTO`, `ALIMENTACAO`, `MANUTENCAO`, `PEDAGIO` e `OUTROS`. | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-15** | Despesas podem facultativamente trazer Anexos Form-Data (Fotos da nota fiscal emitidas na estrada), vinculando posteriormente um link S3 à despesa salva. | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-16** | Os IDs das despesas consumidas na Cloud poderão vir forjados do Front-End (UUID Local) buscando sanar inconsistências ou duplicação de dados durante áreas assombreadas (Idempotência). | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-17** | O sistema deve permitir o lançamento de despesas atreladas exclusivamente a viagens com status `em_andamento`. | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-18** | As despesas devem ser categorizadas rigidamente via **Mongoose Discriminators** (`Single Collection Inheritance` na coleção `despesas`), garantindo campos e validações exclusivas por tipo: | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| | • **ABASTECIMENTO:** Quantidade de litros, valor por litro, tipo de combustível e odômetro atual (`km_atual`). | | |
+| | • **ALIMENTACAO:** Tipo de refeição (café, almoço, jantar, lanche). | | |
+| | • **MANUTENCAO:** Nome/razão social da oficina mecânica. | | |
+| | • **PEDAGIO:** Nome da praça/concessionária de pedágio. | | |
+| | • **OUTROS:** Descrição detalhada do gasto eventual. | | |
+| **RF-19** | A data da despesa não pode ser anterior à data de início da viagem, e o KM registrado no abastecimento não pode ser inferior ao KM inicial da viagem. | *Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-20** | As despesas podem conter comprovantes fotográficos (notas fiscais) via upload Multipart, salvando URLs públicas do S3 no campo `foto_anexo`. | *Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 
-### 🔔 5. Notificações e Insights
+---
+
+### 🔄 5. Sincronização Bidirecional Offline-First (Sync Engine)
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-17** | O software emitirá lembretes (Ex: Lembrete de concluir viagem esquecida em aberto ou caixa passível de faturamento). | *Sistema* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
-| **RF-18** | Os fluxos permitirão a consulta de avisos listados com transição para `lida=true`. | *Motorista / Admin* | ![Baixa](https://img.shields.io/badge/Baixa-brightgreen?style=flat-square) |
+| **RF-21** | **Push Sync (`POST /sync/push`):** O sistema deve processar em lote (batch) arrays de viagens e despesas enviadas pelo aplicativo móvel, aplicando operações de **Upsert** (`bulkWrite` não ordenado) e exclusões lógicas (`is_deleted: true`), garantindo idempotência total baseada em identificadores **UUID v4**. | *Motorista / Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-22** | **Pull / Delta Sync (`GET /sync/pull`):** O sistema deve fornecer endpoint de sincronização incremental recebendo o parâmetro `updatedAfter`, retornando unicamente viagens e despesas criadas ou modificadas após o timestamp informado. | *Motorista / Sistema* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+
+---
+
+### 🩺 6. Monitoramento e Documentação
+| ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
+|:---:|---|:---:|:---:|
+| **RF-23** | O sistema deve disponibilizar endpoint de verificação de integridade (`GET /health`), reportando status da API (`healthy`/`unhealthy`), estado da conexão com o MongoDB, uptime e timestamp atual. | *DevOps / Monitor* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-24** | O sistema deve disponibilizar documentação interativa completa da API no padrão OpenAPI 3.0 via **Swagger UI** (`GET /docs`), com esquemas de validação, parâmetros e exemplos de respostas. | *Desenvolvedores* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 
 ---
 
 ## ⚙️ Requisitos Não Funcionais (RNF)
 
-Os Requisitos Não Funcionais descrevem **os aspectos qualitativos** da plataforma, como performance, limites operacionais, arquitetura e padronização.
+Os Requisitos Não Funcionais descrevem **os aspectos qualitativos, de segurança, performance, arquitetura e resiliência** da plataforma.
 
-### 🛡️ 1. Segurança, Privacidade e Validações
-- **[RNF-01]** As senhas dos usuários submetidas pelo payload devem sofrer imediatamente sanitização e Hash (via `bcryptjs` no AuthHelper) antes de tocar o Data Lake documental (MongoDB).
-- **[RNF-02]** A API nunca confiará num request vazio, todos os endpoints do MVC devem cruzar obrigatoriamente a malha rigorosa dos artefatos de Validação usando a lib `zod` em interceptadores.
-- **[RNF-03]** Autorização Abstrata (ABAC): O backend contará com uma trava contextual polimorfa `ensurePermission` (Validando não só token, mas atestando a restrição de Ownership - Ex: "*O motorista X é mesmo dono dessa viagem Y?*").
-- **[RNF-04]** Rate Limiting e Helmet preventivo com tolerâncias de repetitividade agressiva em endpoints abertos por IPs, minimizando Bruteforces na autenticação.
+### 🛡️ 1. Segurança e Integridade
+- **[RNF-01] Hash Criptográfico:** As senhas dos usuários locais são sanitizadas e protegidas com `bcryptjs` utilizando salt configurável (`SALT_LENGTH=10`) antes de qualquer persistência no banco de dados.
+- **[RNF-02] Validação Estrita em Runtime (Zod):** 100% dos payloads de entrada (Body, Params e Query Strings) são validados e tipados por schemas Zod antes de atingir os controladores.
+- **[RNF-03] Controle de Acesso Contextual (Ownership / ABAC):** A função helper `ensurePermission` valida o vínculo de propriedade (o motorista só lê, edita ou sincroniza seus próprios registros), permitindo bypass apenas para contas com `isAdmin: true`.
+- **[RNF-04] Proteção contra Brute Force (Rate Limiting):** Aplicação de limitadores de requisições em 3 níveis (`authRateLimit`, `strictRateLimit` para rotas sensíveis como login/recuperação, e `publicRateLimit`).
+- **[RNF-05] Headers HTTP Seguros:** Implementação do middleware `helmet` configurado com Content Security Policy (CSP) e cabeçalhos de segurança avançados.
+- **[RNF-06] Sanitização contra XSS em Uploads:** Processamento e sanitização de arquivos vetoriais SVG com `jsdom` e `DOMPurify`, prevenindo injeção de scripts maliciosos.
 
 ### 🚀 2. Arquitetura e Engenharia de Software
-- **[RNF-05] Tecnologias e Camadas:** A Engine principal do Web Server rodará sob **Node.js (Express)** amparado pelo isolamento em Design Pattern Service-Repository. 
-- **[RNF-06] Sincronia Offline-First:** Toda estruturação da API deve ser tolerante a *Timestamps* geradas pelo mobile via Body Param, sem depender do `createdAt` do servidor.
-- **[RNF-07] Desacoplamento Físico de Imagens:** Nenhuma imagem trafegada ocupará Buffer do Mongoose. Empregaremos a cloud persistente Storage S3-Compatible (MinIO/Garage) despachando a recepção da Engine e salvando URLs relativas nos docs DB.
-- **[RNF-08] Padrão Ambiente de Container:** A base local fluirá em imagem isolada provisionada no repositório com orquestração de Compose `docker-compose.yml`.
+- **[RNF-07] Arquitetura em Camadas (Layered Architecture):** Segregação estrita de responsabilidades: `Routes -> Controllers -> Services -> Repositories -> Models`.
+- **[RNF-08] Desacoplamento de Armazenamento de Arquivos:** Imagens e comprovantes fiscais nunca são persistidos em Base64 no banco de dados; são otimizados via `sharp` (JPEG progressivo, qualidade 80%) e transferidos para Object Storage compatível com S3 (`MinIO/Garage`).
+- **[RNF-09] Tratamento Centralizado de Erros:** O middleware global `errorHandler` intercepta e padroniza 12 categorias de falhas (Zod, CastError, DuplicateKey, TokenExpired, etc.), gerando identificadores únicos `errorId` (UUID) para rastreabilidade nos logs.
+- **[RNF-10] Logging Estruturado e Rotação:** Logs com `winston` e `winston-daily-rotate-file` em 3 transportes (console, arquivos diários combinados e arquivos de erro), com retenção configurável e monitoramento de tráfego via `LogRoutesMiddleware`.
 
-### 📈 3. Dados, Precisão e Consistência (Database)
-- **[RNF-09] Banco Orientado a Documento**: Toda gerência se dará sobre schemaless modeladas (`MongoDB/Mongoose`), favorecendo que Snapshots complexos de Viagens não exijam migrações agressivas ou Joins travados.
-- **[RNF-10] Bloqueios em Coleções Nativas**: O bloqueio que impede uma duplicata do chassi de um cavalo (Múltiplas placas iguais) deve ser ditado como constelação Index direta da Storage nativa Mongoose (`Unique Constraint: true`).
-- **[RNF-11] Cíclos de Paginação Constante**: Todas consultas abertas que listarem Viagens, Logs ou Veículos implementarão `mongoose-paginate-v2` para nunca devolver grandes pacotes brutos, exaurindo a memória dos aparelhos dos condutores remotos.
-
----
-> 💡 *Nota*: A base destes domínios arquitetônicos foi discutida e estrita para que, no desenvolvimento, qualquer modificação e desvio da regra de negócios atenda em uníssono as demandas singulares de uma arquitetura baseada para o campo mobile *Offline-First*.
+### 📈 3. Banco de Dados e Sincronização
+- **[RNF-11] Identificadores Universais Distribuídos (UUID v4):** Coleções de Viagens e Despesas utilizam `_id` tipado em `String` com UUID v4, viabilizando a geração autônoma de IDs pelo cliente móvel offline sem colisões.
+- **[RNF-12] Índices e Restrições Únicas:** Aplicação de índices `unique` nativos no MongoDB para placas de veículos, e-mails de usuários, CPFs e identificadores Google (`googleId`).
+- **[RNF-13] Paginação Otimizada:** Endpoints de listagem utilizam `mongoose-paginate-v2` com ordenação e limite de registros, preservando a memória dos clientes móveis.
+- **[RNF-14] Formatação Brasileira de Datas:** Plugin customizado `mongooseBrazilianDatePlugin` que assegura a formatação e serialização consistente de datas no padrão brasileiro (`dd/MM/yyyy`).

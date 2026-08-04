@@ -88,9 +88,9 @@ class UsuarioController {
     }
 
     const parsedData = UsuarioSchema.parse(req.body);
-    let data = await this.service.criar(parsedData, req);
+    const data = await this.service.criar(parsedData, req);
 
-    let usuarioLimpo = data.toObject();
+    const usuarioLimpo = data.toObject();
     delete usuarioLimpo.senha;
 
     return CommonResponse.created(res, usuarioLimpo);
@@ -119,7 +119,7 @@ class UsuarioController {
     const parsedData = UsuarioUpdateSchema.parse(req.body);
     const data = await this.service.atualizar(id, parsedData, req);
 
-    let usuarioLimpo = data.toObject();
+    const usuarioLimpo = data.toObject();
     delete usuarioLimpo.senha;
 
     return CommonResponse.success(
