@@ -1,26 +1,47 @@
 class DateHelper {
     /**
      * Tenta converter uma string para Date de forma flexível.
-     * Suporta o padrão ISO-8601 (padrão) e também o formato BR (DD/MM/YYYY).
-     * @param {string} dateString A string contendo a data
+     * Suporta o padrão brasileiro (DD/MM/YYYY ou DD/MM/YYYY HH:mm:ss) e o padrão ISO-8601.
+     * @param {string | Date} dateValue A data a ser convertida
      * @returns {Date | null} Objeto Date válido ou null se for inválida
      */
-    static parseFlexibleDate(dateString) {
-        if (!dateString) return null;
+    static parseFlexibleDate(dateValue) {
+        if (!dateValue) return null;
+        if (dateValue instanceof Date) return isNaN(dateValue.getTime()) ? null : dateValue;
+        if (typeof dateValue !== 'string') return null;
 
-        let dateLimit = new Date(dateString);
+        const trimmed = dateValue.trim();
 
-        // Se for uma data inválida para o padrão ISO, e possuir barras, tenta quebrar como DD/MM/YYYY
-        if (isNaN(dateLimit) && dateString.includes('/')) {
-            const partes = dateString.split('/');
+        // Se contiver '/', trata prioritariamente no padrão brasileiro DD/MM/YYYY
+        if (trimmed.includes('/')) {
+            const [datePart, timePart] = trimmed.split(' ');
+            const partes = datePart.split('/');
             if (partes.length === 3) {
-                // Em JS, o mês começa do índice 0 (Janeiro = 0, Fevereiro = 1)
-                dateLimit = new Date(partes[2], partes[1] - 1, partes[0]);
+                const dia = parseInt(partes[0], 10);
+                const mes = parseInt(partes[1], 10) - 1; // Mês no JS começa em 0 (Janeiro = 0)
+                const ano = parseInt(partes[2], 10);
+
+                let horas = 0;
+                let minutos = 0;
+                let segundos = 0;
+
+                if (timePart) {
+                    const timeParts = timePart.split(':');
+                    horas = parseInt(timeParts[0], 10) || 0;
+                    minutos = parseInt(timeParts[1], 10) || 0;
+                    segundos = parseInt(timeParts[2], 10) || 0;
+                }
+
+                const d = new Date(ano, mes, dia, horas, minutos, segundos);
+                return isNaN(d.getTime()) ? null : d;
             }
         }
 
-        return isNaN(dateLimit) ? null : dateLimit;
+        // Padrão ISO (YYYY-MM-DD ou ISO-8601 completo)
+        const parsedIso = new Date(trimmed);
+        return isNaN(parsedIso.getTime()) ? null : parsedIso;
     }
 }
 
 export default DateHelper;
+

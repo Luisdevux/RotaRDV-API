@@ -2,15 +2,22 @@
 
 import { z } from 'zod';
 import objectIdSchema from './ObjectIdSchema.js';
+import { DateHelper } from '../../../helpers/index.js';
 
 // Schema Base
 const baseDespesaSchema = z.object({
     viagem_id: objectIdSchema,
     data: z.preprocess((arg) => {
-        if (typeof arg == "string" || arg instanceof Date) return new Date(arg);
+        if (!arg) return arg;
+        if (arg instanceof Date) return arg;
+        if (typeof arg === 'string') {
+            const parsed = DateHelper.parseFlexibleDate(arg);
+            return parsed || arg;
+        }
+        return arg;
     }, z.date({
         required_error: "A data da despesa é obrigatória.",
-        invalid_type_error: "Formato de data inválido."
+        invalid_type_error: "Formato de data inválido. Use ISO (YYYY-MM-DD) ou formato BR (DD/MM/YYYY)."
     })).refine(data => data <= new Date(), {
         message: "A data da despesa não pode estar no futuro."
     }),

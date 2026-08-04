@@ -58,7 +58,7 @@ app.use('/public', express.static('public'));
 routes(app);
 
 // Middleware para lidar com rotas não encontradas (404)
-app.use((req, res, next) => {
+app.use((req, res, _next) => {
     return CommonResponse.error(
         res,
         404,

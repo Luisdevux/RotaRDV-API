@@ -177,9 +177,9 @@ class AuthController {
 
         const UsuarioService = (await import('../services/UsuarioService.js')).default;
         const usuarioService = new UsuarioService();
-        let data = await usuarioService.criar(parsedData, req);
+        const data = await usuarioService.criar(parsedData, req);
 
-        let usuarioLimpo = data.toObject();
+        const usuarioLimpo = data.toObject();
         delete usuarioLimpo.senha;
 
         return CommonResponse.created(res, usuarioLimpo);
