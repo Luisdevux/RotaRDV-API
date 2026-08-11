@@ -119,9 +119,9 @@ class AuthService {
 
         return {
             user: {
+                ...userObject,
                 accessToken,
-                refreshtoken,
-                ...userObject
+                refreshtoken
             }
         };
     }
@@ -230,9 +230,9 @@ class AuthService {
 
         return {
             user: {
+                ...userObject,
                 accessToken,
-                refreshtoken,
-                ...userObject
+                refreshtoken
             }
         };
     }
@@ -287,9 +287,9 @@ class AuthService {
         const userObjeto = userLogado.toObject();
 
         const userComTokens = {
+            ...userObjeto,
             accesstoken,
-            refreshtoken,
-            ...userObjeto
+            refreshtoken
         };
 
         return { user: userComTokens };
