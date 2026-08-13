@@ -12,6 +12,7 @@ import CommonResponse from './utils/helpers/CommonResponse.js';
 import express from "express";
 import expressFileUpload from "express-fileupload";
 import { expressWebhookHandler } from "@ruanlopes1350/hermes-client/express";
+import hermesClient from "./config/hermesClient.js";
 import compression from 'compression';
 
 // Criando a instância do Express
@@ -41,6 +42,15 @@ app.use(cors());
 // Habilitando a compressão de respostas
 app.use(compression());
 
+// Rota para expor webhook de rotação automática de chaves do Hermes
+if (process.env.HERMES_WEBHOOK_SECRET) {
+    app.post(
+        '/webhook/hermes',
+        express.raw({ type: 'application/json' }),
+        expressWebhookHandler(hermesClient, process.env.HERMES_WEBHOOK_SECRET),
+    );
+}
+
 // Habilitando o uso de json pelo express
 app.use(express.json());
 
@@ -61,13 +71,6 @@ app.use('/public', express.static('public'));
 
 // Passando para o arquivo de rotas o app
 routes(app);
-
-// Rota para expor um webhook para rotação de chaves do serviço de envio de e-mail
-app.post(
-  '/webhook/hermes',
-  express.raw({ type: 'application/json' }),
-  expressWebhookHandler(hermes, process.env.HERMES_WEBHOOK_SECRET),
-);
 
 // Middleware para lidar com rotas não encontradas (404)
 app.use((req, res, _next) => {
