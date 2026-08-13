@@ -32,6 +32,12 @@ class Viagem {
                 ref: "usuarios",
                 required: [true, "O ID do usuário é obrigatório!"]
             },
+            empresa_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "empresas",
+                required: false,
+                default: null
+            },
             // Snapshot do motorista
             usuario_snapshot: {
                 type: usuarioSnapshotSchema,

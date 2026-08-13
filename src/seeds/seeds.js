@@ -2,6 +2,7 @@
 
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import seedsEmpresa from './seedsEmpresa.js';
 import seedsVeiculo from './seedsVeiculo.js';
 import seedsUsuario from './seedsUsuario.js';
 import seedsViagem from './seedsViagem.js';
@@ -13,6 +14,7 @@ async function main() {
     try {
         await DbConnect.conectar();
         
+        await seedsEmpresa();
         await seedsVeiculo();
         await seedsUsuario();
         await seedsViagem();

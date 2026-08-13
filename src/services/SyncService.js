@@ -17,6 +17,9 @@ class SyncService {
                     });
                 } else {
                     v.usuario_id = usuarioLogado._id;
+                    if (usuarioLogado.empresa_id && !v.empresa_id) {
+                        v.empresa_id = usuarioLogado.empresa_id;
+                    }
                     delete v.is_deleted;
                     bulkViagens.push({
                         updateOne: {

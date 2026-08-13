@@ -3,13 +3,13 @@
 import {
     CustomError,
     HttpStatusCodes,
-    messages,
-    ensurePermission
+    ensurePermission,
+    EmailHelper,
+    ValidationHelper
 } from '../utils/helpers/index.js';
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import UploadService from './UploadService.js';
-import { cpf } from 'cpf-cnpj-validator';
 
 class UsuarioService {
     constructor() {
@@ -60,14 +60,12 @@ class UsuarioService {
         }
 
         // Validar email único
-        await this.validateEmail(parsedData.email);
+        await ValidationHelper.validateEmail(this.repository, parsedData.email);
 
         // Validar cpf único se fornecido
         if (parsedData.cpf) {
-            await this.validateCpf(parsedData.cpf);
+            await ValidationHelper.validateCpf(this.repository, parsedData.cpf);
         }
-
-        // TODO: Validar se o veiculo_id fornecido realmente existe no BD.
 
         // Hash da senha
         if (parsedData.senha) {
@@ -77,27 +75,18 @@ class UsuarioService {
         // Configuração de verificação de email
         const tokenVerificacao = await AuthHelper.generateRandomToken();
         parsedData.token_verificacao_email = tokenVerificacao;
-        parsedData.exp_token_verificacao_email = new Date(Date.now() + 24 * 60 *60 * 1000); // 24 horas
+        parsedData.exp_token_verificacao_email = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
         parsedData.email_verificada = false;
 
         const data = await this.repository.criar(parsedData);
 
-        // Envia email de verificação em background (não bloqueia o fluxo)
-        const hermesClient = (await import('../config/hermesClient.js')).default;
-        const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${tokenVerificacao}`;
-
-        hermesClient.sendEmail({
+        // Envia email de verificação em background via EmailHelper
+        EmailHelper.enviarEmailVerificacao({
             usuarioId: data._id,
-            recipient_to: data.email,
-            subject: 'Verificação de Email - RotaRDV',
-            template_id: '95f9e573-039c-43fa-862a-376858c02728',
-            variables: {
-                nomeUsuario: data.nome,
-                linkVerificacao: linkVerificacao
-            }
-        })
-        .then((resposta) => console.log(`[Sucesso] Email de verificação enviado para: ${data.email}. ID: ${resposta?.dados?._id || 'N/A'}`))
-        .catch((error) => console.error(`[Erro] Falha ao enviar email de verificação: ${error.message}`));
+            email: data.email,
+            nome: data.nome,
+            token: tokenVerificacao
+        });
 
         return data;
     }
@@ -106,14 +95,14 @@ class UsuarioService {
         // Não permitir alterar senha por esta rota
         delete parsedData.senha;
 
-        await this.ensureUserExists(id);
+        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         if (parsedData.email) {
-            await this.validateEmail(parsedData.email, id);
+            await ValidationHelper.validateEmail(this.repository, parsedData.email, id);
         }
 
         if (parsedData.cpf) {
-            await this.validateCpf(parsedData.cpf, id);
+            await ValidationHelper.validateCpf(this.repository, parsedData.cpf, id);
         }
 
         // TODO: Validar se o veiculo_id fornecido realmente existe no BD.
@@ -131,17 +120,12 @@ class UsuarioService {
             delete parsedData.isAdmin;
         }
 
-        // Validar CPF ao atualizar (não apenas no cadastro)
-        if (parsedData.cpf) {
-            await this.validateCpf(parsedData.cpf, id);
-        }
-
         const data = await this.repository.atualizar(id, parsedData);
         return data;
     }
 
     async atualizarStatus(id, parsedData, req) {
-        await this.ensureUserExists(id);
+        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         ensurePermission({
@@ -156,7 +140,7 @@ class UsuarioService {
     }
 
     async deletar(id, req) {
-        await this.ensureUserExists(id);
+        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         ensurePermission({
@@ -174,7 +158,7 @@ class UsuarioService {
     // UPLOAD DE FOTO
     // ================================
     async fotoUpload(id, file, req) {
-        const usuario = await this.ensureUserExists(id);
+        const usuario = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         ensurePermission({
@@ -198,7 +182,7 @@ class UsuarioService {
     }
 
     async fotoDelete(id, req) {
-        const usuario = await this.ensureUserExists(id);
+        const usuario = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         ensurePermission({
@@ -228,66 +212,6 @@ class UsuarioService {
         });
 
         return true;
-    }
-
-    // ================================
-    // MÉTODOS UTILITÁRIOS
-    // ================================
-    async validateEmail(email, id = null) {
-        const usuarioExistente = await this.repository.buscarPorEmail(email, id);
-        if (usuarioExistente) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validationError',
-                field: 'email',
-                details: [{ path: 'email', message: 'Email já está em uso.' }],
-                customMessage: 'Email já cadastrado.',
-            });
-        }
-    }
-
-    async validateCpf(cpfValue, id = null) {
-      // Validar formato do CPF
-      if (!this.isValidCpf(cpfValue)) {
-        throw new CustomError({
-          statusCode: HttpStatusCodes.BAD_REQUEST.code,
-          errorType: 'validationError',
-          field: 'cpf',
-          details: [{ path: 'cpf', message: 'CPF inválido.' }],
-          customMessage: 'CPF inválido.',
-        });
-      }
-
-      // Validar se já existe
-      const usuarioExistente = await this.repository.buscarPorCpf(cpfValue, id);
-      if (usuarioExistente) {
-        throw new CustomError({
-          statusCode: HttpStatusCodes.BAD_REQUEST.code,
-          errorType: 'validationError',
-          field: 'cpf',
-          details: [{ path: 'cpf', message: 'CPF já está em uso.' }],
-          customMessage: 'CPF já cadastrado.',
-        });
-      }
-    }
-
-    isValidCpf(cpfValue) {
-      const cleaned = cpfValue.replace(/\D/g, '');
-      return cleaned.length === 11 && cpf.isValid(cleaned);
-    }
-
-    async ensureUserExists(id) {
-        const usuarioExistente = await this.repository.buscarPorID(id);
-        if (!usuarioExistente) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.NOT_FOUND.code,
-                errorType: 'resourceNotFound',
-                field: 'Usuário',
-                details: [],
-                customMessage: 'Usuário não encontrado.'
-            });
-        }
-        return usuarioExistente;
     }
 }
 

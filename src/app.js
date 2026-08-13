@@ -18,8 +18,8 @@ import compression from 'compression';
 // Criando a instância do Express
 const app = express();
 
-// Configuração para acessar as veriáveis de ambiente
-dotenv.config({quiet:true});
+// Configuração para acessar as variáveis de ambiente
+dotenv.config({ quiet: true });
 
 // Conectando ao banco de dados
 await DbConnect.conectar();

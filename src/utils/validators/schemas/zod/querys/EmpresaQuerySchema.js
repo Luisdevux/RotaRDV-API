@@ -1,29 +1,34 @@
-// src/utils/validators/schemas/zod/querys/DespesaQuerySchema.js
+// src/utils/validators/schemas/zod/querys/EmpresaQuerySchema.js
 
 import { z } from 'zod';
+import mongoose from 'mongoose';
 
-export const DespesaIdSchema = z.string().uuid('UUID da despesa inválido.');
+export const EmpresaIdSchema = z.string().refine((id) => mongoose.Types.ObjectId.isValid(id), {
+    message: 'ID de empresa inválido.',
+});
 
-export const DespesaQuerySchema = z.object({
-    viagem_id: z
+export const EmpresaQuerySchema = z.object({
+    nome_empresa: z
         .string()
         .optional()
         .transform((val) => val?.trim()),
-    tipo: z
-        .enum(["ABASTECIMENTO", "ALIMENTACAO", "MANUTENCAO", "PEDAGIO", "OUTROS"])
-        .optional(),
-    data_inicio: z
+    cnpj: z
         .string()
         .optional()
-        .refine((val) => !val || !isNaN(Date.parse(val)), {
-            message: 'data_inicio deve ser uma data válida ISO 8601.',
-        }),
-    data_fim: z
+        .transform((val) => val?.trim()),
+    email: z
         .string()
         .optional()
-        .refine((val) => !val || !isNaN(Date.parse(val)), {
-            message: 'data_fim deve ser uma data válida ISO 8601.',
-        }),
+        .transform((val) => val?.trim()),
+    status: z.enum(['ativo', 'inativo']).optional(),
+    cidade: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
+    estado: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim().toUpperCase()),
     page: z
         .string()
         .optional()

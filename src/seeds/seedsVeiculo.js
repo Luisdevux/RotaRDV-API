@@ -3,10 +3,17 @@
 import 'dotenv/config';
 import { fakeMappings } from './globalFakeMapping.js';
 import Veiculos from '../models/Veiculo.js';
+import Empresa from '../models/Empresa.js';
 
 async function seedVeiculos() {
     console.log('[SEED] Iniciando seed de veículos...');
     await Veiculos.deleteMany();
+
+    const empresas = await Empresa.find({ status: 'ativo' });
+    function randomEmpresaId() {
+        if (empresas.length === 0) return null;
+        return empresas[Math.floor(Math.random() * empresas.length)]._id;
+    }
 
     const veiculos = [];
 
@@ -15,6 +22,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo Admin',
             placa: 'ABC1234',
+            empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Bitrem Graneleiro 9 Eixos',
@@ -25,6 +33,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 1',
             placa: 'DEF5678',
+            empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Carreta Baú',
@@ -35,6 +44,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 2',
             placa: 'GHI9012',
+            empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Rodotrem Basculante',
@@ -45,6 +55,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 3',
             placa: 'JKL3456',
+            empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Sider',
@@ -55,6 +66,7 @@ async function seedVeiculos() {
         {
             modelo: 'Veículo 4',
             placa: 'MNO7890',
+            empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Porta Container',
@@ -65,13 +77,14 @@ async function seedVeiculos() {
     );
 
     // Gerar mais 5 veículos aleatórios usando o fakeMappings para preencher os campos.
-    for(let i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i++) {
         veiculos.push({
             modelo: fakeMappings.Veiculo.modelo(),
             placa: fakeMappings.Veiculo.placa(),
+            empresa_id: randomEmpresaId(),
             combustivel_preferencial: fakeMappings.Veiculo.combustivel_preferencial(),
             reboque: fakeMappings.Veiculo.reboque()
-        })
+        });
     }
 
     const veiculosCriados = await Veiculos.insertMany(veiculos);

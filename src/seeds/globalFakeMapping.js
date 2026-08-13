@@ -21,15 +21,36 @@ export const fakeMappings = {
     updated_at: () => new Date().toISOString(),
   },
 
+  Empresa: {
+    nome_empresa: () => `${faker.company.name()} Transportes`,
+    cnpj: () => faker.string.numeric(14),
+    email: () => faker.internet.email().toLowerCase(),
+    telefone: () => faker.phone.number(),
+    endereco: () => ({
+      cep: faker.location.zipCode('#####-###'),
+      logradouro: faker.location.street(),
+      numero: faker.location.buildingNumber(),
+      complemento: faker.location.secondaryAddress(),
+      bairro: faker.location.county(),
+      cidade: faker.location.city(),
+      estado: faker.location.state({ abbreviated: true }),
+    }),
+    status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
+    foto_logo: () => faker.image.url(),
+    gestor_id: () => new mongoose.Types.ObjectId(),
+  },
+
   Usuario: {
     nome: () =>
     `${faker.person.firstName()} ${faker.person.lastName()} ${faker.person.lastName()}`,
-    email: () => faker.internet.email(),
+    email: () => faker.internet.email().toLowerCase(),
     cpf: () => faker.string.numeric(11),
     senha: () => faker.internet.password(),
     status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
     isAdmin: () => faker.datatype.boolean(),
+    role: () => faker.helpers.arrayElement(['admin', 'gestor', 'motorista']),
     foto_perfil: () => faker.image.avatar(),
+    empresa_id: () => new mongoose.Types.ObjectId(),
     email_verificado: () => faker.datatype.boolean(),
     token_verificacao_email: () => null,
     exp_token_verificacao_email: () => null,
@@ -50,6 +71,7 @@ export const fakeMappings = {
   Veiculo: {
     modelo: () => faker.vehicle.model(),
     placa: () => faker.vehicle.vrm(),
+    empresa_id: () => new mongoose.Types.ObjectId(),
     combustivel_preferencial: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
     reboque: () => ({
       modelo: faker.helpers.arrayElement(['Bitrem Graneleiro 9 Eixos', 'Rodotrem Basculante', 'Sider Librelato', 'Carreta Baú Facchini']),
@@ -60,6 +82,7 @@ export const fakeMappings = {
 
   Viagem: {
     usuario_id: () => new mongoose.Types.ObjectId(),
+    empresa_id: () => new mongoose.Types.ObjectId(),
     usuario_snapshot: () => ({
       nome: faker.person.fullName(),
       email: faker.internet.email(),
