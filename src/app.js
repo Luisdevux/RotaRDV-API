@@ -1,6 +1,7 @@
 // src/app.js
 
 import cors from "cors";
+import dotenv from "dotenv";
 import helmet from "helmet";
 import errorHandler from './utils/helpers/errorHandler.js';
 import logger from './utils/logger.js';
@@ -10,10 +11,14 @@ import routes from './routes/index.js';
 import CommonResponse from './utils/helpers/CommonResponse.js';
 import express from "express";
 import expressFileUpload from "express-fileupload";
+import { expressWebhookHandler } from "@ruanlopes1350/hermes-client/express";
 import compression from 'compression';
 
 // Criando a instância do Express
 const app = express();
+
+// Configuração para acessar as veriáveis de ambiente
+dotenv.config({quiet:true});
 
 // Conectando ao banco de dados
 await DbConnect.conectar();
@@ -56,6 +61,13 @@ app.use('/public', express.static('public'));
 
 // Passando para o arquivo de rotas o app
 routes(app);
+
+// Rota para expor um webhook para rotação de chaves do serviço de envio de e-mail
+app.post(
+  '/webhook/hermes',
+  express.raw({ type: 'application/json' }),
+  expressWebhookHandler(hermes, process.env.HERMES_WEBHOOK_SECRET),
+);
 
 // Middleware para lidar com rotas não encontradas (404)
 app.use((req, res, _next) => {
