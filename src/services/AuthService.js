@@ -1,12 +1,12 @@
 // src/services/AuthService.js
 
-import hermesClient from '../config/hermesClient.js';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import {
     CustomError,
     HttpStatusCodes,
-    messages
+    messages,
+    EmailHelper
 } from '../utils/helpers/index.js';
 import tokenUtil from '../utils/TokenUtil.js';
 import bcrypt from 'bcryptjs';
@@ -324,21 +324,13 @@ class AuthService {
             exp_codigo_recupera_senha: new Date(expMs)
         });
 
-        // Enviar email com o token de recuperação
-        try {
-            const resposta = await hermesClient.sendEmail({
-                usuarioId: userEncontrado._id,
-                recipient_to: body.email,
-                template_id: '1a1fc3af-80b0-443f-92ef-ae3b025eae23',
-                variables: {
-                    nomeUsuario: userEncontrado.nome,
-                    token: tokenUnico
-                }
-            });
-            console.log(`[Sucesso] Email de recuperação enviado para: ${body.email}. ID: ${resposta?.dados?._id || 'N/A'}`);
-        } catch (error) {
-            console.error(`[Erro] Falha ao enviar email de recuperação: ${error.message}`);
-        }
+        // Enviar email com o token de recuperação via EmailHelper
+        EmailHelper.enviarEmailRecuperacaoSenha({
+            usuarioId: userEncontrado._id,
+            email: body.email,
+            nome: userEncontrado.nome,
+            token: tokenUnico
+        });
 
         return {
             message: 'Se o email informado estiver cadastrado, você receberá um link de recuperação.'
@@ -407,23 +399,13 @@ class AuthService {
             // Atualizar no banco
             await this.repository.atualizarTokenVerificacao(usuario._id, novoToken, novaExpiracao);
 
-            // Enviar novo email
-            try {
-                const linkVerificacao = `${process.env.API_BASE_URL || 'http://localhost:5040'}/verificar-email?token=${novoToken}`;
-                const resposta = await hermesClient.sendEmail({
-                    usuarioId: usuario._id,
-                    recipient_to: usuario.email,
-                    subject: 'Verificação de Email - RotaRDV',
-                    template_id: '95f9e573-039c-43fa-862a-376858c02728',
-                    variables: {
-                        nomeUsuario: usuario.nome,
-                        linkVerificacao: linkVerificacao
-                    }
-                });
-                console.log(`[Sucesso] Email de verificação enviado para: ${usuario.email}. ID: ${resposta?.dados?._id || 'N/A'}`);
-            } catch (error) {
-                console.error(`[Erro] Falha ao enviar email de verificação: ${error.message}`);
-            }
+            // Enviar novo email via EmailHelper
+            EmailHelper.enviarEmailVerificacao({
+                usuarioId: usuario._id,
+                email: usuario.email,
+                nome: usuario.nome,
+                token: novoToken
+            });
 
             throw new CustomError({
                 statusCode: HttpStatusCodes.UNAUTHORIZED.code,

@@ -3,29 +3,16 @@
 import {
     CustomError,
     HttpStatusCodes,
-    messages,
-    ensurePermission
+    ensurePermission,
+    ValidationHelper
 } from '../utils/helpers/index.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
-
 
 class VeiculoService {
     constructor() {
         this.repository = new VeiculoRepository();
         this.usuarioRepository = new UsuarioRepository();
-    }
-
-    async validatePlaca(placa, excludeId = null) {
-        const veiculoExistente = await this.repository.buscarPorPlaca(placa);
-        if (veiculoExistente && String(veiculoExistente._id) !== String(excludeId)) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.CONFLICT.code,
-                errorType: 'validationError',
-                field: 'placa',
-                customMessage: `A placa ${placa} já está cadastrada em outro veículo.`,
-            });
-        }
     }
 
     async listar(req) {
@@ -78,13 +65,15 @@ class VeiculoService {
             customMessage: 'Apenas administradores podem cadastrar novos veículos.',
         });
 
-        await this.validatePlaca(parsedData.placa);
+        await ValidationHelper.validatePlaca(this.repository, parsedData.placa);
 
         const data = await this.repository.criar(parsedData);
         return data;
     }
 
     async atualizar(id, parsedData, req) {
+        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Veículo');
+
         // Apenas administradores podem atualizar veículos
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
@@ -96,7 +85,7 @@ class VeiculoService {
         });
 
         if (parsedData.placa) {
-            await this.validatePlaca(parsedData.placa, id);
+            await ValidationHelper.validatePlaca(this.repository, parsedData.placa, id);
         }
 
         const data = await this.repository.atualizar(id, parsedData);
@@ -104,6 +93,8 @@ class VeiculoService {
     }
 
     async deletar(id, req) {
+        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Veículo');
+
         // Apenas administradores podem deletar veículos
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 

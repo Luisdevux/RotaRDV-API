@@ -4,8 +4,8 @@ import mongoose from 'mongoose';
 import {
     CustomError,
     HttpStatusCodes,
-    messages,
-    ensurePermission
+    ensurePermission,
+    ValidationHelper
 } from '../utils/helpers/index.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
@@ -85,16 +85,7 @@ class ViagemService {
         const { id } = req.params;
 
         if (id) {
-            const viagem = await this.repository.buscarPorID(id);
-
-            if (!viagem) {
-              throw new CustomError({
-                  statusCode: HttpStatusCodes.NOT_FOUND.code,
-                  errorType: 'resourceNotFound',
-                  field: 'viagem',
-                  customMessage: 'Viagem não encontrada.',
-              });
-            }
+            const viagem = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
 
             const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
 
@@ -192,13 +183,16 @@ class ViagemService {
             email: motorista.email
         };
 
+        // Associação automática com a empresa do motorista ou do veículo
+        parsedData.empresa_id = parsedData.empresa_id || motorista.empresa_id || veiculo.empresa_id || null;
+
         const data = await this.repository.criar(parsedData);
         return data;
     }
 
     async atualizar(id, parsedData, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        const viagemOriginal = await this.repository.buscarPorID(id);
+        const viagemOriginal = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
 
         const isOwner = String(viagemOriginal.usuario_id._id || viagemOriginal.usuario_id) === String(usuarioLogado._id);
 
@@ -253,6 +247,8 @@ class ViagemService {
     }
     async deletar(id, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+
+        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
 
         ensurePermission({
             usuarioLogado,

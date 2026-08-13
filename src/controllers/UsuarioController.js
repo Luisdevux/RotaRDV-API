@@ -14,7 +14,6 @@ import {
   CommonResponse,
   CustomError,
   HttpStatusCodes,
-  messages,
 } from '../utils/helpers/index.js';
 
 class UsuarioController {
@@ -188,7 +187,7 @@ class UsuarioController {
       });
     }
 
-    const { url, fileName, metadata } = await this.service.fotoUpload(id, file, req);
+    const { url, metadata } = await this.service.fotoUpload(id, file, req);
 
     return CommonResponse.success(res, {
       message: 'Foto processada e usuário atualizado com sucesso.',
