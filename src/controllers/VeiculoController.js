@@ -13,7 +13,6 @@ import {
     CommonResponse,
     CustomError,
     HttpStatusCodes,
-    messages,
 } from '../utils/helpers/index.js';
 
 class VeiculoController {

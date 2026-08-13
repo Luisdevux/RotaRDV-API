@@ -26,6 +26,7 @@ const ViagemBaseSchema = z.object({
     _id: z.string().uuid('UUID inválido.').optional(),
     usuario_id: objectIdSchema,
     veiculo_id: objectIdSchema,
+    empresa_id: objectIdSchema.optional(),
     origem: LocalSchema,
     destino: LocalSchema,
     data_inicio: DateFlexible,

@@ -48,9 +48,19 @@ class Usuario {
                 type: Boolean,
                 default: false
             },
+            role: {
+                type: String,
+                enum: ["admin", "gestor", "motorista"],
+                default: "motorista"
+            },
             foto_perfil: {
                 type: String,
                 default: ""
+            },
+            empresa_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "empresas",
+                default: null
             },
             empresa: {
                 nome: {

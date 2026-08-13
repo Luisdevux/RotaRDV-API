@@ -34,6 +34,12 @@ class Veiculo {
                     type: Number,
                     required: false
                 }
+            },
+            empresa_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "empresas",
+                required: false,
+                default: null
             }
         }, {
             timestamps: true,

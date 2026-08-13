@@ -33,12 +33,14 @@ const UsuarioSchema = z.object({
         }),
     status: z.enum(['ativo', 'inativo']).optional(),
     isAdmin: z.boolean().optional(),
+    role: z.enum(['admin', 'gestor', 'motorista']).optional().default('motorista'),
     foto_perfil: z
         .string()
         .refine((val) => val === '' || /\.(jpg|jpeg|png|svg)$/i.test(val), {
             message: 'Deve ser um link de imagem com extensão válida (jpg, png, etc).',
         })
         .optional(),
+    empresa_id: objectIdSchema.optional(),
     empresa: z
         .object({
           nome: z.string().optional(),

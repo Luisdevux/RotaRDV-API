@@ -3,7 +3,7 @@
 import DespesaRepository from '../repositories/DespesaRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
-import { CustomError, HttpStatusCodes } from '../utils/helpers/index.js';
+import { CustomError, HttpStatusCodes, ValidationHelper } from '../utils/helpers/index.js';
 
 class DespesaService {
     constructor() {
@@ -16,7 +16,7 @@ class DespesaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
         // 1. Busca a Viagem
-        const viagem = await this.viagemRepository.buscarPorID(dados.viagem_id);
+        const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(dados.viagem_id), 'Viagem');
 
         // 2. Dono da viagem
         // Se for admin, pula essa checagem. Caso contrário, só dono lança despesa.
@@ -85,7 +85,7 @@ class DespesaService {
                 filtrosOverride.viagem_id = { $in: viagensIds };
             } else {
                 // Verifica se a viagem pertence a ele
-                const viagem = await this.viagemRepository.buscarPorID(viagem_id);
+                const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(viagem_id), 'Viagem');
                 if (String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
                     throw new CustomError({
                         statusCode: HttpStatusCodes.FORBIDDEN.code,
@@ -103,8 +103,8 @@ class DespesaService {
     async deletar(id, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const despesa = await this.repository.buscarPorID(id);
-        const viagem = await this.viagemRepository.buscarPorID(despesa.viagem_id);
+        const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
+        const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
 
         if (!usuarioLogado.isAdmin && String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
             throw new CustomError({

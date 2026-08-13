@@ -55,6 +55,7 @@ async function seedViagens() {
             usuario_snapshot,
             veiculo_id: randomVeiculo._id,
             veiculo_snapshot,
+            empresa_id: randomUsuario.empresa_id || randomVeiculo.empresa_id || null,
             origem: fakeMappings.Viagem.origem(),
             destino: fakeMappings.Viagem.destino(),
             data_inicio: fakeMappings.Viagem.data_inicio(),

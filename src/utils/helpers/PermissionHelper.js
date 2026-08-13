@@ -4,15 +4,26 @@ import CustomError from './CustomError.js';
 import HttpStatusCodes from './HttpStatusCodes.js';
 import messages from './messages.js';
 
-function ensurePermission({ usuarioLogado, targetId, isOwner, field, customMessage = messages.auth.invalidPermission }) {
-    const isAdmin = usuarioLogado.isAdmin;
-    
-    const isDriver = typeof isOwner === 'boolean' 
-        ? isOwner 
-        : (targetId ? String(usuarioLogado._id) === String(targetId) : false);
+function ensurePermission({
+    usuarioLogado,
+    targetId,
+    isOwner,
+    empresaId,
+    field,
+    customMessage = messages.auth.invalidPermission
+}) {
+    const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
 
-      if (!isAdmin && !isDriver) {
-          throw new CustomError({
+    const isDriver = typeof isOwner === 'boolean'
+        ? isOwner
+        : (targetId ? String(usuarioLogado?._id) === String(targetId) : false);
+
+    const isGestor = empresaId
+        ? (usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(empresaId))
+        : (usuarioLogado?.role === 'gestor');
+
+    if (!isAdmin && !isDriver && !isGestor) {
+        throw new CustomError({
             statusCode: HttpStatusCodes.FORBIDDEN.code,
             errorType: 'permissionError',
             field,
@@ -21,7 +32,7 @@ function ensurePermission({ usuarioLogado, targetId, isOwner, field, customMessa
         });
     }
 
-    return { isAdmin, isDriver };
+    return { isAdmin, isDriver, isGestor };
 }
 
 export default ensurePermission;
