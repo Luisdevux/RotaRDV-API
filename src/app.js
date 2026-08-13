@@ -1,6 +1,7 @@
 // src/app.js
 
 import cors from "cors";
+import dotenv from "dotenv";
 import helmet from "helmet";
 import errorHandler from './utils/helpers/errorHandler.js';
 import logger from './utils/logger.js';
@@ -10,10 +11,15 @@ import routes from './routes/index.js';
 import CommonResponse from './utils/helpers/CommonResponse.js';
 import express from "express";
 import expressFileUpload from "express-fileupload";
+import { expressWebhookHandler } from "@ruanlopes1350/hermes-client/express";
+import hermesClient from "./config/hermesClient.js";
 import compression from 'compression';
 
 // Criando a instância do Express
 const app = express();
+
+// Configuração para acessar as veriáveis de ambiente
+dotenv.config({quiet:true});
 
 // Conectando ao banco de dados
 await DbConnect.conectar();
@@ -35,6 +41,15 @@ app.use(cors());
 
 // Habilitando a compressão de respostas
 app.use(compression());
+
+// Rota para expor webhook de rotação automática de chaves do Hermes
+if (process.env.HERMES_WEBHOOK_SECRET) {
+    app.post(
+        '/webhook/hermes',
+        express.raw({ type: 'application/json' }),
+        expressWebhookHandler(hermesClient, process.env.HERMES_WEBHOOK_SECRET),
+    );
+}
 
 // Habilitando o uso de json pelo express
 app.use(express.json());
