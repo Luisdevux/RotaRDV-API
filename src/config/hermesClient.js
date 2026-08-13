@@ -1,4 +1,4 @@
-import { HermesClient, EnvAdapter } from '@ruanlopes1350/hermes-client';
+import { HermesClient } from '@ruanlopes1350/hermes-client';
 import dotenv from 'dotenv';
 
 dotenv.config();
