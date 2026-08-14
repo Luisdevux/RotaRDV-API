@@ -14,9 +14,9 @@ import logger from './logger.js';
 
 class EmailHelper {
     static TEMPLATES = {
-        VERIFICACAO_EMAIL: '95f9e573-039c-43fa-862a-376858c02728',
-        RECUPERACAO_SENHA: '1a1fc3af-80b0-443f-92ef-ae3b025eae23',
-        BOAS_VINDAS_MOTORISTA: '95f9e573-039c-43fa-862a-376858c02728'
+        VERIFICACAO_EMAIL: '2abdd387-b4f3-4d20-917a-fd8920df25ae',
+        RECUPERACAO_SENHA: '647584d9-76ac-4179-b7e6-bc74180c4776',
+        BOAS_VINDAS_MOTORISTA: 'f27fed7e-8e3c-4c12-bd2d-f2ea180b4056'
     };
 
     /**
@@ -45,7 +45,7 @@ class EmailHelper {
      */
     static async enviarEmailVerificacao({ email, nome, token }) {
         try {
-            const baseUrl = process.env.API_BASE_URL || 'http://localhost:5040';
+            const baseUrl = process.env.API_BASE_URL || 'https://rotardv-api.luisfelipe.dpdns.org';
             const linkVerificacao = `${baseUrl}/verificar-email?token=${token}`;
 
             const resposta = await hermesClient.email()
@@ -117,27 +117,27 @@ class EmailHelper {
     }
 
     /**
-     * Método flexível para envio avulso via builder ou HTML
+     * Envia email de boas-vindas com instruções de login quando a empresa cadastra um motorista
      */
-    static async enviarEmailGenerico({ to, subject, body, templateId, variables, priority = 'medium' }) {
+    static async enviarEmailBoasVindasMotorista({ email, nome, nomeEmpresa }) {
         try {
-            const builder = hermesClient.email()
-                .to(to)
-                .subject(subject)
-                .priority(priority);
+          const resposta = await hermesClient.email()
+              .to(email)
+              .subject(`Bem-vindo ao RotaRDV - ${nomeEmpresa}`)
+              .useTemplate(this.TEMPLATES.BOAS_VINDAS_MOTORISTA, {
+                  nomeUsuario: nome,
+                  nomeEmpresa: nomeEmpresa,
+                  email: email,
+                  linkApp: "https://seu-link-para-download-do-app.com"
+              })
+              .priority('high')
+              .send();
 
-            if (templateId) {
-                builder.useTemplate(templateId, variables);
-            } else if (body) {
-                builder.body(body);
-            }
-
-            const resposta = await builder.send();
-            logger.info(`[EmailHelper] Email genérico enviado com sucesso para ${to}`);
-            return resposta;
+          logger.info(`[EmailHelper] Email de boas-vindas enviado ao motorista: ${email}`);
+          return resposta;
         } catch (error) {
-            this._handleHermesError(error, `Email Genérico - ${to}`);
-            return null;
+          this._handleHermesError(error, `Boas-vindas Motorista - ${email}`);
+          return null;
         }
     }
 }
