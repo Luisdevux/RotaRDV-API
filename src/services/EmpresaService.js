@@ -189,9 +189,7 @@ class EmpresaService {
         return deletada;
     }
 
-    // =========================================================================
-    // GESTÃO DE MOTORISTAS DA EMPRESA
-    // =========================================================================
+    // Métodos e regras de negócios da parte de gestão da empresa
 
     /**
      * Cadastra e vincula um novo motorista à empresa
@@ -286,7 +284,7 @@ class EmpresaService {
             });
         }
 
-        // Enviar email de boas-vindas ao motorista via EmailHelper
+        // Enviar email de boas-vindas ao motorista com o util EmailHelper
         EmailHelper.enviarEmailBoasVindasMotorista({
             usuarioId: motoristaFinal._id,
             email: motoristaFinal.email,
@@ -527,7 +525,7 @@ class EmpresaService {
     }
 
     /**
-     * Obtém resumo de métricas para o Painel Web da Empresa
+     * Rota feita com o objetivo de obter o resumo de métricas para um Painel Web da Empresa
      */
     async obterDashboard(empresaId, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
@@ -608,10 +606,6 @@ class EmpresaService {
             }
         };
     }
-
-    // =========================================================================
-    // UPLOAD / EXCLUSÃO DE LOGOTIPO DA EMPRESA (GARAGE / MINIO)
-    // =========================================================================
 
     async fotoLogoUpload(id, file, req) {
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
