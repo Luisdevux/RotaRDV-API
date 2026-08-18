@@ -213,6 +213,137 @@ const despesaPaths = {
                 500: commonResponses[500]()
             }
         }
+    },
+    "/despesas/{id}/foto": {
+        post: {
+            tags: ["Despesas"],
+            summary: "Anexa foto do comprovante / nota fiscal na despesa",
+            description: `
+            + Caso de uso: Upload em segundo plano (Two-Phase Sync) da foto do comprovante ou canhoto de abastecimento/despesa para o Storage (Garage/MinIO/S3).
+
+            + Função de Negócio:
+                - Processar a imagem, otimizar/comprimir (Sharp), salvar no bucket e atualizar o campo \`foto_anexo\` da despesa.
+                + Recebe como path parameter:
+                    - **id**: UUID da despesa.
+                + Recebe no multipart/form-data:
+                    - **comprovante** (ou **foto**/**file**): Arquivo binário de imagem (.jpg, .jpeg, .png).
+
+            + Regras de Negócio:
+                - Apenas o motorista dono da viagem, gestor da transportadora ou administrador podem anexar fotos.
+                - Se a despesa já possuía uma foto anterior, a imagem antiga é substituída no Storage.
+                - Validação estrita de extensão e MimeType para segurança.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com a URL pública e metadados do arquivo salvo.
+            `,
+            security: [{ bearerAuth: [] }],
+            parameters: [
+                {
+                    name: "id",
+                    in: "path",
+                    required: true,
+                    schema: { type: "string" },
+                    description: "UUID da despesa"
+                }
+            ],
+            requestBody: {
+                required: true,
+                content: {
+                    "multipart/form-data": {
+                        schema: {
+                            type: "object",
+                            properties: {
+                                comprovante: {
+                                    type: "string",
+                                    format: "binary",
+                                    description: "Arquivo de imagem do comprovante (.jpg, .png)"
+                                }
+                            },
+                            required: ["comprovante"]
+                        }
+                    }
+                }
+            },
+            responses: {
+                200: {
+                    description: "Comprovante anexado com sucesso.",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    erro: { type: "boolean", example: false },
+                                    mensagem: { type: "string", example: "Comprovante anexado com sucesso." },
+                                    dados: {
+                                        type: "object",
+                                        properties: {
+                                            url: { type: "string", example: "https://storage.luisfelipe.dpdns.org/rotardv-bucket/comprovantes/abc.jpg" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                404: commonResponses[404](),
+                498: commonResponses[498](),
+                500: commonResponses[500]()
+            }
+        },
+        delete: {
+            tags: ["Despesas"],
+            summary: "Remove a foto do comprovante da despesa",
+            description: `
+            + Caso de uso: Remover a foto do comprovante vinculada a uma despesa e excluí-la do Storage (Garage/MinIO/S3).
+
+            + Função de Negócio:
+                - Limpar o campo \`foto_anexo\` da despesa no banco de dados e excluir o arquivo binário do Storage.
+                + Recebe como path parameter:
+                    - **id**: UUID da despesa.
+
+            + Regras de Negócio:
+                - Apenas o motorista da viagem, gestor da transportadora ou administrador podem remover o anexo.
+                - Retorna 404 se a despesa não tiver comprovante cadastrado.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com mensagem de sucesso confirmando a exclusão do anexo.
+            `,
+            security: [{ bearerAuth: [] }],
+            parameters: [
+                {
+                    name: "id",
+                    in: "path",
+                    required: true,
+                    schema: { type: "string" },
+                    description: "UUID da despesa"
+                }
+            ],
+            responses: {
+                200: {
+                    description: "Comprovante removido com sucesso.",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    erro: { type: "boolean", example: false },
+                                    mensagem: { type: "string", example: "Comprovante removido com sucesso." }
+                                }
+                            }
+                        }
+                    }
+                },
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                404: commonResponses[404](),
+                498: commonResponses[498](),
+                500: commonResponses[500]()
+            }
+        }
     }
 };
 

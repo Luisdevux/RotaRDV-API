@@ -190,7 +190,7 @@ class AuthController {
      */
     verificarEmail = async (req, res) => {
       const { token } = req.query;
-      const appSchemeUrl = ''; // TODO: Definir a URL do esquema do aplicativo para redirecionamento após a verificação
+      const appSchemeUrl = process.env.APP_SCHEME_URL || 'rotardv://auth/verified';
 
       if (!token) {
         return res.status(HttpStatusCodes.BAD_REQUEST.code).send(templateErroVerificacao('Token de verificação não fornecido.', appSchemeUrl));

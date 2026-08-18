@@ -73,6 +73,35 @@ class DespesaController {
       'Despesa deletada com sucesso.',
     );
   }
+
+  async fotoUpload(req, res) {
+    const { id } = req.params;
+    DespesaIdSchema.parse(id);
+
+    const file = req.files?.comprovante || req.files?.foto || req.files?.file;
+    const result = await this.service.fotoUpload(id, file, req);
+
+    return CommonResponse.success(
+      res,
+      result,
+      HttpStatusCodes.OK.code,
+      'Comprovante anexado com sucesso.'
+    );
+  }
+
+  async fotoDelete(req, res) {
+    const { id } = req.params;
+    DespesaIdSchema.parse(id);
+
+    await this.service.fotoDelete(id, req);
+
+    return CommonResponse.success(
+      res,
+      null,
+      HttpStatusCodes.OK.code,
+      'Comprovante removido com sucesso.'
+    );
+  }
 }
 
 export default DespesaController;

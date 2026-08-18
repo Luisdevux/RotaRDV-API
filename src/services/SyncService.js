@@ -2,11 +2,19 @@
 
 import Viagem from '../models/Viagem.js';
 import Despesa from '../models/Despesa.js';
+import Usuario from '../models/Usuario.js';
 import { DateHelper } from '../utils/helpers/index.js';
 
 class SyncService {
-    async pushSync(usuarioLogado, viagens, despesas) {
+    async pushSync(usuarioRef, viagens, despesas) {
+        const userId = usuarioRef._id || usuarioRef;
+        const usuarioLogado = await Usuario.findById(userId);
+
         const results = { viagensUpserted: 0, viagensDeleted: 0, despesasUpserted: 0, despesasDeleted: 0 };
+
+        if (!usuarioLogado) {
+            return results;
+        }
 
         if (viagens && viagens.length > 0) {
             const bulkViagens = [];
@@ -21,6 +29,8 @@ class SyncService {
                         v.empresa_id = usuarioLogado.empresa_id;
                     }
                     delete v.is_deleted;
+                    v.updatedAt = new Date();
+
                     bulkViagens.push({
                         updateOne: {
                             filter: { _id: v._id, usuario_id: usuarioLogado._id },
@@ -57,6 +67,14 @@ class SyncService {
                     });
                 } else {
                     delete d.is_deleted;
+
+                    // Protege contra sobrescrever uma foto_anexo já enviada caso o sync venha sem a URL
+                    if (!d.foto_anexo) {
+                        delete d.foto_anexo;
+                    }
+
+                    d.updatedAt = new Date();
+
                     bulkDespesas.push({
                         updateOne: {
                             filter: { _id: d._id, viagem_id: d.viagem_id },
@@ -68,10 +86,9 @@ class SyncService {
             }
 
             if (bulkDespesas.length > 0) {
-                // ordered: false permite que se um upsert falhar, ex: UUID duplicado em outra viagem, os outros passem
+                // ordered: false permite que se um upsert falhar, os outros passem
                 const dRes = await Despesa.bulkWrite(bulkDespesas, { ordered: false }).catch(err => err);
 
-                // Se der erro de duplicate key, ignora aquele erro específico e pega apenas os sucessos
                 const resObject = dRes.result ? dRes.result : dRes;
                 results.despesasUpserted = (resObject.upsertedCount || 0) + (resObject.modifiedCount || 0);
                 results.despesasDeleted = resObject.deletedCount || 0;
@@ -81,7 +98,14 @@ class SyncService {
         return results;
     }
 
-    async pullSync(usuarioLogado, updatedAfter) {
+    async pullSync(usuarioRef, updatedAfter) {
+        const userId = usuarioRef._id || usuarioRef;
+        const usuarioLogado = await Usuario.findById(userId).populate('veiculo_id');
+
+        if (!usuarioLogado) {
+            return { viagens: [], despesas: [], veiculo: null };
+        }
+
         // Pega todos os IDs de viagens que pertencem ao motorista
         const viagensAllMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }, '_id');
         const idsMotorista = viagensAllMotorista.map(v => v._id.toString());
@@ -101,7 +125,11 @@ class SyncService {
         const viagens = await Viagem.find(queryViagem).lean();
         const despesas = await Despesa.find(queryDespesa).lean();
 
-        return { viagens, despesas };
+        return {
+            viagens,
+            despesas,
+            veiculo: usuarioLogado.veiculo_id || null
+        };
     }
 }
 

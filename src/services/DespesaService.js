@@ -3,6 +3,7 @@
 import DespesaRepository from '../repositories/DespesaRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
+import UploadService from './UploadService.js';
 import { CustomError, HttpStatusCodes, ValidationHelper } from '../utils/helpers/index.js';
 
 class DespesaService {
@@ -10,6 +11,7 @@ class DespesaService {
         this.repository = new DespesaRepository();
         this.viagemRepository = new ViagemRepository();
         this.usuarioRepository = new UsuarioRepository();
+        this.uploadService = new UploadService();
     }
 
     async criar(dados, req) {
@@ -157,6 +159,83 @@ class DespesaService {
         }
 
         return await this.repository.deletar(id);
+    }
+
+    // ================================
+    // UPLOAD DE FOTO
+    // ================================
+    async fotoUpload(id, file, req) {
+        const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
+        const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
+        const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+
+        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'forbidden',
+                field: 'Despesa',
+                details: [],
+                customMessage: 'Você não tem permissão para anexar comprovantes nesta despesa.'
+            });
+        }
+
+        // O 'substituirImagem' já trata se 'usuario.foto_perfil' for null ou se não existir
+        const uploadResult = await this.uploadService.substituirImagem(
+            file,
+            despesa.foto_anexo,
+            { width: 1920, height: 1920, fit: 'inside', quality: 80 }
+        );
+
+        // Atualiza a URL no banco de dados
+        await this.repository.atualizar(id, { foto_anexo: uploadResult.url });
+
+        return uploadResult;
+    }
+
+    async fotoDelete(id, req) {
+        const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
+        const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
+        const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+
+        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'forbidden',
+                field: 'Despesa',
+                details: [],
+                customMessage: 'Você não tem permissão para remover comprovantes desta despesa.'
+            });
+        }
+
+        if (!despesa.foto_anexo) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
+                errorType: 'resourceNotFound',
+                field: 'foto_anexo',
+                details: [],
+                customMessage: 'Esta despesa não possui foto de comprovante para remover.'
+            });
+        }
+
+        const urlAntiga = despesa.foto_anexo;
+
+        // 1. Remove a URL do banco de dados imediatamente (resposta rápida, evita carregamento desnecessário da imagem)
+        await this.repository.atualizar(id, { foto_anexo: "" });
+
+        // 2. Deleta do Garage em background com retry (se falhar, apenas loga e não impacta o usuário)
+        this.uploadService.deleteImagemComRetry(urlAntiga).catch(err => {
+            console.error(`Erro isolado na exclusão da foto do comprovante no storage: ${err.message}`);
+        });
+
+        return true;
     }
 }
 

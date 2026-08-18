@@ -13,6 +13,8 @@ router
     .get('/despesas', AuthMiddleware, asyncWrapper(despesaController.listar.bind(despesaController)))
     .get('/despesas/:id', AuthMiddleware, asyncWrapper(despesaController.listar.bind(despesaController)))
     .post('/despesas', AuthMiddleware, asyncWrapper(despesaController.criar.bind(despesaController)))
-    .delete('/despesas/:id', AuthMiddleware, asyncWrapper(despesaController.deletar.bind(despesaController)));
+    .delete('/despesas/:id', AuthMiddleware, asyncWrapper(despesaController.deletar.bind(despesaController)))
+    .post('/despesas/:id/foto', AuthMiddleware, asyncWrapper(despesaController.fotoUpload.bind(despesaController)))
+    .delete('/despesas/:id/foto', AuthMiddleware, asyncWrapper(despesaController.fotoDelete.bind(despesaController)));
 
 export default router;

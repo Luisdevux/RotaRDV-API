@@ -607,7 +607,10 @@ class EmpresaService {
         };
     }
 
-    async fotoLogoUpload(id, file, req) {
+    // ================================
+    // UPLOAD DE FOTO
+    // ================================
+    async fotoUpload(id, file, req) {
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
@@ -633,7 +636,7 @@ class EmpresaService {
         return uploadResult;
     }
 
-    async fotoLogoDelete(id, req) {
+    async fotoDelete(id, req) {
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 

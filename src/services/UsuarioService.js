@@ -9,11 +9,13 @@ import {
 } from '../utils/helpers/index.js';
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
+import VeiculoRepository from '../repositories/VeiculoRepository.js';
 import UploadService from './UploadService.js';
 
 class UsuarioService {
     constructor() {
         this.repository = new UsuarioRepository();
+        this.veiculoRepository = new VeiculoRepository();
         this.uploadService = new UploadService();
     }
 
@@ -76,6 +78,11 @@ class UsuarioService {
             await ValidationHelper.validateCpf(this.repository, parsedData.cpf);
         }
 
+        // Validar se o veiculo_id fornecido realmente existe no BD
+        if (parsedData.veiculo_id) {
+            await ValidationHelper.ensureExists(await this.veiculoRepository.buscarPorID(parsedData.veiculo_id), 'Veículo');
+        }
+
         // Hash da senha
         if (parsedData.senha) {
             parsedData.senha = await AuthHelper.hashPassword(parsedData.senha);
@@ -114,7 +121,10 @@ class UsuarioService {
             await ValidationHelper.validateCpf(this.repository, parsedData.cpf, id);
         }
 
-        // TODO: Validar se o veiculo_id fornecido realmente existe no BD.
+        // Validar se o veiculo_id fornecido realmente existe no BD (se informado)
+        if (parsedData.veiculo_id) {
+            await ValidationHelper.ensureExists(await this.veiculoRepository.buscarPorID(parsedData.veiculo_id), 'Veículo');
+        }
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         const { isAdmin } = ensurePermission({
