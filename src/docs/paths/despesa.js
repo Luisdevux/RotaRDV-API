@@ -8,20 +8,23 @@ const despesaPaths = {
             tags: ["Despesas"],
             summary: "Lista todas as despesas ou busca por filtros",
             description: `
-        + Caso de uso: Permitir a listagem de despesas (Abastecimento, Alimentação, etc) e a sincronização com o aplicativo Mobile.
-        
-        + Função de Negócio:
-            - Retornar as despesas cadastradas paginadas.
-            + Recebe opcionalmente os filtros:
-                - **viagem_id**, **tipo**, **data_inicio**, **data_fim**.
-        
-        + Regras de Negócio:
-            - Motoristas acessam apenas despesas de suas próprias viagens.
-            - **(Offline-First)**: Se o motorista(app) não enviar o \`viagem_id\`, a API retornará **todas** as despesas vinculadas a **todas as suas viagens**, ideal para realizar o "Pull Sync" global do banco local.
-        
-        + Resultado Esperado:
-            - HTTP 200 OK contendo os registros de despesas formatados.
-      `,
+            + Caso de uso: Permitir a listagem de despesas (Abastecimento, Alimentação, Pedágio, Manutenção, Outros) para consulta, prestação de contas (RDV) e sincronização Offline-First.
+
+            + Função de Negócio:
+                - Retornar uma lista paginada de lançamentos financeiros.
+                + Recebe como query parameters (opcionais):
+                    • filtros: **viagem_id**, **tipo**, **data_inicio**, **data_fim**.
+                    • paginação: **page** (padrão: 1), **limite** (padrão: 10, máx: 100).
+
+            + Regras de Negócio:
+                - **Administrador**: Visualiza e filtra despesas de todas as viagens e empresas.
+                - **Gestor**: Visualiza as despesas de todas as viagens vinculadas aos motoristas da sua transportadora (\`empresa_id\`).
+                - **Motorista**: Visualiza apenas as despesas das suas próprias viagens.
+                - **(Offline-First)**: Se o motorista não enviar o \`viagem_id\`, a API retornará automaticamente todas as despesas vinculadas a todas as viagens dele, permitindo o "Pull Sync" global no banco local do dispositivo.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com array de despesas formatadas e metadados de paginação.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [
                 {
@@ -34,19 +37,19 @@ const despesaPaths = {
                     name: "tipo",
                     in: "query",
                     schema: { type: "string", enum: ["ABASTECIMENTO", "ALIMENTACAO", "MANUTENCAO", "PEDAGIO", "OUTROS"] },
-                    description: "Filtrar por tipo de despesa"
+                    description: "Filtrar por tipo macro de despesa"
                 },
                 {
                     name: "data_inicio",
                     in: "query",
                     schema: { type: "string", format: "date-time" },
-                    description: "Data inicial para filtro"
+                    description: "Data inicial para filtro de período"
                 },
                 {
                     name: "data_fim",
                     in: "query",
                     schema: { type: "string", format: "date-time" },
-                    description: "Data final para filtro"
+                    description: "Data final para filtro de período"
                 },
                 {
                     name: "page",
@@ -72,24 +75,34 @@ const despesaPaths = {
         },
         post: {
             tags: ["Despesas"],
-            summary: "Cria uma nova despesa",
+            summary: "Registra uma nova despesa na viagem ativa",
             description: `
-        + Caso de uso: Registrar um gasto ocorrido na viagem (ex: Abastecimento em posto).
-        
-        + Função de Negócio:
-            - Salvar um novo comprovante/gasto e atrelar à viagem em andamento.
-            + Recebe no corpo:
-                - Detalhes da despesa (tipo, valor, litros se for abastecimento, fotos de recibos, etc).
-        
-        + Regras de Negócio:
-            - Motoristas só podem registrar despesas nas suas próprias viagens (Admin pode em todas).
-            - A viagem vinculada deve estar com status "em_andamento".
-            - A data da despesa deve ser maior ou igual à data de início da viagem e não pode ser no futuro.
-            - Se for "ABASTECIMENTO", o \`km_atual\` deve ser >= \`km_inicial\` da viagem.
-            - O valor total (em abastecimento) deve ser estritamente (litros * valor_litro).
-        
-        + Resultado Esperado:
-            - HTTP 201 Created com os dados completos da despesa registrada.
+            + Caso de uso: Registrar um comprovante de gasto operacional ocorrido durante a viagem (Abastecimento no posto, Alimentação, Pedágio, Manutenção ou Outros).
+
+            + Função de Negócio:
+                - Criar um novo lançamento financeiro atrelado à viagem em andamento.
+                + Recebe no corpo da requisição:
+                    - **viagem_id**: UUID da viagem vinculada (obrigatório).
+                    - **tipo**: "ABASTECIMENTO" | "ALIMENTACAO" | "MANUTENCAO" | "PEDAGIO" | "OUTROS" (obrigatório).
+                    - **valor_total**: Valor total em Reais (obrigatório).
+                    - **data**: Data e hora da despesa (obrigatório, não pode ser no futuro nem anterior ao início da viagem).
+                    - **local**: Nome do posto, restaurante, praça de pedágio ou oficina (opcional).
+                    - **descricao**: Descrição livre do que foi realizado/comprado (opcional).
+                    - **foto_anexo**: URL da foto do comprovante/recibo armazenado no Garage/S3 (opcional).
+                    - *Campos exclusivos para ABASTECIMENTO*:
+                        • **litros**: Quantidade de litros abastecidos.
+                        • **valor_litro**: Preço por litro.
+                        • **tipo_combustivel**: "DIESEL_S10" | "DIESEL_S500" | "GASOLINA" | "ETANOL" | "ARLA_32" | "OUTRO".
+                        • **km_atual**: Odômetro atual do veículo no momento do abastecimento (deve ser >= km_inicial da viagem).
+
+            + Regras de Negócio:
+                - Apenas o motorista dono da viagem, o gestor da transportadora ou administrador podem registrar despesas.
+                - A viagem deve estar com status "em_andamento".
+                - Em despesas de abastecimento, a validação de tolerância financeira garante que \`valor_total\` seja exatamente \`litros * valor_litro\`.
+                - As despesas são imutáveis (append-only) para auditoria fiscal e prevenção de fraudes.
+
+            + Resultado Esperado:
+                - HTTP 201 Created com os dados completos da despesa registrada.
             `,
             security: [{ bearerAuth: [] }],
             requestBody: {
@@ -117,16 +130,18 @@ const despesaPaths = {
             tags: ["Despesas"],
             summary: "Busca uma despesa específica pelo ID",
             description: `
-            + Caso de uso: Visualizar os dados específicos e comprovantes de uma despesa.
-            
+            + Caso de uso: Consultar os detalhes, valores e foto do comprovante de um lançamento financeiro específico.
+
             + Função de Negócio:
-                - Retorna todos os detalhes de um lançamento, incluindo URLs de imagens armazenadas no bucket S3.
-                
+                - Retornar todos os campos de uma despesa pelo seu UUID.
+                + Recebe como path parameter:
+                    - **id**: UUID da despesa.
+
             + Regras de Negócio:
-                - O usuário deve ter permissão (ser o dono da viagem ou admin).
-                
+                - O usuário deve ser o motorista dono da viagem, o gestor da transportadora vinculada ou Administrador do sistema.
+
             + Resultado Esperado:
-                - HTTP 200 OK com os detalhes da despesa.
+                - HTTP 200 OK com os dados completos da despesa.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
@@ -149,19 +164,21 @@ const despesaPaths = {
         },
         delete: {
             tags: ["Despesas"],
-            summary: "Remove uma despesa",
+            summary: "Remove uma despesa lançada incorretamente",
             description: `
-        + Caso de uso: Excluir um lançamento financeiro feito errado (antes da viagem ser concluída).
-        
-        + Função de Negócio:
-            - Remove o registro da despesa.
-            
-        + Regras de Negócio:
-            - É necessário ser o motorista da viagem correspondente ou Admin.
-            - A exclusão direta só é permitida se a viagem ainda estiver "em_andamento".
-            
-        + Resultado Esperado:
-            - HTTP 200 OK indicando exclusão de sucesso.
+            + Caso de uso: Excluir um comprovante ou lançamento financeiro digitado com erro antes do encerramento da viagem.
+
+            + Função de Negócio:
+                - Remover o registro da despesa da base de dados.
+                + Recebe como path parameter:
+                    - **id**: UUID da despesa a ser excluída.
+
+            + Regras de Negócio:
+                - A exclusão por motoristas só é permitida enquanto a viagem correspondente estiver com status "em_andamento".
+                - O solicitante deve ser o motorista da viagem, o gestor da transportadora vinculada ou Administrador.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com mensagem de sucesso confirmando a exclusão.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
