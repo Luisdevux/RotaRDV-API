@@ -49,7 +49,7 @@ const abastecimentoSchema = baseDespesaSchema.extend({
 // Schema Alimentacao
 const alimentacaoSchema = baseDespesaSchema.extend({
     tipo: z.literal("ALIMENTACAO"),
-    tipo_refeicao: z.string().min(1, "O tipo da refeição é obrigatório!"),
+    tipo_refeicao: z.string().optional().default(""),
     valor_total: z.number().positive("Valor total deve ser maior que zero.")
 });
 

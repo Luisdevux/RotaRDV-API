@@ -50,9 +50,10 @@ O backend do RotaRDV foi estruturado para suportar escalabilidade, garantindo qu
 
 ## 🗄️ Modelagem de Dados (Ecossistema)
 
-O banco de dados do projeto de domínio foi fragmentado em 5 grandes coleções principais no MongoDB:
+O banco de dados do projeto de domínio foi fragmentado em 6 grandes coleções principais no MongoDB:
 
-- 👥 **`usuarios`**: Gestão dos motores (Mobile) e retaguarda administrativa (Dashboards). Modela hash de segredos, vínculos, JWT Sessions e recuperação de permissões.
+- 🏢 **`empresas`**: Gestão corporativa multi-tenant da transportadora. Modela CNPJ, razão social, contato, endereço estruturado, vínculo com Gestor de Frota (`gestor_id`), logotipo S3 e status operacional.
+- 👥 **`usuarios`**: Gestão dos motoristas (Mobile), gestores de frota e retaguarda administrativa (Dashboards). Modela hash de segredos, vínculos com transportadora, JWT Sessions e recuperação de permissões.
 - 🚛 **`veiculos`**: Gestão unificada da frota da transportadora. Regula a "cabeça" (cavalo mecânico) e sua array de chassis tracionados (Reboques).
 - 🛣️ **`viagens`**: O coração relacional. Associa 1 Motorista <> 1 Snapshot de Veículo. Congela cronometragens, odometria inicial/final e status cíclico.
 - 🧾 **`despesas`**: Entidades monetárias atreladas à estrutura hierárquica superior (`viagens`). Tratam comprovantes (links S3), valores escalares, a categoria taxada fechada e cronologia real de faturamento injetada pelo celular.
@@ -63,6 +64,15 @@ O banco de dados do projeto de domínio foi fragmentado em 5 grandes coleções 
 ## ✅ Status de Maturidade dos Requisitos Funcionais
 
 Acompanhamento do que o projeto já atende de regra de arquitetura real pronta para consumir via endpoints.
+
+### 🏢 Gestão de Empresas e Transportadoras *(Status: ✅ Implementado)*
+- [x] `POST /empresas`: Cadastro corporativo com validação de CNPJ e e-mail únicos, endereço estruturado e associação de Gestor de Frota (`gestor_id`).
+- [x] `PATCH /empresas/:id`: Atualização cadastral parcial (dados cadastrais, contatos, endereço) permitida a Gestores e Administradores (alteração de gestor restrita a Admin).
+- [x] `PATCH /empresas/:id/status`: Ativação e inativação de transportadoras com governança estrita de Admin.
+- [x] `DELETE /empresas/:id`: Exclusão com **trava de integridade referencial** rígida contra empresas com motoristas vinculados ou veículos na frota.
+- [x] `POST/GET /empresas/:id/motoristas` e `POST /empresas/:id/motoristas/vincular`: Gestão completa de cadastro, vínculo e desvinculação de motoristas corporativos.
+- [x] `GET /empresas/:id/dashboard`: Agregação analítica em tempo real de KPIs de frota, viagens em andamento/concluídas, KM rodado e despesas por categoria para o Painel Web.
+- [x] `POST/DELETE /empresas/:id/foto`: Upload e exclusão de logotipo corporativo em Storage S3 (MinIO/Garage).
 
 ### 👤 Autenticação e Perfis (Usuários) - Baseada
 - [x] O Administrativo pode cadastrar usuários com nome, email, hash robusto e máscara documental CPF validada.

@@ -20,8 +20,9 @@ const usuarioRoutes = {
         + Regras de Negócio:
             - Validar formatos e valores dos filtros fornecidos.
             - A listagem deve ocorrer mesmo se nenhum filtro for enviado.
-            - Apenas administradores podem listar todos os usuários.
-            - Usuários comuns podem ver apenas seus próprios dados.
+            - **Administradores**: Podem listar e filtrar todos os usuários do sistema.
+            - **Gestores**: Visualizam a listagem dos motoristas vinculados à sua transportadora (\`empresa_id\`).
+            - **Motoristas**: Podem visualizar apenas os seus próprios dados.
             - Suporte a paginação via parâmetros page e limite.
 
         + Resultado Esperado:
@@ -50,6 +51,7 @@ const usuarioRoutes = {
                 200: commonResponses[200]("#/components/schemas/UsuarioListagem"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
+                403: commonResponses[403](),
                 498: commonResponses[498](),
                 500: commonResponses[500]()
             }
@@ -73,7 +75,7 @@ const usuarioRoutes = {
                 - O corpo da requisição deve seguir o UsuarioSchema.
                 - Campos obrigatórios: nome, email e senha.
                 - Não deve permitir criação com email ou CPF duplicados.
-                - Apenas administradores podem criar outros usuários.
+                - Apenas administradores podem criar outros usuários diretamente por esta rota.
 
             + Resultado Esperado:
                 - HTTP 201 Created retornando o usuário criado com ID.
@@ -90,6 +92,7 @@ const usuarioRoutes = {
                 201: commonResponses[201]("#/components/schemas/UsuarioDetalhes"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
+                403: commonResponses[403](),
                 409: commonResponses[409](),
                 498: commonResponses[498](),
                 500: commonResponses[500]()
@@ -111,8 +114,9 @@ const usuarioRoutes = {
 
             + Regras de Negócio:
                 - Validação do formato do ID.
-                - Usuários comuns podem ver apenas seus próprios dados.
                 - Administradores têm acesso a todos os usuários.
+                - Gestores têm acesso aos dados dos motoristas da sua própria transportadora.
+                - Motoristas podem ver apenas seus próprios dados.
 
             + Resultado Esperado:
                 - HTTP 200 OK com corpo conforme **UsuarioDetalhes**.
