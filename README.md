@@ -130,6 +130,7 @@ tcc-despesas-api/
     ├── 🎮 controllers/                  # Manipuladores de requisições HTTP
     │   ├── AuthController.js             # Login, signup, google, tokens e verificação
     │   ├── DespesaController.js          # Criação, listagem e remoção de despesas
+    │   ├── EmpresaController.js          # Gestão corporativa, motoristas, frota e dashboard
     │   ├── SyncController.js             # Push e Pull de sincronização offline-first
     │   ├── UsuarioController.js          # CRUD e gestão de status e fotos de usuários
     │   ├── VeiculoController.js          # CRUD da frota e reboques
@@ -138,6 +139,7 @@ tcc-despesas-api/
     ├── 💼 services/                      # Regras de negócio e casos de uso
     │   ├── AuthService.js                # Autenticação, OAuth2, senhas e email
     │   ├── DespesaService.js             # Lançamento polimórfico e validações operacionais
+    │   ├── EmpresaService.js             # Regras de governança de empresas, frota e motoristas
     │   ├── SyncService.js                # Motor de reconciliação em lote (bulkWrite)
     │   ├── UploadService.js              # Otimização Sharp, SVG sanitizer e retry S3
     │   ├── UsuarioService.js             # Gestão de permissões e perfis
@@ -147,12 +149,14 @@ tcc-despesas-api/
     ├── 🗄️ repositories/                  # Abstração de persistência e queries NoSQL
     │   ├── BaseRepository.js             # Repositório genérico com paginação integrada
     │   ├── DespesaRepository.js          # Queries e agregações de despesas
+    │   ├── EmpresaRepository.js          # Queries, métricas e agregações da empresa
     │   ├── UploadRepository.js           # Operações diretas no storage S3
     │   ├── UsuarioRepository.js          # Queries com projections e busca por documento
     │   ├── VeiculoRepository.js          # Queries da frota
     │   └── ViagemRepository.js           # Queries de viagens com populated references
     │
     ├── 📝 models/                        # Esquemas Mongoose e Discriminators
+    │   ├── Empresa.js                    # Modelo de empresa/transportadora e endereço
     │   ├── Usuario.js                    # Modelo de usuário com credenciais e status
     │   ├── Veiculo.js                    # Modelo de veículo e conjunto de reboques
     │   ├── Viagem.js                     # Modelo de viagem com snapshots imutáveis (UUID)
@@ -166,6 +170,7 @@ tcc-despesas-api/
     │   ├── index.js                      # Agregador central de rotas, docs e health
     │   ├── authRoutes.js                 # Rotas públicas e sensíveis de autenticação
     │   ├── despesaRoutes.js              # Rotas de gestão de despesas
+    │   ├── empresaRoutes.js              # Rotas de gestão de empresas e dashboard
     │   ├── syncRoutes.js                 # Rotas do Sync Engine (push e pull)
     │   ├── usuarioRoutes.js              # Rotas de gestão de usuários
     │   ├── veiculoRoutes.js              # Rotas de gestão de veículos
@@ -413,7 +418,27 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 | `POST` | `/usuarios/:id/foto` | Sim | Dono / Admin | Upload ou substituição de foto de perfil |
 | `DELETE` | `/usuarios/:id/foto` | Sim | Dono / Admin | Remoção da foto de perfil |
 
-### 🚛 3. Gestão de Frota (`/veiculos`)
+### 🏢 3. Gestão de Empresas (`/empresas`)
+
+| Método | Endpoint | Protegido | Perfil | Descrição |
+| :---: | :--- | :---: | :---: | :--- |
+| `GET` | `/empresas` | Sim | Admin | Lista todas as empresas com paginação e filtros |
+| `GET` | `/empresas/:id` | Sim | Dono / Admin | Consulta detalhes e configurações da empresa |
+| `POST` | `/empresas` | Sim | Admin | Cadastro corporativo de nova transportadora |
+| `PATCH` | `/empresas/:id` | Sim | Gestor / Admin | Atualização parcial de dados cadastrais e endereço |
+| `PATCH` | `/empresas/:id/status` | Sim | Admin | Altera status entre `ativo` e `inativo` |
+| `DELETE` | `/empresas/:id` | Sim | Admin | Exclusão de empresa (com trava de motoristas/frota vinculada) |
+| `GET` | `/empresas/:id/motoristas` | Sim | Gestor / Admin | Lista motoristas vinculados à transportadora |
+| `POST` | `/empresas/:id/motoristas` | Sim | Gestor / Admin | Cadastra novo motorista e vincula à empresa |
+| `POST` | `/empresas/:id/motoristas/vincular` | Sim | Gestor / Admin | Vincula motorista existente por ID, e-mail ou CPF |
+| `DELETE` | `/empresas/:id/motoristas/:motoristaId` | Sim | Gestor / Admin | Desvincula motorista da empresa |
+| `GET` | `/empresas/:id/veiculos` | Sim | Gestor / Admin | Lista veículos pertencentes à frota da empresa |
+| `GET` | `/empresas/:id/viagens` | Sim | Gestor / Admin | Lista viagens realizadas pela equipe de condutores |
+| `GET` | `/empresas/:id/dashboard` | Sim | Gestor / Admin | Métricas executivas consolidadas para o Painel Web |
+| `POST` | `/empresas/:id/foto` | Sim | Gestor / Admin | Upload ou substituição de logotipo da empresa |
+| `DELETE` | `/empresas/:id/foto` | Sim | Gestor / Admin | Remoção do logotipo da empresa |
+
+### 🚛 4. Gestão de Frota (`/veiculos`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
@@ -423,7 +448,7 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 | `PATCH` | `/veiculos/:id` | Sim | Admin | Atualização dos dados do veículo |
 | `DELETE` | `/veiculos/:id` | Sim | Admin | Exclusão de veículo da frota |
 
-### 🛣️ 4. Controle de Viagens (`/viagens`)
+### 🛣️ 5. Controle de Viagens (`/viagens`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
@@ -433,7 +458,7 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 | `PATCH` | `/viagens/:id` | Sim | Dono / Admin | Atualiza dados ou encerra a viagem (`concluída`) |
 | `DELETE` | `/viagens/:id` | Sim | Dono / Admin | Remove o registro da viagem |
 
-### 🧾 5. Gestão de Despesas (`/despesas`)
+### 🧾 6. Gestão de Despesas (`/despesas`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
@@ -442,14 +467,14 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 | `POST` | `/despesas` | Sim | Dono / Admin | Lança despesa polimórfica em viagem em andamento |
 | `DELETE` | `/despesas/:id` | Sim | Dono / Admin | Remove despesa de viagem em andamento |
 
-### 🔄 6. Motor de Sincronização Offline-First (`/sync`)
+### 🔄 7. Motor de Sincronização Offline-First (`/sync`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
 | `POST` | `/sync/push` | Sim | Motorista | Envio em lote de viagens e despesas (Upsert/Delete) |
 | `GET` | `/sync/pull` | Sim | Motorista | Download delta de viagens e despesas atualizadas |
 
-### 🩺 7. Saúde & Documentação
+### 🩺 8. Saúde & Documentação
 
 | Método | Endpoint | Protegido | Descrição |
 | :---: | :--- | :---: | :--- |

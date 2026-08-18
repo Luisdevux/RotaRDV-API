@@ -6,7 +6,7 @@ import Despesa from "./Despesa.js";
 const despesaAlimentacaoSchema = new mongoose.Schema({
     tipo_refeicao: {
         type: String,
-        required: [true, "O tipo da refeição é obrigatório!"]
+        default: ""
     }
 }, { _id: false });
 

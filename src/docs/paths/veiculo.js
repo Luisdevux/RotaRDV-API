@@ -8,22 +8,24 @@ const veiculoRoutes = {
     "/veiculos": {
         get: {
             tags: ["Veículos"],
-            summary: "Lista todos os veículos ou busca um específico",
+            summary: "Lista todos os veículos ou busca por filtros",
             description: `
-        + Caso de uso: Permitir a listagem de todos os veículos cadastrados ou aplicar filtros dinâmicos de busca de cavalos e carretas.
+            + Caso de uso: Permitir a listagem de veículos cadastrados na frota (cavalos mecânicos e implementos/carretas).
 
-        + Função de Negócio:
-            - Permitir ao front-end obter uma lista paginada dos veículos cadastrados.
-            + Recebe como query parameters (opcionais):
-                • filtros: modelo, placa, reboque_placa, reboque_modelo.
+            + Função de Negócio:
+                - Obter uma lista paginada dos veículos cadastrados.
+                + Recebe como query parameters (opcionais):
+                    • filtros: **modelo**, **placa**, **reboque_placa**, **reboque_modelo**.
+                    • paginação: **page** (padrão: 1), **limite** (padrão: 10, máx: 100).
 
-        + Regras de Negócio:
-            - Apenas administradores podem listar todos sem filtros abertamente.
-            - Suporte a paginação via parâmetros page e limite.
+            + Regras de Negócio:
+                - **Administradores**: Visualizam todos os veículos de todas as frotas.
+                - **Gestores**: Visualizam todos os veículos da frota da sua própria transportadora (\`empresa_id\`).
+                - **Motoristas**: Visualizam apenas o veículo atribuído ao seu próprio perfil de usuário.
 
-        + Resultado Esperado:
-            - 200 OK com corpo retornando uma estrutura preenchida conforme o schema **VeiculoListagem**.
-      `,
+            + Resultado Esperado:
+                - HTTP 200 OK com corpo conforme schema **VeiculoListagem** e dados de paginação.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [
                 ...generateParameters(veiculoSchemas.VeiculoFiltro),
@@ -46,42 +48,35 @@ const veiculoRoutes = {
                 200: commonResponses[200]("#/components/schemas/VeiculoListagem"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
-                403: {
-                    description: "Forbidden - Apenas administradores podem listar todos os veículos.",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    erro: { type: "boolean", example: true },
-                                    mensagem: { type: "string", example: "Você não tem permissão para acessar este recurso." }
-                                }
-                            }
-                        }
-                    }
-                },
+                403: commonResponses[403](),
                 498: commonResponses[498](),
                 500: commonResponses[500]()
             }
         },
         post: {
             tags: ["Veículos"],
-            summary: "Cria um novo veículo",
+            summary: "Cadastra um novo veículo na frota",
             description: `
-        + Caso de uso: Permite o cadastro de um novo veículo (cavalo mecânico ou carreta) na frota.
-        
-        + Função de Negócio:
-            - Adicionar novo veículo à base de dados para ser utilizado nas viagens.
-            + Recebe no corpo:
-                - **placa**, **modelo**, **combustivel_preferencial**, **capacidade_tanque**, **ano_fabricacao**.
-        
-        + Regras de Negócio: 
-            - Apenas Administradores podem criar veículos.
-            - A placa deve ser única no sistema.
-            - Validação de formatação da placa padrão Mercosul/Nacional.
-        
-        + Resultado Esperado:
-            - HTTP 201 Created retornando o veículo recém cadastrado.
+            + Caso de uso: Cadastro de um novo caminhão ou conjunto cavalo/carreta na frota da transportadora.
+
+            + Função de Negócio:
+                - Adicionar novo veículo à base de dados para ser utilizado em viagens.
+                + Recebe no corpo da requisição:
+                    - **placa**: Placa do cavalo mecânico (obrigatório, padrão Mercosul ou Nacional).
+                    - **modelo**: Modelo do veículo (obrigatório).
+                    - **combustivel_preferencial**: Tipo de combustível principal (obrigatório).
+                    - **capacidade_tanque**: Capacidade em litros (obrigatório).
+                    - **ano_fabricacao**: Ano de fabricação do veículo (obrigatório).
+                    - **reboque**: Objeto contendo modelo e placas das carretas/implementos (opcional).
+                    - **empresa_id**: ID da transportadora proprietária (opcional; vinculado automaticamente para gestores).
+
+            + Regras de Negócio: 
+                - Administradores do sistema e Gestores da transportadora têm permissão para cadastrar veículos.
+                - A placa do veículo principal e dos implementos devem ser únicas no sistema.
+                - Validação estrita do padrão de formatação da placa.
+
+            + Resultado Esperado:
+                - HTTP 201 Created com os dados do veículo cadastrado conforme schema **VeiculoListagem**.
             `,
             security: [{ bearerAuth: [] }],
             requestBody: {
@@ -98,8 +93,8 @@ const veiculoRoutes = {
                 201: commonResponses[201]("#/components/schemas/VeiculoListagem"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
-                403: commonResponses[403](null, "Acesso negado - Apenas Administradores podem executar esta ação."),
-                409: commonResponses[409](),
+                403: commonResponses[403](),
+                409: commonResponses[409](null, "Placa já cadastrada."),
                 498: commonResponses[498](),
                 500: commonResponses[500]()
             }
@@ -108,19 +103,22 @@ const veiculoRoutes = {
     "/veiculos/{id}": {
         get: {
             tags: ["Veículos"],
-            summary: "Busca um veículo específico pelo ID",
+            summary: "Busca detalhes de um veículo pelo ID",
             description: `
-            + Caso de uso: Visualizar os dados detalhados de um veículo da frota.
-            
+            + Caso de uso: Consultar os dados detalhados, especificações técnicas e implementos de um veículo da frota.
+
             + Função de Negócio:
-                - Retorna as informações completas de um veículo pelo seu ID.
-            
+                - Retornar as informações completas de um veículo pelo seu ID.
+                + Recebe como path parameter:
+                    - **id**: Identificador único do veículo.
+
             + Regras de Negócio:
-                - Apenas Administradores podem visualizar qualquer veículo.
-                - Motoristas só podem visualizar o veículo se estiverem atrelados a ele numa viagem em andamento.
-                
+                - Administradores visualizam qualquer veículo.
+                - Gestores visualizam veículos da frota da sua própria transportadora.
+                - Motoristas visualizam apenas o veículo atribuído ao seu perfil.
+
             + Resultado Esperado:
-                - HTTP 200 OK com os detalhes do veículo.
+                - HTTP 200 OK com os detalhes do veículo conforme schema **VeiculoListagem**.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
@@ -144,18 +142,21 @@ const veiculoRoutes = {
         },
         patch: {
             tags: ["Veículos"],
-            summary: "Atualiza um veículo existente",
+            summary: "Atualiza os dados de um veículo da frota",
             description: `
-            + Caso de uso: Atualizar as informações da frota.
-            
+            + Caso de uso: Atualizar informações cadastrais, capacidade de tanque ou implementos de um veículo.
+
             + Função de Negócio:
-                - Edição de dados do veículo (modelo, combustível, etc).
-                
+                - Edição de dados do veículo (modelo, combustível, reboque, etc).
+                + Recebe como path parameter:
+                    - **id**: Identificador do veículo.
+
             + Regras de Negócio:
-                - Apenas Administradores podem editar dados de veículos.
-                
+                - Administradores do sistema ou Gestores da transportadora proprietária do veículo.
+                - Se a placa for alterada, sua unicidade e formato são revalidados.
+
             + Resultado Esperado:
-                - HTTP 200 OK com os novos dados gravados.
+                - HTTP 200 OK com os dados atualizados do veículo.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
@@ -181,7 +182,7 @@ const veiculoRoutes = {
                 200: commonResponses[200]("#/components/schemas/VeiculoListagem"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
-                403: commonResponses[403](null, "Acesso negado - Apenas Administradores podem atualizar."),
+                403: commonResponses[403](),
                 404: commonResponses[404](),
                 409: commonResponses[409](),
                 498: commonResponses[498](),
@@ -190,19 +191,21 @@ const veiculoRoutes = {
         },
         delete: {
             tags: ["Veículos"],
-            summary: "Remove um veículo",
+            summary: "Remove um veículo da frota",
             description: `
-            + Caso de uso: Excluir um veículo da frota (venda, perda total, erro).
-            
+            + Caso de uso: Excluir um veículo da frota (desativação, venda ou erro de lançamento).
+
             + Função de Negócio:
-                - Remove o veículo e o impede de ser usado em novas viagens.
-            
+                - Remover o veículo da base de dados.
+                + Recebe como path parameter:
+                    - **id**: Identificador do veículo.
+
             + Regras de Negócio:
-                - Apenas Administradores podem excluir.
-                - Soft-delete ou validação se não há viagens ativas utilizando-o.
-                
+                - Apenas Administradores ou Gestores da transportadora proprietária podem excluir veículos.
+                - O veículo deve existir na base de dados.
+
             + Resultado Esperado:
-                - HTTP 200 OK com mensagem de sucesso.
+                - HTTP 200 OK com mensagem de sucesso confirmando a exclusão.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
@@ -231,7 +234,7 @@ const veiculoRoutes = {
                 },
                 400: commonResponses[400](),
                 401: commonResponses[401](),
-                403: commonResponses[403](null, "Acesso negado - Apenas Administradores podem deletar."),
+                403: commonResponses[403](),
                 404: commonResponses[404](),
                 498: commonResponses[498](),
                 500: commonResponses[500]()

@@ -103,9 +103,10 @@ class EmailHelper {
                 .useTemplate(this.TEMPLATES.BOAS_VINDAS_MOTORISTA, {
                     nomeUsuario: nome,
                     nomeEmpresa,
+                    email,
                     mensagem
                 })
-                .priority('medium')
+                .priority('high')
                 .send();
 
             logger.info(`[EmailHelper] Email de boas-vindas enviado ao motorista: ${email}`);
@@ -113,31 +114,6 @@ class EmailHelper {
         } catch (error) {
             this._handleHermesError(error, `Boas-vindas Motorista - ${email}`);
             return null;
-        }
-    }
-
-    /**
-     * Envia email de boas-vindas com instruções de login quando a empresa cadastra um motorista
-     */
-    static async enviarEmailBoasVindasMotorista({ email, nome, nomeEmpresa }) {
-        try {
-          const resposta = await hermesClient.email()
-              .to(email)
-              .subject(`Bem-vindo ao RotaRDV - ${nomeEmpresa}`)
-              .useTemplate(this.TEMPLATES.BOAS_VINDAS_MOTORISTA, {
-                  nomeUsuario: nome,
-                  nomeEmpresa: nomeEmpresa,
-                  email: email,
-                  linkApp: "https://seu-link-para-download-do-app.com"
-              })
-              .priority('high')
-              .send();
-
-          logger.info(`[EmailHelper] Email de boas-vindas enviado ao motorista: ${email}`);
-          return resposta;
-        } catch (error) {
-          this._handleHermesError(error, `Boas-vindas Motorista - ${email}`);
-          return null;
         }
     }
 }

@@ -14,6 +14,7 @@ import usuarioRoutes from './usuarioRoutes.js';
 import veiculoRoutes from './veiculoRoutes.js';
 import viagemRoutes from './viagemRoutes.js';
 import despesaRoutes from './despesaRoutes.js';
+import empresaRoutes from './empresaRoutes.js';
 import syncRoutes from './syncRoutes.js';
 
 dotenv.config();
@@ -52,6 +53,7 @@ const routes = (app) => {
         express.json(),
         authRoutes,
         usuarioRoutes,
+        empresaRoutes,
         veiculoRoutes,
         viagemRoutes,
         despesaRoutes,

@@ -21,6 +21,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const usuarioPaths = (await import(new URL("../paths/usuario.js",
         import.meta.url).href + t)).default;
+    const empresaPaths = (await import(new URL("../paths/empresa.js",
+        import.meta.url).href + t)).default;
     const veiculoPaths = (await import(new URL("../paths/veiculo.js",
         import.meta.url).href + t)).default;
     const viagemPaths = (await import(new URL("../paths/viagem.js",
@@ -36,6 +38,8 @@ const getSwaggerOptions = async () => {
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
         import.meta.url).href + t)).default;
     const usuarioSchemas = (await import(new URL("../schemas/usuarioSchema.js",
+        import.meta.url).href + t)).default;
+    const empresaSchemas = (await import(new URL("../schemas/empresaSchema.js",
         import.meta.url).href + t)).default;
     const veiculoSchemas = (await import(new URL("../schemas/veiculoSchema.js",
         import.meta.url).href + t)).default;
@@ -61,6 +65,7 @@ Esta API é responsável por orquestrar a infraestrutura do aplicativo móvel e 
 
 ### 🚀 Principais Features
 *   **Autenticação JWT Segura:** Sistema robusto com tokens de recuperação e \`refresh_tokens\`.
+*   **Gestão de Empresas e Transportadoras:** Módulo corporativo com cadastro e onboarding de motoristas, controle de frotas e dashboard gerencial.
 *   **Gestão de Frota e Motoristas:** Controle de vínculos entre motoristas, veículos, viagens e transportadoras.
 *   **Registro Histórico de Viagens:** Snapshot de veículos durante as viagens, garantindo integridade de relatório mesmo que frotas sejam atualizadas.
 *   **Controle de Despesas Categorizadas:** Vínculo de gastos (1:1) com tipagem dinâmica e armazenamento de notas fiscais associadas às viagens.
@@ -89,6 +94,10 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                     description: "Rotas para o gerenciamento de usuários"
                 },
                 {
+                    name: "Empresas",
+                    description: "Rotas para gestão corporativa de empresas, motoristas e dashboard gerencial"
+                },
+                {
                     name: "Veículos",
                     description: "Rotas para o gerenciamento da frota (Veículos e Reboques)"
                 },
@@ -112,6 +121,7 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
             paths: {
                 ...authPaths,
                 ...usuarioPaths,
+                ...empresaPaths,
                 ...veiculoPaths,
                 ...viagemPaths,
                 ...despesaPaths,
@@ -129,6 +139,7 @@ Todo fluxo seguro exige injeção do JWT no cabeçalho através do botão **Auth
                 schemas: {
                     ...authSchemas,
                     ...usuarioSchemas,
+                    ...empresaSchemas,
                     ...veiculoSchemas,
                     ...viagemSchemas,
                     ...despesaSchemas,
