@@ -18,9 +18,12 @@ class DespesaService {
         // 1. Busca a Viagem
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(dados.viagem_id), 'Viagem');
 
-        // 2. Dono da viagem
-        // Se for admin, pula essa checagem. Caso contrário, só dono lança despesa.
-        if (!usuarioLogado.isAdmin && String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
+        // 2. Checagem de permissão: Admin, Dono (motorista) ou Gestor da empresa da viagem
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+
+        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'forbidden',
@@ -54,7 +57,7 @@ class DespesaService {
             });
         }
 
-        // 5. Checagem (mais específica): Abastecimento Odômetro (KM)
+        // 5. Checagem de Abastecimento Odômetro (KM)
         if (dados.tipo === 'ABASTECIMENTO') {
             if (dados.km_atual < viagem.km_inicial) {
                 throw new CustomError({
@@ -72,10 +75,34 @@ class DespesaService {
 
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isGestor = usuarioLogado?.role === 'gestor';
 
         const filtrosOverride = {};
-        if (!usuarioLogado.isAdmin) {
-            // O app deve obrigatoriamente informar a viagem_id para listar despesas
+
+        if (isAdmin) {
+            // Administrador pode listar e filtrar todas as despesas sem restrições
+        } else if (isGestor) {
+            // Gestor da transportadora: visualiza despesas das viagens pertencentes à sua empresa
+            const { viagem_id } = req.validatedQuery || req.query;
+
+            if (viagem_id) {
+                const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(viagem_id), 'Viagem');
+                if (String(viagem.empresa_id) !== String(usuarioLogado.empresa_id)) {
+                    throw new CustomError({
+                        statusCode: HttpStatusCodes.FORBIDDEN.code,
+                        errorType: 'forbidden',
+                        field: 'viagem_id',
+                        customMessage: 'Você não tem permissão para visualizar as despesas de uma viagem de outra empresa.'
+                    });
+                }
+            } else {
+                const viagens = await this.viagemRepository.modelViagem.find({ empresa_id: usuarioLogado.empresa_id }).select('_id');
+                const viagensIds = viagens.map(v => v._id);
+                filtrosOverride.viagem_id = { $in: viagensIds };
+            }
+        } else {
+            // Motorista: visualiza apenas as despesas de suas próprias viagens
             const { viagem_id } = req.validatedQuery || req.query;
 
             if (!viagem_id) {
@@ -84,7 +111,6 @@ class DespesaService {
                 const viagensIds = viagens.map(v => v._id);
                 filtrosOverride.viagem_id = { $in: viagensIds };
             } else {
-                // Verifica se a viagem pertence a ele
                 const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(viagem_id), 'Viagem');
                 if (String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
                     throw new CustomError({
@@ -106,7 +132,11 @@ class DespesaService {
         const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
 
-        if (!usuarioLogado.isAdmin && String(viagem.usuario_id._id || viagem.usuario_id) !== String(usuarioLogado._id)) {
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+
+        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'forbidden',
@@ -116,7 +146,7 @@ class DespesaService {
             });
         }
 
-        if (viagem.status !== 'em_andamento') {
+        if (viagem.status !== 'em_andamento' && !isAdmin && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validation',

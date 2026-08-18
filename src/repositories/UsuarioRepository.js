@@ -95,7 +95,7 @@ class UsuarioRepository {
         return documento;
     }
 
-    async listar(req) {
+    async listar(req, filtrosOverride = {}) {
         const { id } = req.params;
         if (id) {
             const data = await this.modelUsuario.findById(id).populate('veiculo_id');
@@ -123,7 +123,7 @@ class UsuarioRepository {
             .comVeiculoId(veiculo_id)
             .comEmpresaNome(empresa_nome);
 
-        const filtros = filterBuilder.build();
+        const filtros = { ...filterBuilder.build(), ...filtrosOverride };
 
         const options = {
             page: parseInt(page, 10),

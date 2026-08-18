@@ -92,6 +92,7 @@ class ViagemService {
             ensurePermission({
                 usuarioLogado,
                 isOwner,
+                empresaId: viagem.empresa_id,
                 field: 'Consulta de Viagem',
                 customMessage: 'Você não tem permissão para acessar os dados desta viagem.',
             });
@@ -104,8 +105,15 @@ class ViagemService {
         }
 
         const filtrosOverride = {};
-        if (!usuarioLogado.isAdmin) {
-            filtrosOverride.usuario_id = String(usuarioLogado._id);
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isGestor = usuarioLogado?.role === 'gestor';
+
+        if (!isAdmin) {
+            if (isGestor) {
+                filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
+            } else {
+                filtrosOverride.usuario_id = String(usuarioLogado._id);
+            }
         }
 
         const data = await this.repository.listar(req, filtrosOverride);
@@ -199,6 +207,7 @@ class ViagemService {
         ensurePermission({
             usuarioLogado,
             isOwner,
+            empresaId: viagemOriginal.empresa_id,
             field: 'Atualização de Viagem',
             customMessage: 'Você não tem permissão para atualizar esta viagem.',
         });

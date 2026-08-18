@@ -83,6 +83,20 @@ class UsuarioFilterBuild {
         return this;
     }
 
+    comEmpresaId(empresaId) {
+        if (empresaId && mongoose.isValidObjectId(empresaId)) {
+            this.filtros.empresa_id = empresaId;
+        }
+        return this;
+    }
+
+    comRole(role) {
+        if (role) {
+            this.filtros.role = role;
+        }
+        return this;
+    }
+
     build() {
         return this.filtros;
     }

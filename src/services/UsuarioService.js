@@ -19,28 +19,37 @@ class UsuarioService {
 
     async listar(req) {
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
+        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isGestor = usuarioLogado?.role === 'gestor';
 
         if (req.params?.id) {
-            // Se está buscando um usuário específico, verifica permissão (Admin ou Dono do Perfil)
+            // Se está buscando um usuário específico, verifica permissão (Admin, Dono do Perfil, ou Gestor da mesma empresa)
+            const targetUser = await this.repository.buscarPorID(req.params.id);
             ensurePermission({
                 usuarioLogado,
                 targetId: req.params.id,
+                empresaId: targetUser?.empresa_id,
                 field: 'Consulta de Usuário',
                 customMessage: 'Você não tem permissões para acessar os dados deste usuário.',
             });
         } else {
-            // Se está listando todos os usuários, apenas Admin tem permissão
-            if (!usuarioLogado.isAdmin) {
+            // Se está listando todos os usuários, apenas Admin ou Gestor têm permissão
+            if (!isAdmin && !isGestor) {
                 throw new CustomError({
                     statusCode: HttpStatusCodes.FORBIDDEN.code,
                     errorType: 'permissionError',
                     field: 'Consulta',
-                    customMessage: 'Apenas administradores podem listar todos os usuários.',
+                    customMessage: 'Apenas administradores e gestores podem listar usuários.',
                 });
             }
         }
 
-        const data = await this.repository.listar(req);
+        const filtrosOverride = {};
+        if (isGestor && !isAdmin) {
+            filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+        }
+
+        const data = await this.repository.listar(req, filtrosOverride);
         return data;
     }
 
