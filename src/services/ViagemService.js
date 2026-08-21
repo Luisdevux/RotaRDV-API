@@ -24,15 +24,26 @@ class ViagemService {
 
         // Se não passarem o doc da viagem, buscamos os dados básicos de KM
         const viagem = viagemDoc || await Viagem.findById(viagemId).select('km_inicial km_final');
+        const matchIds = [String(viagemId)];
+        if (mongoose.Types.ObjectId.isValid(viagemId) && String(new mongoose.Types.ObjectId(viagemId)) === String(viagemId)) {
+            matchIds.push(new mongoose.Types.ObjectId(viagemId));
+        }
 
         const pipeline = [
-            { $match: { viagem_id: viagemId } },
+            { $match: { viagem_id: { $in: matchIds } } },
             {
                 $group: {
                     _id: '$tipo',
                     total: { $sum: '$valor_total' },
                     litros_totais: {
-                        $sum: { $ifNull: ['$litros', 0] }
+                        $sum: {
+                            $cond: [{ $eq: ['$tipo', 'ABASTECIMENTO'] }, { $ifNull: ['$litros', 0] }, 0]
+                        }
+                    },
+                    max_km_atual: {
+                        $max: {
+                            $cond: [{ $eq: ['$tipo', 'ABASTECIMENTO'] }, { $ifNull: ['$km_atual', 0] }, 0]
+                        }
                     }
                 },
             },
@@ -56,21 +67,30 @@ class ViagemService {
             }
         };
 
+        let maxKmRegistrado = 0;
+
         resultados.forEach((res) => {
             if (res._id in resumo.por_categoria) {
                 resumo.por_categoria[res._id] = res.total;
                 resumo.total_geral += res.total;
             }
             if (res._id === 'ABASTECIMENTO') {
-                resumo.metricas.total_litros = res.litros_totais;
+                resumo.metricas.total_litros = res.litros_totais || 0;
+                if (res.max_km_atual) {
+                    maxKmRegistrado = res.max_km_atual;
+                }
             }
         });
 
-        // Aqui calcula as métricas de distância e consumo, basicamente, calculo de média de consumo, (km/l)
-        if (viagem && viagem.km_final) {
-            resumo.metricas.km_percorrido = viagem.km_final - viagem.km_inicial;
+        // Aqui calcula as métricas de distância e consumo (km/l)
+        if (viagem) {
+            if (viagem.km_final && viagem.km_final > viagem.km_inicial) {
+                resumo.metricas.km_percorrido = viagem.km_final - viagem.km_inicial;
+            } else if (maxKmRegistrado > (viagem.km_inicial || 0)) {
+                resumo.metricas.km_percorrido = maxKmRegistrado - viagem.km_inicial;
+            }
 
-            if (resumo.metricas.total_litros > 0) {
+            if (resumo.metricas.total_litros > 0 && resumo.metricas.km_percorrido > 0) {
                 resumo.metricas.media_consumo = parseFloat(
                     (resumo.metricas.km_percorrido / resumo.metricas.total_litros).toFixed(2)
                 );
@@ -98,7 +118,7 @@ class ViagemService {
             });
 
             // Converter para objeto plano para injetar o resumo dinâmico
-            const viagemObj = viagem.toObject();
+            const viagemObj = viagem.toObject ? viagem.toObject() : viagem;
             viagemObj.resumo_financeiro = await this._calcularResumoFinanceiro(id, viagem);
 
             return viagemObj;
@@ -117,6 +137,11 @@ class ViagemService {
         }
 
         const data = await this.repository.listar(req, filtrosOverride);
+        if (data && data.docs && Array.isArray(data.docs)) {
+            for (const doc of data.docs) {
+                doc.resumo_financeiro = await this._calcularResumoFinanceiro(doc._id, doc);
+            }
+        }
         return data;
     }
 

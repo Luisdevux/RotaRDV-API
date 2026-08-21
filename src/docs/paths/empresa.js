@@ -646,7 +646,7 @@ const empresaRoutes = {
 
             + Regras de Negócio:
                 - Administradores do sistema ou o gestor responsável pela respectiva empresa.
-                - Calcula a contagem de motoristas vinculados, veículos da frota, viagens em andamento e concluídas, quilometragem total rodada e somatório de despesas agregadas por tipo (ABASTECIMENTO, ALIMENTACAO, MANUTENCAO, PEDAGIO, OUTROS).
+                - Calcula a contagem de motoristas vinculados, veículos da frota, viagens em andamento e concluídas, quilometragem total rodada, volume total de combustível (litros), média de consumo da frota (km/l) e somatório de despesas agregadas por tipo (ABASTECIMENTO, ALIMENTACAO, MANUTENCAO, PEDAGIO, OUTROS).
 
             + Resultado Esperado:
                 - HTTP 200 OK com payload estruturado conforme o schema **EmpresaDashboard**.

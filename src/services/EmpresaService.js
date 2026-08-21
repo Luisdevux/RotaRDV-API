@@ -521,6 +521,14 @@ class EmpresaService {
 
         const resultado = await this.viagemRepository.modelViagem.paginate(filtros, options);
         resultado.docs = resultado.docs.map(doc => (typeof doc.toObject === 'function' ? doc.toObject() : doc));
+
+        // Injetar resumo financeiro e consumo em cada viagem retornada
+        const ViagemService = (await import('./ViagemService.js')).default;
+        const viagemServiceInstance = new ViagemService();
+        for (const doc of resultado.docs) {
+            doc.resumo_financeiro = await viagemServiceInstance._calcularResumoFinanceiro(doc._id, doc);
+        }
+
         return resultado;
     }
 
@@ -549,10 +557,25 @@ class EmpresaService {
         const Despesa = mongoose.model('despesas');
         const Viagem = mongoose.model('viagens');
 
-        const viagensEmpresa = await Viagem.find({ empresa_id: empresaId }).select('_id km_inicial km_final');
-        const viagemIds = viagensEmpresa.map(v => v._id);
+        const matchEmpresaIds = [String(empresaId)];
+        if (mongoose.Types.ObjectId.isValid(empresaId) && String(new mongoose.Types.ObjectId(empresaId)) === String(empresaId)) {
+            matchEmpresaIds.push(new mongoose.Types.ObjectId(empresaId));
+        }
+
+        const viagensEmpresa = await Viagem.find({
+            empresa_id: { $in: matchEmpresaIds }
+        }).select('_id km_inicial km_final status');
+
+        const matchViagemIds = [];
+        viagensEmpresa.forEach(v => {
+            matchViagemIds.push(String(v._id));
+            if (mongoose.Types.ObjectId.isValid(v._id) && String(new mongoose.Types.ObjectId(v._id)) === String(v._id)) {
+                matchViagemIds.push(new mongoose.Types.ObjectId(v._id));
+            }
+        });
 
         let totalDespesasGeral = 0;
+        let totalLitrosCombustivel = 0;
         const despesasPorCategoria = {
             ABASTECIMENTO: 0,
             ALIMENTACAO: 0,
@@ -561,13 +584,18 @@ class EmpresaService {
             OUTROS: 0
         };
 
-        if (viagemIds.length > 0) {
+        if (matchViagemIds.length > 0) {
             const agregacaoDespesas = await Despesa.aggregate([
-                { $match: { viagem_id: { $in: viagemIds } } },
+                { $match: { viagem_id: { $in: matchViagemIds } } },
                 {
                     $group: {
                         _id: '$tipo',
-                        total: { $sum: '$valor_total' }
+                        total: { $sum: '$valor_total' },
+                        litros: {
+                            $sum: {
+                                $cond: [{ $eq: ['$tipo', 'ABASTECIMENTO'] }, { $ifNull: ['$litros', 0] }, 0]
+                            }
+                        }
                     }
                 }
             ]);
@@ -576,6 +604,9 @@ class EmpresaService {
                 if (item._id in despesasPorCategoria) {
                     despesasPorCategoria[item._id] = item.total;
                     totalDespesasGeral += item.total;
+                }
+                if (item._id === 'ABASTECIMENTO') {
+                    totalLitrosCombustivel += (item.litros || 0);
                 }
             });
         }
@@ -587,6 +618,12 @@ class EmpresaService {
                 totalKmRodado += (v.km_final - v.km_inicial);
             }
         });
+
+        // Média de consumo geral da frota (km/l)
+        let mediaConsumoFrota = 0;
+        if (totalLitrosCombustivel > 0 && totalKmRodado > 0) {
+            mediaConsumoFrota = parseFloat((totalKmRodado / totalLitrosCombustivel).toFixed(2));
+        }
 
         return {
             empresa: {
@@ -601,6 +638,8 @@ class EmpresaService {
                 viagens_em_andamento: viagensEmAndamento,
                 viagens_concluidas: viagensConcluidas,
                 total_km_rodado: totalKmRodado,
+                total_litros: totalLitrosCombustivel,
+                media_consumo_frota: mediaConsumoFrota,
                 total_despesas: totalDespesasGeral,
                 despesas_por_categoria: despesasPorCategoria
             }
@@ -619,11 +658,11 @@ class EmpresaService {
         ensurePermission({
             usuarioLogado,
             isOwner: isGestorDestaEmpresa,
-            field: 'Logotipo da Empresa',
-            customMessage: 'Você não tem permissão para alterar o logotipo desta empresa.',
+            field: 'Empresa',
+            customMessage: 'Você não tem permissão para alterar a foto desta empresa.',
         });
 
-        // Redimensiona/otimiza a imagem da logo e faz upload no Garage (S3)
+        // O 'substituirImagem' já trata se 'empresa.foto_logo' for null ou se não existir
         const uploadResult = await this.uploadService.substituirImagem(
             file,
             empresa.foto_logo,
@@ -645,8 +684,8 @@ class EmpresaService {
         ensurePermission({
             usuarioLogado,
             isOwner: isGestorDestaEmpresa,
-            field: 'Logotipo da Empresa',
-            customMessage: 'Você não tem permissão para remover o logotipo desta empresa.',
+            field: 'Empresa',
+            customMessage: 'Você não tem permissão para excluir a foto desta empresa.',
         });
 
         if (!empresa.foto_logo) {
@@ -654,18 +693,18 @@ class EmpresaService {
                 statusCode: HttpStatusCodes.NOT_FOUND.code,
                 errorType: 'resourceNotFound',
                 field: 'foto_logo',
-                customMessage: 'Esta empresa não possui um logotipo cadastrado para remover.'
+                customMessage: 'Esta empresa não possui uma foto cadastrada para remover.'
             });
         }
 
         const urlAntiga = empresa.foto_logo;
 
-        // 1. Remove a URL do banco imediatamente
+        // 1. Remove a URL do banco de dados imediatamente
         await this.repository.atualizar(id, { foto_logo: "" });
 
         // 2. Deleta do Garage em background com retry
         this.uploadService.deleteImagemComRetry(urlAntiga).catch(err => {
-            console.error(`[Aviso] Erro isolado na exclusão do logotipo no storage: ${err.message}`);
+            console.error(`Erro isolado na exclusão da foto em background: ${err.message}`);
         });
 
         return true;

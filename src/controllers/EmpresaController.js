@@ -250,21 +250,21 @@ class EmpresaController {
         const { id } = req.params;
         EmpresaIdSchema.parse(id);
 
-        const file = req.files?.file || req.files?.imagem || req.files?.logo;
+        const file = req.files?.file || req.files?.imagem;
         if (!file) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
                 field: 'file',
-                details: [{ path: 'file', message: 'Nenhum arquivo de imagem enviado.' }],
-                customMessage: 'A imagem do logotipo é obrigatória para o upload.',
+                details: [{ path: 'file', message: 'Nenhum arquivo enviado.' }],
+                customMessage: 'A imagem é obrigatória para o upload.',
             });
         }
 
-        const { url, metadata } = await this.service.fotoLogoUpload(id, file, req);
+        const { url, metadata } = await this.service.fotoUpload(id, file, req);
 
         return CommonResponse.success(res, {
-            message: 'Logotipo da empresa processado e atualizado com sucesso.',
+            message: 'Foto processada e empresa atualizada com sucesso.',
             dados: { foto_logo: url },
             metadados: metadata,
         });
@@ -274,13 +274,13 @@ class EmpresaController {
         const { id } = req.params;
         EmpresaIdSchema.parse(id);
 
-        await this.service.fotoLogoDelete(id, req);
+        await this.service.fotoDelete(id, req);
 
         return CommonResponse.success(
             res,
             null,
             HttpStatusCodes.OK.code,
-            'Logotipo da empresa excluído com sucesso.',
+            'Foto excluída com sucesso.',
         );
     }
 }
