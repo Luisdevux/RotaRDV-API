@@ -154,7 +154,9 @@ const empresaSchemas = {
                     total_veiculos: { type: "number", example: 10 },
                     viagens_em_andamento: { type: "number", example: 5 },
                     viagens_concluidas: { type: "number", example: 120 },
-                    total_km_rodado: { type: "number", example: 84500.5 },
+                    total_km_rodado: { type: "number", example: 84500.5, description: "Quilometragem total auditada das viagens concluídas" },
+                    total_litros: { type: "number", example: 35000.0, description: "Volume total de combustível abastecido pela frota (L)" },
+                    media_consumo_frota: { type: "number", example: 2.41, description: "Consumo médio da frota em km/l" },
                     total_despesas: { type: "number", example: 98450.75 },
                     despesas_por_categoria: {
                         type: "object",
