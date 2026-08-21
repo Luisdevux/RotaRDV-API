@@ -28,9 +28,13 @@ const UsuarioSchema = z.object({
     cpf: z
         .string()
         .nonempty('Campo CPF é obrigatório.')
-        .refine((val) => cpfRegex.test(val), {
+        .refine((val) => {
+            const cleaned = val.replace(/\D/g, '');
+            return cpfRegex.test(cleaned);
+        }, {
             message: 'CPF deve conter exatamente 11 dígitos numéricos.',
         }),
+    telefone: z.string().optional(),
     status: z.enum(['ativo', 'inativo']).optional(),
     isAdmin: z.boolean().optional(),
     role: z.enum(['admin', 'gestor', 'motorista']).optional().default('motorista'),

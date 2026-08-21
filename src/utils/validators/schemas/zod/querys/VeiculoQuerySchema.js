@@ -30,6 +30,9 @@ export const VeiculoQuerySchema = z.object({
         .string()
         .optional()
         .transform((val) => val?.trim()),
+    status: z
+        .enum(['ativo', 'inativo'])
+        .optional(),
     page: z
         .string()
         .optional()

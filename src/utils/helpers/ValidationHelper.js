@@ -15,12 +15,51 @@ class ValidationHelper {
     }
 
     /**
-     * Valida formato e algoritmo de verificação do CNPJ
+     * Valida formato e algoritmo de verificação do CNPJ (numérico tradicional e novo padrão alfanumérico IN RFB 2.229/2024)
      */
     static isValidCnpj(cnpjValue) {
         if (!cnpjValue || typeof cnpjValue !== 'string') return false;
-        const cleaned = cnpjValue.replace(/\D/g, '');
-        return cleaned.length === 14 && cnpjValidator.isValid(cleaned);
+        
+        // Remove pontuação e normaliza em maiúsculo
+        const cleaned = cnpjValue.replace(/[.\-/]/g, '').trim().toUpperCase();
+        
+        // Deve ter exatamente 14 caracteres: 12 alfanuméricos e 2 dígitos verificadores numéricos
+        if (!/^[0-9A-Z]{12}[0-9]{2}$/.test(cleaned)) {
+            return false;
+        }
+
+        // Rejeita sequências repetidas inválidas numéricas (ex: 00000000000000, 11111111111111)
+        if (/^(\d)\1{13}$/.test(cleaned)) {
+            return false;
+        }
+
+        // Tabela de conversão ASCII: '0'..'9' -> 0..9; 'A'..'Z' -> 17..42 (ASCII - 48)
+        const getVal = (char) => char.charCodeAt(0) - 48;
+
+        // 1º Dígito Verificador (DV1)
+        const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        let soma1 = 0;
+        for (let i = 0; i < 12; i++) {
+            soma1 += getVal(cleaned[i]) * pesos1[i];
+        }
+        const resto1 = soma1 % 11;
+        const dv1 = resto1 < 2 ? 0 : 11 - resto1;
+
+        if (parseInt(cleaned[12], 10) !== dv1) {
+            return false;
+        }
+
+        // 2º Dígito Verificador (DV2)
+        const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        let soma2 = 0;
+        for (let i = 0; i < 12; i++) {
+            soma2 += getVal(cleaned[i]) * pesos2[i];
+        }
+        soma2 += dv1 * pesos2[12];
+        const resto2 = soma2 % 11;
+        const dv2 = resto2 < 2 ? 0 : 11 - resto2;
+
+        return parseInt(cleaned[13], 10) === dv2;
     }
 
     /**

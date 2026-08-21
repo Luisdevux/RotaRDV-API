@@ -229,7 +229,8 @@ const usuarioRoutes = {
                     - **id**: identificador do usuário (MongoDB ObjectId).
 
             + Regras de Negócio:
-                - Apenas administradores podem alterar o status de outros usuários.
+                - Administradores do sistema podem alterar o status de qualquer usuário.
+                - Gestores podem ativar ou inativar motoristas e membros vinculados à sua própria transportadora (empresa_id).
                 - O status deve ser "ativo" ou "inativo".
 
             + Resultado Esperado:

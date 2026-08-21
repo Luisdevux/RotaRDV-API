@@ -39,12 +39,15 @@ class VeiculoRepository {
             return data;
         }
 
-        const { placa, modelo, reboque_placa, reboque_modelo, page = 1 } = req.query;
+        const { placa, modelo, reboque_placa, reboque_modelo, status, page = 1 } = req.query;
         const _id = filtrosOverride._id || req.query._id;
+        const empresa_id = filtrosOverride.empresa_id || req.query.empresa_id;
         const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
 
         const filterBuilder = new VeiculoFilterBuild()
             .comId(_id)
+            .comEmpresaId(empresa_id)
+            .comStatus(status)
             .comPlaca(placa)
             .comModelo(modelo)
             .comReboquePlaca(reboque_placa)

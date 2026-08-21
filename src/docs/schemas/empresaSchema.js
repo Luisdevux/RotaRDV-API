@@ -5,7 +5,7 @@ const empresaSchemas = {
         type: "object",
         properties: {
             nome_empresa: { type: "string", description: "Filtra pelo nome da empresa" },
-            cnpj: { type: "string", description: "Filtra pelo CNPJ da empresa" },
+            cnpj: { type: "string", description: "Filtra pelo CNPJ da empresa (suporta numérico clássico ou novo padrão alfanumérico IN RFB 2.229/2024)" },
             email: { type: "string", description: "Filtra pelo email corporativo" },
             status: { type: "string", enum: ["ativo", "inativo"], description: "Filtra pelo status" },
             cidade: { type: "string", description: "Filtra pela cidade" },
@@ -18,7 +18,7 @@ const empresaSchemas = {
         properties: {
             _id: { type: "string", example: "674fa21d79969d2172e78799" },
             nome_empresa: { type: "string", example: "Transportadora Rota Brasil" },
-            cnpj: { type: "string", example: "12.345.678/0001-90" },
+            cnpj: { type: "string", description: "CNPJ numérico ou alfanumérico", example: "12.345.678/0001-90" },
             email: { type: "string", example: "contato@rotabrasil.com.br" },
             telefone: { type: "string", example: "(11) 98765-4321" },
             endereco: {

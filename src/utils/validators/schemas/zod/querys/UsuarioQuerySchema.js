@@ -16,13 +16,34 @@ export const UsuarioQuerySchema = z.object({
         })
         .transform((val) => val?.trim()),
     email: z
-        .union([z.string().email('Formato de email inválido.'), z.undefined()])
-        .optional(),
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
     status: z
+        .enum(['ativo', 'inativo'])
+        .optional(),
+    role: z
+        .enum(['admin', 'gestor', 'motorista'])
+        .optional(),
+    cpf: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
+    empresa_id: z
+        .string()
+        .optional(),
+    empresa_nome: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
+    veiculo_id: z
+        .string()
+        .optional(),
+    isAdmin: z
         .preprocess(
             (val) => {
-                if (val === 'true' || val === true) return true;
-                if (val === 'false' || val === false) return false;
+                if (val === 'true' || val === true || val === '1' || val === 1) return true;
+                if (val === 'false' || val === false || val === '0' || val === 0) return false;
                 return undefined;
             },
             z.boolean().optional()

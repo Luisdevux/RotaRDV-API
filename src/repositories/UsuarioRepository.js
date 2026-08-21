@@ -111,7 +111,7 @@ class UsuarioRepository {
             return data;
         }
 
-        const { nome, email, status, cpf, isAdmin, veiculo_id, empresa_nome, page = 1 } = req.query;
+        const { nome, email, status, cpf, isAdmin, veiculo_id, empresa_nome, empresa_id, role, page = 1 } = req.query;
         const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
 
         const filterBuilder = new UsuarioFilterBuild()
@@ -121,7 +121,9 @@ class UsuarioRepository {
             .comCpf(cpf)
             .comIsAdmin(isAdmin)
             .comVeiculoId(veiculo_id)
-            .comEmpresaNome(empresa_nome);
+            .comEmpresaNome(empresa_nome)
+            .comEmpresaId(empresa_id)
+            .comRole(role);
 
         const filtros = { ...filterBuilder.build(), ...filtrosOverride };
 

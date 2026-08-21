@@ -45,6 +45,7 @@ export const fakeMappings = {
     `${faker.person.firstName()} ${faker.person.lastName()} ${faker.person.lastName()}`,
     email: () => faker.internet.email().toLowerCase(),
     cpf: () => faker.string.numeric(11),
+    telefone: () => faker.phone.number('(##) 9####-####'),
     senha: () => faker.internet.password(),
     status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
     isAdmin: () => faker.datatype.boolean(),
@@ -71,6 +72,9 @@ export const fakeMappings = {
   Veiculo: {
     modelo: () => faker.vehicle.model(),
     placa: () => faker.vehicle.vrm(),
+    status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
+    capacidade_tanque: () => faker.helpers.arrayElement([300, 400, 500, 600, 800, 1000]),
+    ano_fabricacao: () => faker.number.int({ min: 2015, max: 2025 }),
     empresa_id: () => new mongoose.Types.ObjectId(),
     combustivel_preferencial: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
     reboque: () => ({

@@ -52,6 +52,20 @@ class VeiculoFilterBuild {
         return this;
     }
 
+    comStatus(status) {
+        if (status) {
+            this.filtros.status = status;
+        }
+        return this;
+    }
+
+    comEmpresaId(empresa_id) {
+        if (empresa_id) {
+            this.filtros.empresa_id = empresa_id;
+        }
+        return this;
+    }
+
     build() {
         return this.filtros;
     }

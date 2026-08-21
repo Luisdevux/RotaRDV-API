@@ -2,10 +2,11 @@
 
 import { z } from 'zod';
 import objectIdSchema from './ObjectIdSchema.js';
-import { cnpj as cnpjValidator, cpf as cpfValidator } from 'cpf-cnpj-validator';
+import { cpf as cpfValidator } from 'cpf-cnpj-validator';
+import ValidationHelper from '../../../helpers/ValidationHelper.js';
 
 const cepRegex = /^\d{5}-?\d{3}$/;
-const cnpjRegex = /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/;
+const cnpjRegex = /^[0-9A-Za-z]{2}\.?[0-9A-Za-z]{3}\.?[0-9A-Za-z]{3}\/?[0-9A-Za-z]{4}-?\d{2}$/;
 const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
 const EnderecoSchema = z.object({
@@ -33,10 +34,7 @@ const EmpresaSchema = z.object({
         .refine((val) => cnpjRegex.test(val), {
             message: 'Formato de CNPJ inválido.',
         })
-        .refine((val) => {
-            const cleaned = val.replace(/\D/g, '');
-            return cleaned.length === 14 && cnpjValidator.isValid(cleaned);
-        }, {
+        .refine((val) => ValidationHelper.isValidCnpj(val), {
             message: 'CNPJ inválido.',
         }),
     email: z

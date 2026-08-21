@@ -246,7 +246,7 @@ class EmpresaController {
         );
     }
 
-    async fotoLogoUpload(req, res) {
+    async fotoUpload(req, res) {
         const { id } = req.params;
         EmpresaIdSchema.parse(id);
 
@@ -270,7 +270,7 @@ class EmpresaController {
         });
     }
 
-    async fotoLogoDelete(req, res) {
+    async fotoDelete(req, res) {
         const { id } = req.params;
         EmpresaIdSchema.parse(id);
 
