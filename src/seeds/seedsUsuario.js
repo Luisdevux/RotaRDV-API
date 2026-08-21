@@ -43,6 +43,7 @@ async function seedUsuarios() {
             email: 'admin@rotardv.com',
             senha: senhaHash,
             cpf: '00000000000',
+            telefone: '(11) 99999-0001',
             status: 'ativo',
             isAdmin: true,
             role: 'admin',
@@ -51,7 +52,7 @@ async function seedUsuarios() {
             foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
             empresa: {
                 nome: empresaPrincipal?.nome_empresa || 'Transportadora Rota Brasil',
-                cargo: 'Administrador do Sistema'
+                cargo: 'Diretor Geral'
             },
             empresa_id: empresaPrincipal?._id || null,
             veiculo_id: randomVeiculoId(veiculos)
@@ -61,6 +62,7 @@ async function seedUsuarios() {
             email: 'gestor@rotabrasil.com.br',
             senha: senhaHash,
             cpf: '99999999999',
+            telefone: '(11) 98888-1122',
             status: 'ativo',
             isAdmin: false,
             role: 'gestor',
@@ -75,9 +77,29 @@ async function seedUsuarios() {
             veiculo_id: randomVeiculoId(veiculos)
         },
         {
+            nome: 'Mariana Costa (Gestora Operacional)',
+            email: 'mariana.costa@rotabrasil.com.br',
+            senha: senhaHash,
+            cpf: '88888888888',
+            telefone: '(11) 97777-3344',
+            status: 'ativo',
+            isAdmin: false,
+            role: 'gestor',
+            email_verificado: true,
+            authProvider: 'local',
+            foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
+            empresa: {
+                nome: empresaPrincipal?.nome_empresa || 'Transportadora Rota Brasil',
+                cargo: 'Coordenadora de Logística'
+            },
+            empresa_id: empresaPrincipal?._id || null,
+            veiculo_id: randomVeiculoId(veiculos)
+        },
+        {
             nome: 'Motorista 1',
             email: 'motorista1@example.com',
             cpf: '11111111111',
+            telefone: '(69) 99111-2233',
             senha: senhaHash,
             status: 'ativo',
             isAdmin: false,
@@ -93,11 +115,12 @@ async function seedUsuarios() {
             veiculo_id: randomVeiculoId(veiculos)
         },
         {
-            nome: 'Motorista 2',
+            nome: 'Motorista 2 (Em Férias)',
             email: 'motorista2@example.com',
             cpf: '22222222222',
+            telefone: '(69) 99222-3344',
             senha: senhaHash,
-            status: 'ativo',
+            status: 'inativo',
             isAdmin: false,
             role: 'motorista',
             email_verificado: true,
@@ -114,6 +137,7 @@ async function seedUsuarios() {
             nome: 'Usuário Teste',
             email: 'teste@example.com',
             cpf: '33333333333',
+            telefone: '(69) 99333-4455',
             senha: senhaHash,
             status: 'ativo',
             isAdmin: false,
@@ -132,6 +156,7 @@ async function seedUsuarios() {
             nome: 'Usuário Inativo',
             email: 'inativo@example.com',
             cpf: '44444444444',
+            telefone: '(69) 99444-5566',
             senha: senhaHash,
             status: 'inativo',
             isAdmin: false,
