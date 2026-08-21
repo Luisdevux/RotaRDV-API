@@ -21,6 +21,7 @@ const usuarioSchemas = {
             nome: { type: "string", example: "João da Silva" },
             email: { type: "string", format: "email", example: "joao.silva@email.com" },
             cpf: { type: "string", example: "08573215099" },
+            telefone: { type: "string", description: "Telefone ou celular do usuário", example: "(69) 99999-8888" },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
@@ -46,6 +47,7 @@ const usuarioSchemas = {
             nome: { type: "string", example: "João da Silva" },
             email: { type: "string", format: "email", example: "joao.silva@email.com" },
             cpf: { type: "string", example: "08573215099" },
+            telefone: { type: "string", description: "Telefone ou celular do usuário", example: "(69) 99999-8888" },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
@@ -70,7 +72,8 @@ const usuarioSchemas = {
             nome: { type: "string", description: "Nome completo", example: "João da Silva" },
             email: { type: "string", format: "email", description: "Email do usuário", example: "joao.silva@email.com" },
             senha: { type: "string", description: "Senha segura", example: "Senha@123" },
-            cpf: { type: "string", description: "CPF do usuário (11 dígitos)", example: "08573215099" },
+            cpf: { type: "string", description: "CPF do usuário (11 dígitos ou formatado)", example: "08573215099" },
+            telefone: { type: "string", description: "Telefone de contato", example: "(69) 99999-8888" },
             empresa: {
                 type: "object",
                 properties: {
@@ -88,6 +91,7 @@ const usuarioSchemas = {
             email: "joao.silva@email.com",
             senha: "Senha@123",
             cpf: "08573215099",
+            telefone: "(69) 99999-8888",
             empresa: {
                 nome: "Transportadora Brasil",
                 cargo: "Motorista"
@@ -102,7 +106,8 @@ const usuarioSchemas = {
         properties: {
             nome: { type: "string", description: "Nome completo", example: "João da Silva Pereira" },
             email: { type: "string", format: "email", description: "Email do usuário", example: "joao.silva@email.com" },
-            cpf: { type: "string", description: "CPF do usuário (11 dígitos)", example: "08573215099" },
+            cpf: { type: "string", description: "CPF do usuário (11 dígitos ou formatado)", example: "08573215099" },
+            telefone: { type: "string", description: "Telefone de contato", example: "(69) 99999-8888" },
             empresa: {
                 type: "object",
                 properties: {
@@ -116,6 +121,7 @@ const usuarioSchemas = {
         description: "Schema para atualização parcial de um usuário",
         example: {
             nome: "João da Silva Pereira",
+            telefone: "(69) 99999-8888",
             empresa: {
                 nome: "Nova Transportadora",
                 cargo: "Motorista Sênior"

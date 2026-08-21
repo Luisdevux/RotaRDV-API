@@ -39,6 +39,10 @@ class Usuario {
                 unique: true,
                 sparse: true
             },
+            telefone: {
+                type: String,
+                default: ""
+            },
             status: {
                 type: String,
                 enum: ["ativo", "inativo"],

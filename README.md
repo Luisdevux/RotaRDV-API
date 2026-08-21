@@ -68,7 +68,7 @@ Permite registrar viagens, gerenciar frotas e motoristas, lançar despesas polim
 | `cors` | Controle granular de Cross-Origin Resource Sharing |
 | `express-rate-limit` | Rate limiting em 3 níveis (auth, strict para login/recover, e public) |
 | ![Zod](https://img.shields.io/badge/-Zod_4-3E67B1?style=flat-square&logo=zod&logoColor=white) | Validação estrita de contratos de entrada (Body, Params, Queries) |
-| `cpf-cnpj-validator` | Validação matemática de documentos brasileiros (CPF) |
+| `cpf-cnpj-validator` + Algoritmo RFB | Validação matemática de CPF e CNPJ (numérico clássico e novo padrão alfanumérico IN RFB nº 2.229/2024) |
 | `dompurify` + `jsdom` | Sanitização rigorosa de arquivos vetoriais SVG contra ataques XSS |
 | `compression` | Compressão gzip automática de payloads HTTP |
 
