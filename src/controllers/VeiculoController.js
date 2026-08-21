@@ -4,6 +4,7 @@ import VeiculoService from '../services/VeiculoService.js';
 import {
     VeiculoSchema,
     VeiculoUpdateSchema,
+    VeiculoStatusUpdateSchema,
 } from '../utils/validators/schemas/zod/VeiculoSchema.js';
 import {
     VeiculoQuerySchema,
@@ -118,6 +119,21 @@ class VeiculoController {
           data,
           HttpStatusCodes.OK.code,
           'Veículo atualizado com sucesso.'
+        );
+    }
+
+    async atualizarStatus(req, res) {
+        const { id } = req.params;
+        VeiculoIdSchema.parse(id);
+
+        const parsedData = await VeiculoStatusUpdateSchema.parse(req.body);
+        const data = await this.service.atualizar(id, { status: parsedData.status }, req);
+
+        return CommonResponse.success(
+          res,
+          data,
+          HttpStatusCodes.OK.code,
+          `Status do veículo alterado para '${parsedData.status}' com sucesso.`
         );
     }
 

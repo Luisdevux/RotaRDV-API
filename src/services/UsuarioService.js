@@ -9,11 +9,13 @@ import {
 } from '../utils/helpers/index.js';
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
+import VeiculoRepository from '../repositories/VeiculoRepository.js';
 import UploadService from './UploadService.js';
 
 class UsuarioService {
     constructor() {
         this.repository = new UsuarioRepository();
+        this.veiculoRepository = new VeiculoRepository();
         this.uploadService = new UploadService();
     }
 
@@ -76,6 +78,11 @@ class UsuarioService {
             await ValidationHelper.validateCpf(this.repository, parsedData.cpf);
         }
 
+        // Validar se o veiculo_id fornecido realmente existe no BD
+        if (parsedData.veiculo_id) {
+            await ValidationHelper.ensureExists(await this.veiculoRepository.buscarPorID(parsedData.veiculo_id), 'Veículo');
+        }
+
         // Hash da senha
         if (parsedData.senha) {
             parsedData.senha = await AuthHelper.hashPassword(parsedData.senha);
@@ -104,7 +111,7 @@ class UsuarioService {
         // Não permitir alterar senha por esta rota
         delete parsedData.senha;
 
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
+        const targetUser = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         if (parsedData.email) {
             await ValidationHelper.validateEmail(this.repository, parsedData.email, id);
@@ -114,19 +121,26 @@ class UsuarioService {
             await ValidationHelper.validateCpf(this.repository, parsedData.cpf, id);
         }
 
-        // TODO: Validar se o veiculo_id fornecido realmente existe no BD.
+        // Validar se o veiculo_id fornecido realmente existe no BD (se informado)
+        if (parsedData.veiculo_id) {
+            await ValidationHelper.ensureExists(await this.veiculoRepository.buscarPorID(parsedData.veiculo_id), 'Veículo');
+        }
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         const { isAdmin } = ensurePermission({
             usuarioLogado,
             targetId: id,
+            empresaId: targetUser.empresa_id,
             field: 'Usuário',
             customMessage: 'Você não tem permissões para atualizar outro usuário.',
         });
 
-        // Não permitir alterar isAdmin se não for admin
+        // Apenas Admin pode alterar a role de acesso ('admin', 'gestor', 'motorista') e o status isAdmin
         if (!isAdmin) {
             delete parsedData.isAdmin;
+            delete parsedData.role;
+        } else if (parsedData.role) {
+            parsedData.isAdmin = parsedData.role === 'admin';
         }
 
         const data = await this.repository.atualizar(id, parsedData);
@@ -134,12 +148,13 @@ class UsuarioService {
     }
 
     async atualizarStatus(id, parsedData, req) {
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
+        const targetUser = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         ensurePermission({
             usuarioLogado,
             targetId: id,
+            empresaId: targetUser.empresa_id,
             field: 'Usuário',
             customMessage: 'Você não tem permissões para alterar o status deste usuário.',
         });

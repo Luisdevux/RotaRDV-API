@@ -25,7 +25,7 @@ router
     .post('/empresas/:id/motoristas', AuthMiddleware, asyncWrapper(empresaController.cadastrarMotorista.bind(empresaController)))
     .post('/empresas/:id/motoristas/vincular', AuthMiddleware, asyncWrapper(empresaController.vincularMotorista.bind(empresaController)))
     .delete('/empresas/:id/motoristas/:motoristaId', AuthMiddleware, asyncWrapper(empresaController.desvincularMotorista.bind(empresaController)))
-    .post('/empresas/:id/foto', AuthMiddleware, asyncWrapper(empresaController.fotoLogoUpload.bind(empresaController)))
-    .delete('/empresas/:id/foto', AuthMiddleware, asyncWrapper(empresaController.fotoLogoDelete.bind(empresaController)));
+    .post('/empresas/:id/foto', AuthMiddleware, asyncWrapper(empresaController.fotoUpload.bind(empresaController)))
+    .delete('/empresas/:id/foto', AuthMiddleware, asyncWrapper(empresaController.fotoDelete.bind(empresaController)));
 
 export default router;

@@ -68,7 +68,7 @@ Permite registrar viagens, gerenciar frotas e motoristas, lançar despesas polim
 | `cors` | Controle granular de Cross-Origin Resource Sharing |
 | `express-rate-limit` | Rate limiting em 3 níveis (auth, strict para login/recover, e public) |
 | ![Zod](https://img.shields.io/badge/-Zod_4-3E67B1?style=flat-square&logo=zod&logoColor=white) | Validação estrita de contratos de entrada (Body, Params, Queries) |
-| `cpf-cnpj-validator` | Validação matemática de documentos brasileiros (CPF) |
+| `cpf-cnpj-validator` + Algoritmo RFB | Validação matemática de CPF e CNPJ (numérico clássico e novo padrão alfanumérico IN RFB nº 2.229/2024) |
 | `dompurify` + `jsdom` | Sanitização rigorosa de arquivos vetoriais SVG contra ataques XSS |
 | `compression` | Compressão gzip automática de payloads HTTP |
 
@@ -409,11 +409,11 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/usuarios` | Sim | Admin | Lista usuários com paginação e filtros |
+| `GET` | `/usuarios` | Sim | Gestor / Admin | Lista usuários com paginação e filtros (`role`, `status`, `empresa_id`) |
 | `GET` | `/usuarios/:id` | Sim | Dono / Admin | Retorna dados cadastrais do usuário |
 | `POST` | `/usuarios` | Sim | Admin | Criação administrativa de usuário |
-| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin | Atualização de dados cadastrais |
-| `PATCH` | `/usuarios/:id/status` | Sim | Admin | Altera status entre `ativo` e `inativo` |
+| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin | Atualização de dados cadastrais e promoção de papel (`role`/`isAdmin`) |
+| `PATCH` | `/usuarios/:id/status` | Sim | Gestor / Admin | Altera status entre `ativo` e `inativo` (gestor altera membros de sua empresa) |
 | `DELETE` | `/usuarios/:id` | Sim | Admin | Exclusão de usuário do sistema |
 | `POST` | `/usuarios/:id/foto` | Sim | Dono / Admin | Upload ou substituição de foto de perfil |
 | `DELETE` | `/usuarios/:id/foto` | Sim | Dono / Admin | Remoção da foto de perfil |
@@ -442,11 +442,12 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/veiculos` | Sim | Qualquer | Lista veículos da frota com paginação |
-| `GET` | `/veiculos/:id` | Sim | Qualquer | Detalhes do veículo e reboques engatados |
-| `POST` | `/veiculos` | Sim | Admin | Cadastro de veículo de tração e conjunto |
-| `PATCH` | `/veiculos/:id` | Sim | Admin | Atualização dos dados do veículo |
-| `DELETE` | `/veiculos/:id` | Sim | Admin | Exclusão de veículo da frota |
+| `GET` | `/veiculos` | Sim | Qualquer | Lista veículos da frota com paginação e filtros (`status`, `modelo`, `placa`) |
+| `GET` | `/veiculos/:id` | Sim | Qualquer | Detalhes do veículo, tanque e reboques engatados (multi-carretas) |
+| `POST` | `/veiculos` | Sim | Gestor / Admin | Cadastro de veículo de tração e conjunto bitrem/rodotrem |
+| `PATCH` | `/veiculos/:id` | Sim | Gestor / Admin | Atualização dos dados do veículo e implementos |
+| `PATCH` | `/veiculos/:id/status` | Sim | Gestor / Admin | Altera o status operacional do veículo entre `ativo` e `inativo` |
+| `DELETE` | `/veiculos/:id` | Sim | Gestor / Admin | Exclusão de veículo da frota |
 
 ### 🛣️ 5. Controle de Viagens (`/viagens`)
 

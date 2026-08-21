@@ -240,6 +240,55 @@ const veiculoRoutes = {
                 500: commonResponses[500]()
             }
         }
+    },
+    "/veiculos/{id}/status": {
+        patch: {
+            tags: ["Veículos"],
+            summary: "Altera o status operacional do veículo (ativo/inativo)",
+            description: `
+            + Caso de uso: Ativar ou inativar temporariamente um veículo da frota (para manutenção, licença ou desativação).
+
+            + Função de Negócio:
+                - Alternar o estado de disponibilidade operacional do caminhão.
+                + Recebe como path parameter:
+                    - **id**: ID do veículo.
+                + Recebe no body:
+                    - **status**: 'ativo' ou 'inativo'.
+
+            + Regras de Negócio:
+                - Apenas Administradores e Gestores da transportadora vinculada podem alterar o status.
+                - Veículos inativos não podem ser selecionados para novas viagens.
+
+            + Resultado Esperado:
+                - HTTP 200 OK confirmando a atualização de status.
+            `,
+            security: [{ bearerAuth: [] }],
+            parameters: [
+                {
+                    name: "id",
+                    in: "path",
+                    required: true,
+                    schema: { type: "string" },
+                    description: "ID do veículo"
+                }
+            ],
+            requestBody: {
+                content: {
+                    "application/json": {
+                        schema: { $ref: "#/components/schemas/VeiculoStatusPatch" }
+                    }
+                }
+            },
+            responses: {
+                200: commonResponses[200]("#/components/schemas/VeiculoListagem"),
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                404: commonResponses[404](),
+                498: commonResponses[498](),
+                500: commonResponses[500]()
+            }
+        }
     }
 };
 

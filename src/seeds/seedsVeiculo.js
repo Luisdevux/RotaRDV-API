@@ -20,58 +20,73 @@ async function seedVeiculos() {
     // Criar 5 veículos padrão com dados fixos.
     veiculos.push(
         {
-            modelo: 'Veículo Admin',
-            placa: 'ABC1234',
+            modelo: 'Volvo FH 540',
+            placa: 'ABC1D23',
+            status: 'ativo',
+            capacidade_tanque: 600,
+            ano_fabricacao: 2024,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
                 modelo: 'Bitrem Graneleiro 9 Eixos',
                 placas: ['RYQ-5I78', 'RYQ-5A79'],
-                ano_fabricacao: 2025
-            },
-        },
-        {
-            modelo: 'Veículo 1',
-            placa: 'DEF5678',
-            empresa_id: randomEmpresaId(),
-            combustivel_preferencial: 'DIESEL_S10',
-            reboque: {
-                modelo: 'Carreta Baú',
-                placas: ['RYQ-5B80'],
                 ano_fabricacao: 2024
             },
         },
         {
-            modelo: 'Veículo 2',
-            placa: 'GHI9012',
+            modelo: 'Scania R450',
+            placa: 'DEF5G78',
+            status: 'ativo',
+            capacidade_tanque: 500,
+            ano_fabricacao: 2023,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
-                modelo: 'Rodotrem Basculante',
-                placas: ['RYQ-5C81', 'RYQ-5D82', 'RYQ-5E83'],
+                modelo: 'Carreta Baú Facchini',
+                placas: ['RYQ-5B80'],
                 ano_fabricacao: 2023
             },
         },
         {
-            modelo: 'Veículo 3',
-            placa: 'JKL3456',
+            modelo: 'Mercedes-Benz Actros 2651',
+            placa: 'GHI9J12',
+            status: 'ativo',
+            capacidade_tanque: 700,
+            ano_fabricacao: 2024,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
-                modelo: 'Sider',
+                modelo: 'Rodotrem Basculante Randon',
+                placas: ['RYQ-5C81', 'RYQ-5D82', 'RYQ-5E83'],
+                ano_fabricacao: 2024
+            },
+        },
+        {
+            modelo: 'DAF XF 530',
+            placa: 'JKL3M56',
+            status: 'ativo',
+            capacidade_tanque: 550,
+            ano_fabricacao: 2022,
+            empresa_id: randomEmpresaId(),
+            combustivel_preferencial: 'DIESEL_S10',
+            reboque: {
+                modelo: 'Sider Librelato',
                 placas: ['RYQ-5F84'],
                 ano_fabricacao: 2022
             },
         },
         {
-            modelo: 'Veículo 4',
-            placa: 'MNO7890',
+            modelo: 'MAN TGX 28.440 (Parado Manutenção)',
+            placa: 'MNO7P90',
+            status: 'inativo',
+            capacidade_tanque: 450,
+            ano_fabricacao: 2020,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
-                modelo: 'Porta Container',
+                modelo: 'Porta Container Guerra',
                 placas: ['RYQ-5G85'],
-                ano_fabricacao: 2021
+                ano_fabricacao: 2020
             },
         },
     );

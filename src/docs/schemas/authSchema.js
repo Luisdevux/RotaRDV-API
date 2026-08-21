@@ -45,8 +45,13 @@ const authSchemas = {
             },
             cpf: {
                 type: "string",
-                description: "CPF do usuário",
+                description: "CPF do usuário (11 dígitos ou formatado)",
                 example: "08573215099"
+            },
+            telefone: {
+                type: "string",
+                description: "Telefone ou celular do usuário",
+                example: "(69) 99999-8888"
             },
             empresa: {
                 type: "object",
@@ -74,6 +79,7 @@ const authSchemas = {
             email: "joao.silva@rotardv.com.br",
             senha: "Senha@123",
             cpf: "08573215099",
+            telefone: "(69) 99999-8888",
             empresa: {
                 nome: "Logística Rápida BR",
                 cargo: "Motorista Bi-trem"
@@ -89,6 +95,7 @@ const authSchemas = {
             nome: { type: "string", example: "João da Silva" },
             email: { type: "string", example: "joao.silva@rotardv.com.br" },
             cpf: { type: "string", example: "08573215099" },
+            telefone: { type: "string", example: "(69) 99999-8888" },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
@@ -125,6 +132,8 @@ const authSchemas = {
                     _id: { type: "string", example: "674fa21d79969d2172e78710" },
                     nome: { type: "string", example: "João da Silva" },
                     email: { type: "string", example: "joao.silva@rotardv.com.br" },
+                    cpf: { type: "string", example: "08573215099" },
+                    telefone: { type: "string", example: "(69) 99999-8888" },
                     isAdmin: { type: "boolean", example: false }
                 }
             }
