@@ -7,6 +7,8 @@ const usuarioSchemas = {
             nome: { type: "string", description: "Filtra por nome" },
             email: { type: "string", format: "email", description: "Filtra por email" },
             status: { type: "string", enum: ["ativo", "inativo"], description: "Filtra por status" },
+            role: { type: "string", enum: ["admin", "gestor", "motorista"], description: "Filtra por papel de acesso" },
+            empresa_id: { type: "string", description: "Filtra por ID da empresa/transportadora" },
             cpf: { type: "string", description: "Filtra pelo CPF (Expressão Regular)" },
             veiculo_id: { type: "string", description: "Filtra pelo ID do veículo atual do motorista" },
             empresa_nome: { type: "string", description: "Filtra por parte do nome da empresa/transportadora" },
@@ -22,10 +24,12 @@ const usuarioSchemas = {
             email: { type: "string", format: "email", example: "joao.silva@email.com" },
             cpf: { type: "string", example: "08573215099" },
             telefone: { type: "string", description: "Telefone ou celular do usuário", example: "(69) 99999-8888" },
+            role: { type: "string", enum: ["admin", "gestor", "motorista"], example: "motorista" },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
             email_verificado: { type: "boolean", example: true },
+            empresa_id: { type: "string", example: "674fa21d79969d2172e78755" },
             empresa: {
                 type: "object",
                 properties: {
@@ -48,10 +52,12 @@ const usuarioSchemas = {
             email: { type: "string", format: "email", example: "joao.silva@email.com" },
             cpf: { type: "string", example: "08573215099" },
             telefone: { type: "string", description: "Telefone ou celular do usuário", example: "(69) 99999-8888" },
+            role: { type: "string", enum: ["admin", "gestor", "motorista"], example: "motorista" },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             isAdmin: { type: "boolean", example: false },
             foto_perfil: { type: "string", example: "" },
             email_verificado: { type: "boolean", example: true },
+            empresa_id: { type: "string", example: "674fa21d79969d2172e78755" },
             empresa: {
                 type: "object",
                 properties: {
@@ -74,6 +80,8 @@ const usuarioSchemas = {
             senha: { type: "string", description: "Senha segura", example: "Senha@123" },
             cpf: { type: "string", description: "CPF do usuário (11 dígitos ou formatado)", example: "08573215099" },
             telefone: { type: "string", description: "Telefone de contato", example: "(69) 99999-8888" },
+            role: { type: "string", enum: ["admin", "gestor", "motorista"], example: "motorista" },
+            empresa_id: { type: "string", description: "ID da empresa", example: "674fa21d79969d2172e78755" },
             empresa: {
                 type: "object",
                 properties: {
@@ -92,6 +100,7 @@ const usuarioSchemas = {
             senha: "Senha@123",
             cpf: "08573215099",
             telefone: "(69) 99999-8888",
+            role: "motorista",
             empresa: {
                 nome: "Transportadora Brasil",
                 cargo: "Motorista"
@@ -108,6 +117,8 @@ const usuarioSchemas = {
             email: { type: "string", format: "email", description: "Email do usuário", example: "joao.silva@email.com" },
             cpf: { type: "string", description: "CPF do usuário (11 dígitos ou formatado)", example: "08573215099" },
             telefone: { type: "string", description: "Telefone de contato", example: "(69) 99999-8888" },
+            role: { type: "string", enum: ["admin", "gestor", "motorista"], description: "Papel de acesso (requer admin)", example: "gestor" },
+            empresa_id: { type: "string", description: "ID da empresa" },
             empresa: {
                 type: "object",
                 properties: {

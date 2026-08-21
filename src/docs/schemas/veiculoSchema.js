@@ -6,6 +6,7 @@ const veiculoSchemas = {
         properties: {
             modelo: { type: "string", description: "Filtra por modelo do veículo" },
             placa: { type: "string", description: "Filtra pela placa do veículo" },
+            status: { type: "string", enum: ["ativo", "inativo"], description: "Filtra por status do veículo" },
             reboque_placa: { type: "string", description: "Filtra veículos por uma ou mais placas de reboque acoplado" },
             reboque_modelo: { type: "string", description: "Filtra veículos pelo modelo do reboque acoplado" }
         }
@@ -22,6 +23,9 @@ const veiculoSchemas = {
                 enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
                 example: "DIESEL_S10"
             },
+            status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
+            capacidade_tanque: { type: "number", example: 400 },
+            ano_fabricacao: { type: "number", example: 2024 },
             reboque: {
                 type: "object",
                 properties: {
@@ -51,6 +55,9 @@ const veiculoSchemas = {
                 enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
                 example: "DIESEL_S10"
             },
+            status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
+            capacidade_tanque: { type: "number", example: 400 },
+            ano_fabricacao: { type: "number", example: 2024 },
             reboque: {
                 type: "object",
                 properties: {
@@ -77,6 +84,9 @@ const veiculoSchemas = {
                 enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
                 example: "DIESEL_S10"
             },
+            status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
+            capacidade_tanque: { type: "number", example: 400 },
+            ano_fabricacao: { type: "number", example: 2024 },
             reboque: {
                 type: "object",
                 properties: {
@@ -91,6 +101,20 @@ const veiculoSchemas = {
             }
         },
         description: "Schema para atualização de um veículo existente"
+    },
+
+    VeiculoStatusPatch: {
+        type: "object",
+        required: ["status"],
+        properties: {
+            status: {
+                type: "string",
+                enum: ["ativo", "inativo"],
+                description: "Novo status operacional do veículo",
+                example: "inativo"
+            }
+        },
+        description: "Schema para ativação ou inativação do veículo"
     }
 };
 

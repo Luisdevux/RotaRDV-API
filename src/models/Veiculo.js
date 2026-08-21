@@ -21,6 +21,19 @@ class Veiculo {
                 enum: ["DIESEL_S10", "DIESEL_S500", "GASOLINA", "ETANOL", "ARLA_32", "OUTRO"],
                 required: [true, "O combustível preferencial é obrigatório!"]
             },
+            status: {
+                type: String,
+                enum: ["ativo", "inativo"],
+                default: "ativo"
+            },
+            capacidade_tanque: {
+                type: Number,
+                default: 400
+            },
+            ano_fabricacao: {
+                type: Number,
+                default: 2024
+            },
             reboque: {
                 modelo: {
                     type: String,

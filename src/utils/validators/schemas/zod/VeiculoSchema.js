@@ -17,6 +17,9 @@ const VeiculoSchema = z.object({
         'ARLA_32',
         'OUTRO'
     ]).optional().default('DIESEL_S10'),
+    status: z.enum(['ativo', 'inativo']).optional().default('ativo'),
+    capacidade_tanque: z.number().optional(),
+    ano_fabricacao: z.number().optional(),
     empresa_id: z.string().optional(),
     reboque: z.object({
         modelo: z.string().optional(),
@@ -27,4 +30,10 @@ const VeiculoSchema = z.object({
 
 const VeiculoUpdateSchema = VeiculoSchema.partial();
 
-export { VeiculoSchema, VeiculoUpdateSchema };
+const VeiculoStatusUpdateSchema = z.object({
+    status: z.enum(['ativo', 'inativo'], {
+        errorMap: () => ({ message: "O status deve ser 'ativo' ou 'inativo'." })
+    })
+});
+
+export { VeiculoSchema, VeiculoUpdateSchema, VeiculoStatusUpdateSchema };

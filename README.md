@@ -409,11 +409,11 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/usuarios` | Sim | Admin | Lista usuários com paginação e filtros |
+| `GET` | `/usuarios` | Sim | Gestor / Admin | Lista usuários com paginação e filtros (`role`, `status`, `empresa_id`) |
 | `GET` | `/usuarios/:id` | Sim | Dono / Admin | Retorna dados cadastrais do usuário |
 | `POST` | `/usuarios` | Sim | Admin | Criação administrativa de usuário |
-| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin | Atualização de dados cadastrais |
-| `PATCH` | `/usuarios/:id/status` | Sim | Admin | Altera status entre `ativo` e `inativo` |
+| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin | Atualização de dados cadastrais e promoção de papel (`role`/`isAdmin`) |
+| `PATCH` | `/usuarios/:id/status` | Sim | Gestor / Admin | Altera status entre `ativo` e `inativo` (gestor altera membros de sua empresa) |
 | `DELETE` | `/usuarios/:id` | Sim | Admin | Exclusão de usuário do sistema |
 | `POST` | `/usuarios/:id/foto` | Sim | Dono / Admin | Upload ou substituição de foto de perfil |
 | `DELETE` | `/usuarios/:id/foto` | Sim | Dono / Admin | Remoção da foto de perfil |
@@ -442,11 +442,12 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/veiculos` | Sim | Qualquer | Lista veículos da frota com paginação |
-| `GET` | `/veiculos/:id` | Sim | Qualquer | Detalhes do veículo e reboques engatados |
-| `POST` | `/veiculos` | Sim | Admin | Cadastro de veículo de tração e conjunto |
-| `PATCH` | `/veiculos/:id` | Sim | Admin | Atualização dos dados do veículo |
-| `DELETE` | `/veiculos/:id` | Sim | Admin | Exclusão de veículo da frota |
+| `GET` | `/veiculos` | Sim | Qualquer | Lista veículos da frota com paginação e filtros (`status`, `modelo`, `placa`) |
+| `GET` | `/veiculos/:id` | Sim | Qualquer | Detalhes do veículo, tanque e reboques engatados (multi-carretas) |
+| `POST` | `/veiculos` | Sim | Gestor / Admin | Cadastro de veículo de tração e conjunto bitrem/rodotrem |
+| `PATCH` | `/veiculos/:id` | Sim | Gestor / Admin | Atualização dos dados do veículo e implementos |
+| `PATCH` | `/veiculos/:id/status` | Sim | Gestor / Admin | Altera o status operacional do veículo entre `ativo` e `inativo` |
+| `DELETE` | `/veiculos/:id` | Sim | Gestor / Admin | Exclusão de veículo da frota |
 
 ### 🛣️ 5. Controle de Viagens (`/viagens`)
 

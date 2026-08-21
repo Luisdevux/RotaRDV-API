@@ -24,7 +24,7 @@ Os Requisitos Funcionais descrevem **o que o sistema faz**, mapeando as regras d
 | **RF-05** | O sistema deve disponibilizar endpoint para renovação transparente de sessão (`POST /refresh`) e encerramento de sessão (`POST /logout`), invalidando o Refresh Token no banco. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 | **RF-06** | O sistema deve disponibilizar fluxo seguro de recuperação de senha (`POST /recover` e `PATCH /password/reset`) via código numérico de 6 dígitos com expiração temporal enviado por e-mail. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 | **RF-07** | O sistema deve suportar upload, substituição e deleção de foto de perfil (`POST/DELETE /usuarios/:id/foto`) via Multipart Form-Data com persistência em Storage S3 (MinIO/Garage). | *Motorista / Admin* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
-| **RF-08** | Somente perfis administrativos podem alterar o status de ativação (`PATCH /usuarios/:id/status` entre `ativo` e `inativo`) ou excluir cadastros de usuários. | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-08** | Administradores e Gestores (para condutores e equipe vinculada à sua transportadora) podem alterar o status de ativação (`PATCH /usuarios/:id/status` entre `ativo` e `inativo`). Somente Administradores podem alterar níveis de acesso (`role: admin | gestor | motorista`), promover gestores e excluir cadastros de usuários. | *Admin / Gestor* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 
 ---
 
@@ -47,9 +47,9 @@ Os Requisitos Funcionais descrevem **o que o sistema faz**, mapeando as regras d
 ### 🚛 3. Gestão de Frota (Veículos)
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-19** | O sistema deve permitir o cadastro de veículos de tração (cavalos mecânicos) com placa única validada e tipo de combustível preferencial (`DIESEL_S10`, `DIESEL_S500`, `GASOLINA`, `ETANOL`, `ARLA_32`, `OUTRO`). | *Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
-| **RF-20** | O veículo deve suportar o registro estruturado de reboques/carretas associadas (modelo, ano de fabricação e array de placas do conjunto bitrem/rodotrem). | *Admin* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
-| **RF-21** | Somente contas com perfil Admin podem criar, editar ou excluir veículos; motoristas podem apenas listar e consultar dados do caminhão vinculado. | *Admin / Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-19** | O sistema deve permitir o cadastro de veículos de tração (cavalos mecânicos) com placa única validada, tipo de combustível preferencial (`DIESEL_S10`, `DIESEL_S500`, `GASOLINA`, `ETANOL`, `ARLA_32`, `OUTRO`), capacidade do tanque em litros e ano de fabricação. | *Admin / Gestor* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-20** | O veículo deve suportar o registro estruturado de reboques/carretas associadas (modelo, ano de fabricação e array de múltiplas placas para composições simples, bitrens, rodotrens, tritrens ou canavieiros). | *Admin / Gestor* | ![Média](https://img.shields.io/badge/Média-yellow?style=flat-square) |
+| **RF-21** | Administradores e Gestores podem criar, editar, excluir e ativar/desativar veículos da frota (`PATCH /veiculos/:id/status` entre `ativo` e `inativo`); motoristas podem apenas listar e consultar dados do caminhão vinculado. | *Admin / Gestor / Motorista* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 
 ---
 

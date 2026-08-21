@@ -111,7 +111,7 @@ class UsuarioService {
         // Não permitir alterar senha por esta rota
         delete parsedData.senha;
 
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
+        const targetUser = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         if (parsedData.email) {
             await ValidationHelper.validateEmail(this.repository, parsedData.email, id);
@@ -130,13 +130,17 @@ class UsuarioService {
         const { isAdmin } = ensurePermission({
             usuarioLogado,
             targetId: id,
+            empresaId: targetUser.empresa_id,
             field: 'Usuário',
             customMessage: 'Você não tem permissões para atualizar outro usuário.',
         });
 
-        // Não permitir alterar isAdmin se não for admin
+        // Apenas Admin pode alterar a role de acesso ('admin', 'gestor', 'motorista') e o status isAdmin
         if (!isAdmin) {
             delete parsedData.isAdmin;
+            delete parsedData.role;
+        } else if (parsedData.role) {
+            parsedData.isAdmin = parsedData.role === 'admin';
         }
 
         const data = await this.repository.atualizar(id, parsedData);
@@ -144,12 +148,13 @@ class UsuarioService {
     }
 
     async atualizarStatus(id, parsedData, req) {
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
+        const targetUser = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
         ensurePermission({
             usuarioLogado,
             targetId: id,
+            empresaId: targetUser.empresa_id,
             field: 'Usuário',
             customMessage: 'Você não tem permissões para alterar o status deste usuário.',
         });

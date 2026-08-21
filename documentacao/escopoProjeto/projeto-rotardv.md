@@ -74,16 +74,20 @@ Acompanhamento do que o projeto já atende de regra de arquitetura real pronta p
 - [x] `GET /empresas/:id/dashboard`: Agregação analítica em tempo real de KPIs de frota, viagens em andamento/concluídas, KM rodado e despesas por categoria para o Painel Web.
 - [x] `POST/DELETE /empresas/:id/foto`: Upload e exclusão de logotipo corporativo em Storage S3 (MinIO/Garage).
 
-### 👤 Autenticação e Perfis (Usuários) - Baseada
-- [x] O Administrativo pode cadastrar usuários com nome, email, telefone, hash robusto e máscara documental CPF validada.
+### 👤 Autenticação e Perfis (Usuários) *(Status: ✅ Implementado)*
+- [x] O Administrativo pode cadastrar usuários com nome, email, telefone de contato, hash robusto e máscara documental CPF validada.
 - [x] Ecossistema pronto para Refresh/Recovery JWT base de sessão de usuário.
-- [x] Motoristas editando upload de assinaturas visuais (profile S3).
+- [x] Suporte à promoção e alteração de papéis hierárquicos (`role: admin | gestor | motorista` e `isAdmin`) por Administradores.
+- [x] Ativação e inativação de contas (`PATCH /usuarios/:id/status`) para suspensão temporária por Admins e Gestores de frota.
+- [x] Motoristas editando upload de fotos de perfil com persistência em S3.
 - [x] Nivelamento de motoristas bloqueados nas próprias coleções contra manipulação vertical.
 
-### 🚛 Frota (Veículos) - Baseada
-- [x] Cadastro de veículos com travas no repositório Mongoose de chassi duplicado.
-- [x] Estrutura montada de Reboque e modelo da cavalaria de eixo no veículo pai.
-- [x] Bloqueio semântico: Condutores conseguem enxergar quem dirige, mas somente contas Admin alteram estrutura corporativa frota.
+### 🚛 Frota de Veículos e Implementos *(Status: ✅ Implementado)*
+- [x] Cadastro de veículos com travas no repositório Mongoose de placa única e validações estritas de formatação Mercosul/Nacional.
+- [x] Suporte a especificações completas do cavalo mecânico: tipo de combustível preferencial, capacidade do tanque (L) e ano de fabricação.
+- [x] Estrutura montada de Implementos e Reboques com suporte a múltiplas carretas dinâmicas (composições simples, bitrens, rodotrens, tritrens ou canavieiros).
+- [x] Ativação e inativação operacional de veículos (`PATCH /veiculos/:id/status`) permitindo pausar caminhões para manutenção ou docas.
+- [x] Bloqueio semântico: Condutores conseguem enxergar quem dirige, mas somente contas Admin e Gestores cadastram e alteram a frota corporativa.
 
 ### 🛣️ Controle de Viagens *(Status: ✅ Implementado)*
 - [x] `POST /viagens`: Criação de viagem com geração automática de **Snapshots Imutáveis** de motorista (`usuario_snapshot`) e veículo (`veiculo_snapshot`), garantindo consistência histórica.
