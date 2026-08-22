@@ -7,6 +7,13 @@ class ViagemFilterBuild {
         this.filtros = {};
     }
 
+    comEmpresaId(empresa_id) {
+        if (empresa_id) {
+            this.filtros.empresa_id = empresa_id;
+        }
+        return this;
+    }
+
     comUsuarioId(usuario_id) {
         if (usuario_id) {
             this.filtros.usuario_id = usuario_id;
