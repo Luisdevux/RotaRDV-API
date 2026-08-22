@@ -29,6 +29,10 @@ export const UsuarioQuerySchema = z.object({
         .string()
         .optional()
         .transform((val) => val?.trim()),
+    cnh: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
     empresa_id: z
         .string()
         .optional(),

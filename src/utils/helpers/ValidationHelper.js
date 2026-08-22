@@ -89,6 +89,34 @@ class ValidationHelper {
     }
 
     /**
+     * Valida formato e unicidade de CNH no banco
+     */
+    static async validateCnh(repository, cnhValue, idIgnorado = null) {
+        if (!cnhValue) return;
+        const cleaned = String(cnhValue).replace(/\D/g, '');
+        if (cleaned.length !== 11) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'cnh',
+                details: [{ path: 'cnh', message: 'CNH deve conter exatamente 11 dígitos numéricos.' }],
+                customMessage: 'CNH inválida.',
+            });
+        }
+
+        const usuarioExistente = await repository.buscarPorCnh(cleaned, idIgnorado);
+        if (usuarioExistente) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'cnh',
+                details: [{ path: 'cnh', message: 'CNH já está em uso.' }],
+                customMessage: 'CNH já cadastrada.',
+            });
+        }
+    }
+
+    /**
      * Valida formato e unicidade de CNPJ no banco
      */
     static async validateCnpj(repository, cnpjValue, idIgnorado = null) {

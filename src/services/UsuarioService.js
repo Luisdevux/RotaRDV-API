@@ -97,6 +97,12 @@ class UsuarioService {
             await ValidationHelper.validateCpf(this.repository, parsedData.cpf);
         }
 
+        // Validar cnh única se fornecida
+        if (parsedData.cnh) {
+            parsedData.cnh = parsedData.cnh.replace(/\D/g, '');
+            await ValidationHelper.validateCnh(this.repository, parsedData.cnh);
+        }
+
         // Validar se o veiculo_id fornecido realmente existe no BD
         if (parsedData.veiculo_id) {
             await ValidationHelper.ensureExists(await this.veiculoRepository.buscarPorID(parsedData.veiculo_id), 'Veículo');
@@ -138,6 +144,11 @@ class UsuarioService {
 
         if (parsedData.cpf) {
             await ValidationHelper.validateCpf(this.repository, parsedData.cpf, id);
+        }
+
+        if (parsedData.cnh) {
+            parsedData.cnh = parsedData.cnh.replace(/\D/g, '');
+            await ValidationHelper.validateCnh(this.repository, parsedData.cnh, id);
         }
 
         // Validar se o veiculo_id fornecido realmente existe no BD (se informado)

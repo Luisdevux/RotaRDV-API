@@ -66,6 +66,16 @@ class UsuarioFilterBuild {
         return this;
     }
 
+    comCnh(cnh) {
+        if (cnh) {
+            this.filtros.cnh = {
+                $regex: cnh,
+                $options: "i"
+            };
+        }
+        return this;
+    }
+
     comVeiculoId(veiculoId) {
         if (veiculoId && mongoose.isValidObjectId(veiculoId)) {
             this.filtros.veiculo_id = veiculoId;

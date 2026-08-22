@@ -17,7 +17,7 @@ Os Requisitos Funcionais descrevem **o que o sistema faz**, mapeando as regras d
 ### 🔐 1. Autenticação e Gestão de Contas
 | ID | Descrição do Requisito | Atores Envolvidos | Prioridade |
 |:---:|---|:---:|:---:|
-| **RF-01** | O sistema deve permitir o cadastro de motoristas e administradores (Signup/Admin) com validação de CPF único, nome, telefone de contato, e-mail e senha com hash seguro. | *Usuário / Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
+| **RF-01** | O sistema deve permitir o cadastro de motoristas e administradores (Signup/Admin) com validação de CPF único, CNH única (Carteira Nacional de Habilitação com 11 dígitos para condutores), nome, telefone de contato, e-mail e senha com hash seguro. | *Usuário / Admin* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 | **RF-02** | O sistema deve suportar autenticação federada via **Google OAuth2** (`POST /google`), vinculando ou criando automaticamente o usuário na base. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 | **RF-03** | O sistema deve exigir a **confirmação de e-mail** (`GET /verificar-email`) antes de autorizar o login local, despachando tokens de verificação com validade temporal via e-mail transacional (Hermes Client). | *Sistema / Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |
 | **RF-04** | O sistema deve autenticar usuários (`POST /login`) gerando um **Access Token** JWT de curta duração (2 min) e um **Refresh Token** de longa duração (3 dias) persistido no banco para validação de sessão. | *Usuário* | ![Alta](https://img.shields.io/badge/Alta-red?style=flat-square) |

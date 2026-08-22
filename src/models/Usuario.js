@@ -39,6 +39,12 @@ class Usuario {
                 unique: true,
                 sparse: true
             },
+            cnh: {
+                type: String,
+                unique: true,
+                sparse: true,
+                trim: true
+            },
             telefone: {
                 type: String,
                 default: ""

@@ -34,6 +34,17 @@ const usuarioBaseFields = {
         }, {
             message: 'CPF deve conter exatamente 11 dígitos numéricos.',
         }),
+    cnh: z
+        .string()
+        .refine((val) => {
+            if (!val) return true;
+            const cleaned = val.replace(/\D/g, '');
+            return /^\d{11}$/.test(cleaned);
+        }, {
+            message: 'CNH deve conter exatamente 11 dígitos numéricos.',
+        })
+        .optional()
+        .nullable(),
     telefone: z.string().optional(),
     status: z.enum(['ativo', 'inativo']).optional(),
     isAdmin: z.boolean().optional(),
