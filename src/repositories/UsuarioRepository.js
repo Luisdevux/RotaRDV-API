@@ -95,6 +95,15 @@ class UsuarioRepository {
         return documento;
     }
 
+    async buscarPorCnh(cnhValue, idIgnorado = null) {
+        const filtro = { cnh: cnhValue };
+        if (idIgnorado) {
+            filtro._id = { $ne: idIgnorado };
+        }
+        const documento = await this.modelUsuario.findOne(filtro);
+        return documento;
+    }
+
     async listar(req, filtrosOverride = {}) {
         const { id } = req.params;
         if (id) {
@@ -111,7 +120,7 @@ class UsuarioRepository {
             return data;
         }
 
-        const { nome, email, status, cpf, isAdmin, veiculo_id, empresa_nome, empresa_id, role, page = 1 } = req.query;
+        const { nome, email, status, cpf, cnh, isAdmin, veiculo_id, empresa_nome, empresa_id, role, page = 1 } = req.query;
         const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
 
         const filterBuilder = new UsuarioFilterBuild()
@@ -119,6 +128,7 @@ class UsuarioRepository {
             .comEmail(email)
             .comStatus(status)
             .comCpf(cpf)
+            .comCnh(cnh)
             .comIsAdmin(isAdmin)
             .comVeiculoId(veiculo_id)
             .comEmpresaNome(empresa_nome)

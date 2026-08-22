@@ -25,17 +25,17 @@ class EmpresaService {
 
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+        const isSuperAdmin = usuarioLogado.role === 'superAdmin';
         const { id } = req.params || {};
 
         if (id) {
             const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
 
-            const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
-            const isMotoristaDestaEmpresa = String(usuarioLogado.empresa_id) === String(id);
+            const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
 
             ensurePermission({
                 usuarioLogado,
-                isOwner: isGestorDestaEmpresa || isMotoristaDestaEmpresa,
+                isOwner: isStaffDestaEmpresa,
                 field: 'Consulta de Empresa',
                 customMessage: 'Você não tem permissão para acessar os dados desta empresa.',
             });
@@ -44,7 +44,7 @@ class EmpresaService {
         }
 
         const filtrosOverride = {};
-        if (!usuarioLogado.isAdmin) {
+        if (!isSuperAdmin) {
             if (usuarioLogado.empresa_id) {
                 filtrosOverride._id = String(usuarioLogado.empresa_id);
             } else {
@@ -64,12 +64,12 @@ class EmpresaService {
     async criar(parsedData, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        if (!usuarioLogado.isAdmin) {
+        if (usuarioLogado.role !== 'superAdmin') {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'permissionError',
                 field: 'Criação de Empresa',
-                customMessage: 'Apenas administradores do sistema podem cadastrar novas empresas.',
+                customMessage: 'Apenas Super Administradores do sistema podem cadastrar novas empresas.',
             });
         }
 
@@ -99,11 +99,12 @@ class EmpresaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         const empresaExistente = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresaExistente.gestor_id?._id || empresaExistente.gestor_id) === String(usuarioLogado._id);
+        const isSuperAdmin = usuarioLogado.role === 'superAdmin';
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresaExistente.gestor_id?._id || empresaExistente.gestor_id) === String(usuarioLogado._id);
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Atualização de Empresa',
             customMessage: 'Você não tem permissão para alterar os dados desta empresa.',
         });
@@ -116,13 +117,14 @@ class EmpresaService {
             await ValidationHelper.validateEmail(this.repository, parsedData.email, id, 'Email institucional já cadastrado.');
         }
 
-        // Apenas Admin pode transferir a gestão ou alterar gestor_id
-        if (parsedData.gestor_id && !usuarioLogado.isAdmin) {
+        // Apenas Super Admin ou Admin interno da empresa pode transferir a gestão ou alterar gestor_id
+        if (parsedData.gestor_id && !isSuperAdmin && usuarioLogado.role !== 'admin') {
             delete parsedData.gestor_id;
         }
 
         const empresaAtualizada = await this.repository.atualizar(id, parsedData);
 
+        // Se atualizou o gestor_id, atualiza o usuário correspondente
         if (parsedData.gestor_id) {
             await this.usuarioRepository.atualizar(parsedData.gestor_id, {
                 role: 'gestor',
@@ -139,12 +141,12 @@ class EmpresaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
 
-        if (!usuarioLogado.isAdmin) {
+        if (usuarioLogado.role !== 'superAdmin') {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'permissionError',
                 field: 'Status da Empresa',
-                customMessage: 'Apenas administradores podem ativar ou inativar empresas.',
+                customMessage: 'Apenas Super Administradores podem ativar ou inativar empresas.',
             });
         }
 
@@ -156,12 +158,12 @@ class EmpresaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
 
-        if (!usuarioLogado.isAdmin) {
+        if (usuarioLogado.role !== 'superAdmin') {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'permissionError',
                 field: 'Exclusão de Empresa',
-                customMessage: 'Apenas administradores do sistema podem excluir empresas.',
+                customMessage: 'Apenas Super Administradores do sistema podem excluir empresas.',
             });
         }
 
