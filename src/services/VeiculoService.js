@@ -17,7 +17,8 @@ class VeiculoService {
 
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
         const isGestor = usuarioLogado?.role === 'gestor';
 
         const { id } = req.params;
@@ -39,10 +40,10 @@ class VeiculoService {
         const filtrosOverride = {};
 
         if (!id) {
-            if (isAdmin) {
-                // Admin visualiza todos os veículos sem restrições
-            } else if (isGestor) {
-                // Gestor visualiza a frota vinculada à sua empresa
+            if (isSuperAdmin) {
+                // Super Admin visualiza veículos de qualquer empresa ou filtra por empresa_id na query
+            } else if (isAdmin || isGestor) {
+                // Admin interno ou Gestor: restrito à frota da sua empresa
                 filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
             } else {
                 // Motorista: visualiza apenas o veículo atribuído ao seu perfil
@@ -66,7 +67,8 @@ class VeiculoService {
 
     async criar(parsedData, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
         const isGestor = usuarioLogado?.role === 'gestor';
 
         if (!isAdmin && !isGestor) {
@@ -78,8 +80,8 @@ class VeiculoService {
             });
         }
 
-        // Se for gestor, vincula automaticamente o veículo à sua empresa se não especificado
-        if (isGestor && !isAdmin) {
+        // Se for admin interno ou gestor, vincula automaticamente à sua empresa
+        if (!isSuperAdmin && usuarioLogado.empresa_id) {
             parsedData.empresa_id = usuarioLogado.empresa_id;
         }
 

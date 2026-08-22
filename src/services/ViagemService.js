@@ -125,11 +125,12 @@ class ViagemService {
         }
 
         const filtrosOverride = {};
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
         const isGestor = usuarioLogado?.role === 'gestor';
 
-        if (!isAdmin) {
-            if (isGestor) {
+        if (!isSuperAdmin) {
+            if (isAdmin || isGestor) {
                 filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
             } else {
                 filtrosOverride.usuario_id = String(usuarioLogado._id);

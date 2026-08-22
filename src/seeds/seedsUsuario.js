@@ -39,23 +39,61 @@ async function seedUsuarios() {
     // Criar usuários padrão com dados fixos
     usuarios.push(
         {
-            nome: 'Usuario Admin',
+            nome: 'Administrador Global',
             email: 'admin@rotardv.com',
             senha: senhaHash,
             cpf: '00000000000',
             telefone: '(11) 99999-0001',
             status: 'ativo',
             isAdmin: true,
+            role: 'superAdmin',
+            email_verificado: true,
+            authProvider: 'local',
+            foto_perfil: 'https://picsum.photos/seed/admin-global/300/300',
+            empresa: {
+                nome: 'Plataforma SaaS RotaRDV',
+                cargo: 'Super Administrador'
+            },
+            empresa_id: null,
+            veiculo_id: null
+        },
+        {
+            nome: 'Luis Felipe Lopes',
+            email: 'luis.felipe.lopes1275@gmail.com',
+            senha: senhaHash,
+            cpf: '11111111100',
+            telefone: '(69) 99399-1356',
+            status: 'ativo',
+            isAdmin: true,
+            role: 'superAdmin',
+            email_verificado: true,
+            authProvider: 'local',
+            foto_perfil: 'https://picsum.photos/seed/luis-felipe/300/300',
+            empresa: {
+                nome: 'Plataforma SaaS RotaRDV',
+                cargo: 'Super Administrador'
+            },
+            empresa_id: null,
+            veiculo_id: null
+        },
+        {
+            nome: 'Luis Felipe Lopes (Admin Interno)',
+            email: 'admin.empresa@rotabrasil.com.br',
+            senha: senhaHash,
+            cpf: '22222222200',
+            telefone: '(69) 99399-1356',
+            status: 'ativo',
+            isAdmin: true,
             role: 'admin',
             email_verificado: true,
             authProvider: 'local',
-            foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
+            foto_perfil: 'https://picsum.photos/seed/admin-empresa/300/300',
             empresa: {
                 nome: empresaPrincipal?.nome_empresa || 'Transportadora Rota Brasil',
-                cargo: 'Diretor Geral'
+                cargo: 'Administrador Geral da Empresa'
             },
             empresa_id: empresaPrincipal?._id || null,
-            veiculo_id: randomVeiculoId(veiculos)
+            veiculo_id: null
         },
         {
             nome: 'Gestor Carlos Silva',
@@ -99,6 +137,7 @@ async function seedUsuarios() {
             nome: 'Motorista 1',
             email: 'motorista1@example.com',
             cpf: '11111111111',
+            cnh: '12345678901',
             telefone: '(69) 99111-2233',
             senha: senhaHash,
             status: 'ativo',
@@ -118,6 +157,7 @@ async function seedUsuarios() {
             nome: 'Motorista 2 (Em Férias)',
             email: 'motorista2@example.com',
             cpf: '22222222222',
+            cnh: '23456789012',
             telefone: '(69) 99222-3344',
             senha: senhaHash,
             status: 'inativo',
@@ -137,6 +177,7 @@ async function seedUsuarios() {
             nome: 'Usuário Teste',
             email: 'teste@example.com',
             cpf: '33333333333',
+            cnh: '34567890123',
             telefone: '(69) 99333-4455',
             senha: senhaHash,
             status: 'ativo',
@@ -156,6 +197,7 @@ async function seedUsuarios() {
             nome: 'Usuário Inativo',
             email: 'inativo@example.com',
             cpf: '44444444444',
+            cnh: '45678901234',
             telefone: '(69) 99444-5566',
             senha: senhaHash,
             status: 'inativo',
@@ -179,6 +221,7 @@ async function seedUsuarios() {
             nome: fakeMappings.Usuario.nome(),
             email: fakeMappings.Usuario.email(),
             cpf: fakeMappings.Usuario.cpf(),
+            cnh: `5555555550${i}`,
             senha: senhaHash,
             status: fakeMappings.Usuario.status(),
             isAdmin: false,

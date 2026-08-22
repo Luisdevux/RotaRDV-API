@@ -49,15 +49,19 @@ class SyncService {
         }
 
         if (despesas && despesas.length > 0) {
-            // Busca todas as viagens que pertencem ao usuário logado
+            // Busca todas as viagens que pertencem ao usuário logado na base + viagens do lote atual
             const viagensDoMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }, '_id');
-            const validViagemIds = viagensDoMotorista.map(v => v._id.toString());
+            const incomingViagemIds = (viagens || []).filter(v => !v.is_deleted).map(v => String(v._id));
+            const validViagemIds = new Set([
+                ...viagensDoMotorista.map(v => String(v._id)),
+                ...incomingViagemIds
+            ]);
 
             const bulkDespesas = [];
 
             for (const d of despesas) {
                 // Ignora despesas sem viagem ou de viagens que não são deste motorista
-                if (!d.viagem_id || !validViagemIds.includes(d.viagem_id)) {
+                if (!d.viagem_id || !validViagemIds.has(String(d.viagem_id))) {
                     continue;
                 }
 

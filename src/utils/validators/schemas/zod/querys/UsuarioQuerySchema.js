@@ -23,9 +23,13 @@ export const UsuarioQuerySchema = z.object({
         .enum(['ativo', 'inativo'])
         .optional(),
     role: z
-        .enum(['admin', 'gestor', 'motorista'])
+        .string()
         .optional(),
     cpf: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
+    cnh: z
         .string()
         .optional()
         .transform((val) => val?.trim()),
