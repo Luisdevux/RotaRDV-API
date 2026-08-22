@@ -85,7 +85,13 @@ class DespesaService {
         const filtrosOverride = {};
 
         if (isSuperAdmin) {
-            // O usuário com papel de Super Admin pode listar e filtrar todas as despesas sem restrições
+            // Super Admin: Se empresa_id for informado via query, filtra as despesas das viagens dessa empresa
+            const { viagem_id, empresa_id } = req.validatedQuery || req.query || {};
+            if (empresa_id && !viagem_id) {
+                const viagens = await this.viagemRepository.modelViagem.find({ empresa_id }).select('_id');
+                const viagensIds = viagens.map(v => v._id);
+                filtrosOverride.viagem_id = { $in: viagensIds };
+            }
         } else if (isAdmin || isGestor) {
             // Já o usuário com papel de Admin ou Gestor visualiza despesas das viagens pertencentes à sua empresa
             const { viagem_id } = req.validatedQuery || req.query;

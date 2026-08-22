@@ -45,11 +45,14 @@ class ViagemRepository {
             return await this.buscarPorID(id);
         }
 
-        const { veiculo_id, status, data_inicio, data_fim, page = 1 } = req.query;
-        const usuario_id = filtrosOverride.usuario_id || req.query.usuario_id;
-        const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
+        const query = req.validatedQuery || req.query;
+        const { veiculo_id, status, data_inicio, data_fim, page = 1 } = query;
+        const usuario_id = filtrosOverride.usuario_id || query.usuario_id;
+        const empresa_id = filtrosOverride.empresa_id || query.empresa_id;
+        const limite = Math.min(parseInt(query.limite, 10) || 10, 100);
 
         const filterBuilder = new ViagemFilterBuild()
+            .comEmpresaId(empresa_id)
             .comUsuarioId(usuario_id)
             .comVeiculoId(veiculo_id)
             .comStatus(status)

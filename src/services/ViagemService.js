@@ -135,6 +135,11 @@ class ViagemService {
             } else {
                 filtrosOverride.usuario_id = String(usuarioLogado._id);
             }
+        } else {
+            const { empresa_id } = req.validatedQuery || req.query || {};
+            if (empresa_id) {
+                filtrosOverride.empresa_id = String(empresa_id);
+            }
         }
 
         const data = await this.repository.listar(req, filtrosOverride);
