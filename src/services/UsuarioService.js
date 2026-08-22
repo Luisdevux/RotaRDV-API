@@ -21,7 +21,8 @@ class UsuarioService {
 
     async listar(req) {
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
         const isGestor = usuarioLogado?.role === 'gestor';
 
         if (req.params?.id) {
@@ -47,7 +48,8 @@ class UsuarioService {
         }
 
         const filtrosOverride = {};
-        if (isGestor && !isAdmin) {
+        if (!isSuperAdmin) {
+            // Admin interno e gestor: só enxergam usuários vinculados à sua própria empresa
             filtrosOverride.empresa_id = usuarioLogado.empresa_id;
         }
 
@@ -57,16 +59,33 @@ class UsuarioService {
 
     async criar(parsedData, req) {
         // Bloquear criação avulsa via API por usuários não administradores
-        // (Motoristas devem usar obrigatoriamente a rota pública de Signup)
         if (req && req.user_id) {
             const usuarioLogado = await this.repository.buscarPorID(req.user_id);
-            if (!usuarioLogado || !usuarioLogado.isAdmin) {
+            const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+            const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
+
+            if (!usuarioLogado || !isAdmin) {
                 throw new CustomError({
                     statusCode: HttpStatusCodes.FORBIDDEN.code,
                     errorType: 'permissionError',
                     field: 'Criação de Usuário',
                     customMessage: 'Apenas administradores podem cadastrar novos usuários por esta rota.',
                 });
+            }
+
+            // Apenas superAdmin pode criar outro superAdmin
+            if (parsedData.role === 'superAdmin' && !isSuperAdmin) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.FORBIDDEN.code,
+                    errorType: 'permissionError',
+                    field: 'Criação de Usuário',
+                    customMessage: 'Apenas Super Administradores podem criar contas com perfil Super Administrador.',
+                });
+            }
+
+            // Admin interno só pode criar usuários vinculados à sua empresa
+            if (!isSuperAdmin && usuarioLogado.empresa_id) {
+                parsedData.empresa_id = usuarioLogado.empresa_id;
             }
         }
 
@@ -127,7 +146,7 @@ class UsuarioService {
         }
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
-        const { isAdmin } = ensurePermission({
+        const { isSuperAdmin, isAdmin } = ensurePermission({
             usuarioLogado,
             targetId: id,
             empresaId: targetUser.empresa_id,
@@ -135,12 +154,22 @@ class UsuarioService {
             customMessage: 'Você não tem permissões para atualizar outro usuário.',
         });
 
-        // Apenas Admin pode alterar a role de acesso ('admin', 'gestor', 'motorista') e o status isAdmin
+        // Apenas Super Admin pode alterar perfil para 'superAdmin'
+        if (parsedData.role === 'superAdmin' && !isSuperAdmin) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'permissionError',
+                field: 'Usuário',
+                customMessage: 'Apenas Super Administradores podem conceder o perfil Super Administrador.',
+            });
+        }
+
+        // Apenas Admin/SuperAdmin pode alterar a role de acesso e o status isAdmin
         if (!isAdmin) {
             delete parsedData.isAdmin;
             delete parsedData.role;
-        } else if (parsedData.role) {
-            parsedData.isAdmin = parsedData.role === 'admin';
+        } else if (parsedData.role !== undefined) {
+            parsedData.isAdmin = parsedData.role === 'admin' || parsedData.role === 'superAdmin';
         }
 
         const data = await this.repository.atualizar(id, parsedData);
@@ -151,6 +180,36 @@ class UsuarioService {
         const targetUser = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Usuário');
 
         const usuarioLogado = await this.repository.buscarPorID(req.user_id);
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdminEmpresa = usuarioLogado?.role === 'admin' && String(usuarioLogado?.empresa_id) === String(targetUser.empresa_id);
+
+        if (targetUser.role === 'superAdmin' && !isSuperAdmin) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'permissionError',
+                field: 'Usuário',
+                customMessage: 'Você não tem permissão para alterar o status de um Super Administrador.',
+            });
+        }
+
+        if (targetUser.role === 'admin' && !isSuperAdmin && !isAdminEmpresa) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'permissionError',
+                field: 'Usuário',
+                customMessage: 'Apenas Administradores podem alterar o status de outros administradores.',
+            });
+        }
+
+        if (usuarioLogado?.role === 'gestor' && (targetUser.role === 'admin' || targetUser.role === 'gestor')) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'permissionError',
+                field: 'Usuário',
+                customMessage: 'Gestores não possuem permissão para alterar o status de membros administrativos.',
+            });
+        }
+
         ensurePermission({
             usuarioLogado,
             targetId: id,

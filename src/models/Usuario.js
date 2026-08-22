@@ -54,7 +54,7 @@ class Usuario {
             },
             role: {
                 type: String,
-                enum: ["admin", "gestor", "motorista"],
+                enum: ["superAdmin", "admin", "gestor", "motorista"],
                 default: "motorista"
             },
             foto_perfil: {

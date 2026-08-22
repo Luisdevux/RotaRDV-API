@@ -39,23 +39,61 @@ async function seedUsuarios() {
     // Criar usuários padrão com dados fixos
     usuarios.push(
         {
-            nome: 'Usuario Admin',
+            nome: 'Administrador Global',
             email: 'admin@rotardv.com',
             senha: senhaHash,
             cpf: '00000000000',
             telefone: '(11) 99999-0001',
             status: 'ativo',
             isAdmin: true,
+            role: 'superAdmin',
+            email_verificado: true,
+            authProvider: 'local',
+            foto_perfil: 'https://picsum.photos/seed/admin-global/300/300',
+            empresa: {
+                nome: 'Plataforma SaaS RotaRDV',
+                cargo: 'Super Administrador'
+            },
+            empresa_id: null,
+            veiculo_id: null
+        },
+        {
+            nome: 'Luis Felipe Lopes',
+            email: 'luis.felipe.lopes1275@gmail.com',
+            senha: senhaHash,
+            cpf: '11111111100',
+            telefone: '(69) 99399-1356',
+            status: 'ativo',
+            isAdmin: true,
+            role: 'superAdmin',
+            email_verificado: true,
+            authProvider: 'local',
+            foto_perfil: 'https://picsum.photos/seed/luis-felipe/300/300',
+            empresa: {
+                nome: 'Plataforma SaaS RotaRDV',
+                cargo: 'Super Administrador'
+            },
+            empresa_id: null,
+            veiculo_id: null
+        },
+        {
+            nome: 'Luis Felipe Lopes (Admin Interno)',
+            email: 'admin.empresa@rotabrasil.com.br',
+            senha: senhaHash,
+            cpf: '22222222200',
+            telefone: '(69) 99399-1356',
+            status: 'ativo',
+            isAdmin: true,
             role: 'admin',
             email_verificado: true,
             authProvider: 'local',
-            foto_perfil: 'https://rotardv.web.fslab.dev/uuid.jpeg',
+            foto_perfil: 'https://picsum.photos/seed/admin-empresa/300/300',
             empresa: {
                 nome: empresaPrincipal?.nome_empresa || 'Transportadora Rota Brasil',
-                cargo: 'Diretor Geral'
+                cargo: 'Administrador Geral da Empresa'
             },
             empresa_id: empresaPrincipal?._id || null,
-            veiculo_id: randomVeiculoId(veiculos)
+            veiculo_id: null
         },
         {
             nome: 'Gestor Carlos Silva',

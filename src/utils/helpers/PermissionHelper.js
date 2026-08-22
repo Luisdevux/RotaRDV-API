@@ -12,17 +12,18 @@ function ensurePermission({
     field,
     customMessage = messages.auth.invalidPermission
 }) {
-    const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+    const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+    const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
 
     const isDriver = typeof isOwner === 'boolean'
         ? isOwner
         : (targetId ? String(usuarioLogado?._id) === String(targetId) : false);
 
-    const isGestor = empresaId
-        ? (usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(empresaId))
-        : (usuarioLogado?.role === 'gestor');
+    const isCompanyStaff = empresaId
+        ? ((usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(empresaId))
+        : (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin');
 
-    if (!isAdmin && !isDriver && !isGestor) {
+    if (!isSuperAdmin && !isDriver && !isCompanyStaff) {
         throw new CustomError({
             statusCode: HttpStatusCodes.FORBIDDEN.code,
             errorType: 'permissionError',
@@ -32,7 +33,7 @@ function ensurePermission({
         });
     }
 
-    return { isAdmin, isDriver, isGestor };
+    return { isSuperAdmin, isAdmin, isDriver, isGestor: isCompanyStaff };
 }
 
 export default ensurePermission;

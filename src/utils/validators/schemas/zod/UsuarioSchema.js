@@ -6,7 +6,7 @@ import objectIdSchema from './ObjectIdSchema.js';
 const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 const cpfRegex = /^\d{11}$/;
 
-const UsuarioSchema = z.object({
+const usuarioBaseFields = {
     nome: z
         .string()
         .nonempty('Campo nome é obrigatório.')
@@ -37,7 +37,7 @@ const UsuarioSchema = z.object({
     telefone: z.string().optional(),
     status: z.enum(['ativo', 'inativo']).optional(),
     isAdmin: z.boolean().optional(),
-    role: z.enum(['admin', 'gestor', 'motorista']).optional().default('motorista'),
+    role: z.enum(['superAdmin', 'admin', 'gestor', 'motorista']).optional(),
     foto_perfil: z
         .string()
         .refine((val) => val === '' || /\.(jpg|jpeg|png|svg)$/i.test(val), {
@@ -52,10 +52,18 @@ const UsuarioSchema = z.object({
     }).optional(),
     veiculo_id: objectIdSchema.optional(),
     googleId: z.string().optional(),
+    authProvider: z.enum(['local', 'google']).optional(),
+};
+
+const UsuarioBaseSchema = z.object(usuarioBaseFields);
+
+// Criação: aplica defaults de role 'motorista' e authProvider 'local'
+const UsuarioSchema = UsuarioBaseSchema.extend({
+    role: z.enum(['superAdmin', 'admin', 'gestor', 'motorista']).optional().default('motorista'),
     authProvider: z.enum(['local', 'google']).default('local'),
 });
 
-const UsuarioUpdateSchema = UsuarioSchema.partial();
+const UsuarioUpdateSchema = UsuarioBaseSchema.partial();
 
 const UsuarioStatusUpdateSchema = z.object({
     status: z.enum(['ativo', 'inativo'], {

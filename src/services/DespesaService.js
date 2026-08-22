@@ -20,12 +20,13 @@ class DespesaService {
         // 1. Busca a Viagem
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(dados.viagem_id), 'Viagem');
 
-        // 2. Checagem de permissão: Admin, Dono (motorista) ou Gestor da empresa da viagem
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
-        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+        // 2. Checagem de permissão: SuperAdmin, Admin, Dono (motorista) ou Gestor da empresa da viagem
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
+        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
 
-        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
+        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'forbidden',
@@ -77,15 +78,16 @@ class DespesaService {
 
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
         const isGestor = usuarioLogado?.role === 'gestor';
 
         const filtrosOverride = {};
 
-        if (isAdmin) {
-            // Administrador pode listar e filtrar todas as despesas sem restrições
-        } else if (isGestor) {
-            // Gestor da transportadora: visualiza despesas das viagens pertencentes à sua empresa
+        if (isSuperAdmin) {
+            // O usuário com papel de Super Admin pode listar e filtrar todas as despesas sem restrições
+        } else if (isAdmin || isGestor) {
+            // Já o usuário com papel de Admin ou Gestor visualiza despesas das viagens pertencentes à sua empresa
             const { viagem_id } = req.validatedQuery || req.query;
 
             if (viagem_id) {
@@ -134,11 +136,12 @@ class DespesaService {
         const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
 
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
-        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
+        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
 
-        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
+        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'forbidden',
@@ -148,7 +151,7 @@ class DespesaService {
             });
         }
 
-        if (viagem.status !== 'em_andamento' && !isAdmin && !isGestorDaEmpresa) {
+        if (viagem.status !== 'em_andamento' && !isSuperAdmin && !isAdmin && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validation',
@@ -169,11 +172,12 @@ class DespesaService {
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
-        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
+        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
 
-        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
+        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'forbidden',
@@ -183,7 +187,7 @@ class DespesaService {
             });
         }
 
-        // O 'substituirImagem' já trata se 'usuario.foto_perfil' for null ou se não existir
+        // O 'substituirImagem' já trata se 'despesa.foto_anexo' for null ou se não existir
         const uploadResult = await this.uploadService.substituirImagem(
             file,
             despesa.foto_anexo,
@@ -201,11 +205,12 @@ class DespesaService {
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const isAdmin = Boolean(usuarioLogado?.isAdmin || usuarioLogado?.role === 'admin');
-        const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
+        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
+        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
 
-        if (!isAdmin && !isOwner && !isGestorDaEmpresa) {
+        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.FORBIDDEN.code,
                 errorType: 'forbidden',
