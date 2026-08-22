@@ -96,8 +96,6 @@ class UsuarioFilterBuild {
                 this.filtros.role = { $in: role };
             } else if (typeof role === 'string' && role.includes(',')) {
                 this.filtros.role = { $in: role.split(',').map(r => r.trim()) };
-            } else if (role === 'administrativo' || role === 'equipe') {
-                this.filtros.role = { $in: ['admin', 'gestor'] };
             } else {
                 this.filtros.role = role;
             }
