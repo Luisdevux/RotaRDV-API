@@ -245,7 +245,9 @@ class EmpresaService {
                     cargo: dadosMotorista.cargo || 'Motorista'
                 },
                 veiculo_id: dadosMotorista.veiculo_id || usuarioExistente.veiculo_id,
-                email_verificado: true
+                email_verificado: true,
+                ...(dadosMotorista.cnh ? { cnh: dadosMotorista.cnh } : {}),
+                ...(dadosMotorista.telefone ? { telefone: dadosMotorista.telefone } : {})
             });
         } else {
             // Cria um novo usuário motorista
@@ -261,7 +263,9 @@ class EmpresaService {
             const novoUsuarioData = {
                 nome: dadosMotorista.nome,
                 email: dadosMotorista.email.toLowerCase().trim(),
-                cpf: dadosMotorista.cpf.replace(/\D/g, ''),
+                cpf: dadosMotorista.cpf,
+                cnh: dadosMotorista.cnh,
+                telefone: dadosMotorista.telefone || '',
                 senha: senhaHasheada,
                 authProvider: 'local',
                 role: 'motorista',
