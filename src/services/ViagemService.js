@@ -282,6 +282,12 @@ class ViagemService {
             }
         }
 
+        if (parsedData.status === 'cancelada') {
+            if (!parsedData.data_fim) {
+                parsedData.data_fim = new Date();
+            }
+        }
+
         const data = await this.repository.atualizar(id, parsedData);
         return data;
     }
