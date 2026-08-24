@@ -5,6 +5,10 @@ import { z } from 'zod';
 export const DespesaIdSchema = z.string().uuid('UUID da despesa inválido.');
 
 export const DespesaQuerySchema = z.object({
+    empresa_id: z
+        .string()
+        .optional()
+        .transform((val) => val?.trim()),
     viagem_id: z
         .string()
         .optional()
