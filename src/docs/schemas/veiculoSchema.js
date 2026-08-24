@@ -4,11 +4,13 @@ const veiculoSchemas = {
     VeiculoFiltro: {
         type: "object",
         properties: {
+            empresa_id: { type: "string", description: "Filtra por ID da empresa (SuperAdmin / Admin)" },
             modelo: { type: "string", description: "Filtra por modelo do veículo" },
             placa: { type: "string", description: "Filtra pela placa do veículo" },
             status: { type: "string", enum: ["ativo", "inativo"], description: "Filtra por status do veículo" },
             reboque_placa: { type: "string", description: "Filtra veículos por uma ou mais placas de reboque acoplado" },
-            reboque_modelo: { type: "string", description: "Filtra veículos pelo modelo do reboque acoplado" }
+            reboque_modelo: { type: "string", description: "Filtra veículos pelo modelo do reboque acoplado" },
+            todos: { type: "boolean", description: "Se true, retorna todos os veículos sem paginação" }
         }
     },
 

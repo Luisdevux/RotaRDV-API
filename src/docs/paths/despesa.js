@@ -13,20 +13,27 @@ const despesaPaths = {
             + Função de Negócio:
                 - Retornar uma lista paginada de lançamentos financeiros.
                 + Recebe como query parameters (opcionais):
-                    • filtros: **viagem_id**, **tipo**, **data_inicio**, **data_fim**.
-                    • paginação: **page** (padrão: 1), **limite** (padrão: 10, máx: 100).
+                    • filtros: **viagem_id**, **empresa_id**, **tipo**, **data_inicio**, **data_fim**.
+                    • paginação/exportação: **page** (padrão: 1), **limite** (padrão: 10, máx: 1000, 0 para todos), **todos** (booleano).
 
             + Regras de Negócio:
-                - **Administrador**: Visualiza e filtra despesas de todas as viagens e empresas.
-                - **Gestor**: Visualiza as despesas de todas as viagens vinculadas aos motoristas da sua transportadora (\`empresa_id\`).
+                - **SuperAdmin**: Visualiza e filtra despesas de todas as viagens e empresas (podendo filtrar por `empresa_id`).
+                - **Administrador/Gestor da Empresa**: Visualiza as despesas de todas as viagens vinculadas aos motoristas da sua transportadora (`empresa_id`).
                 - **Motorista**: Visualiza apenas as despesas das suas próprias viagens.
-                - **(Offline-First)**: Se o motorista não enviar o \`viagem_id\`, a API retornará automaticamente todas as despesas vinculadas a todas as viagens dele, permitindo o "Pull Sync" global no banco local do dispositivo.
+                - **(Offline-First)**: Se o motorista não enviar o `viagem_id`, a API retornará automaticamente todas as despesas vinculadas a todas as viagens dele, permitindo o "Pull Sync" global no banco local do dispositivo.
+                - **(Exportação/Relatórios)**: Enviar `todos=true` ou `limite=0` desativa a paginação e retorna a totalidade dos registros do período selecionado (ideal para geração de relatórios e PDFs).
 
             + Resultado Esperado:
                 - HTTP 200 OK com array de despesas formatadas e metadados de paginação.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
+                {
+                    name: "empresa_id",
+                    in: "query",
+                    schema: { type: "string" },
+                    description: "ID da empresa para filtrar despesas (disponível para SuperAdmin e Admin)"
+                },
                 {
                     name: "viagem_id",
                     in: "query",
@@ -52,6 +59,12 @@ const despesaPaths = {
                     description: "Data final para filtro de período"
                 },
                 {
+                    name: "todos",
+                    in: "query",
+                    schema: { type: "boolean", default: false },
+                    description: "Se true, desativa a paginação e retorna todos os registros do período"
+                },
+                {
                     name: "page",
                     in: "query",
                     schema: { type: "integer", default: 1 },
@@ -60,8 +73,8 @@ const despesaPaths = {
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "integer", default: 10, maximum: 100 },
-                    description: "Quantidade de itens por página"
+                    schema: { type: "integer", default: 10, maximum: 1000 },
+                    description: "Quantidade de itens por página (máximo 1000, ou 0 para todos)"
                 }
             ],
             responses: {

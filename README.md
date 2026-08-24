@@ -409,64 +409,66 @@ O sistema foi arquitetado para operar em cenários de conectividade instável ou
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/usuarios` | Sim | Gestor / Admin | Lista usuários com paginação e filtros (`role`, `status`, `empresa_id`) |
-| `GET` | `/usuarios/:id` | Sim | Dono / Admin | Retorna dados cadastrais do usuário |
-| `POST` | `/usuarios` | Sim | Admin | Criação administrativa de usuário |
-| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin | Atualização de dados cadastrais e promoção de papel (`role`/`isAdmin`) |
-| `PATCH` | `/usuarios/:id/status` | Sim | Gestor / Admin | Altera status entre `ativo` e `inativo` (gestor altera membros de sua empresa) |
-| `DELETE` | `/usuarios/:id` | Sim | Admin | Exclusão de usuário do sistema |
-| `POST` | `/usuarios/:id/foto` | Sim | Dono / Admin | Upload ou substituição de foto de perfil |
-| `DELETE` | `/usuarios/:id/foto` | Sim | Dono / Admin | Remoção da foto de perfil |
+| `GET` | `/usuarios` | Sim | Gestor / Admin / SuperAdmin | Lista usuários com paginação (até 1000 ou `todos=true`) e filtros (`role`, `status`, `empresa_id`, `cpf`, `cnh`, `veiculo_id`) |
+| `GET` | `/usuarios/:id` | Sim | Dono / Admin / SuperAdmin | Retorna dados cadastrais do usuário |
+| `POST` | `/usuarios` | Sim | Admin / SuperAdmin | Criação administrativa de usuário |
+| `PATCH` | `/usuarios/:id` | Sim | Dono / Admin / SuperAdmin | Atualização de dados cadastrais e promoção de papel (`role`/`isAdmin`) |
+| `PATCH` | `/usuarios/:id/status` | Sim | Gestor / Admin / SuperAdmin | Altera status entre `ativo` e `inativo` (gestor altera membros de sua empresa) |
+| `DELETE` | `/usuarios/:id` | Sim | Admin / SuperAdmin | Exclusão de usuário do sistema |
+| `POST` | `/usuarios/:id/foto` | Sim | Dono / Admin / SuperAdmin | Upload ou substituição de foto de perfil |
+| `DELETE` | `/usuarios/:id/foto` | Sim | Dono / Admin / SuperAdmin | Remoção da foto de perfil |
 
 ### 🏢 3. Gestão de Empresas (`/empresas`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/empresas` | Sim | Admin | Lista todas as empresas com paginação e filtros |
-| `GET` | `/empresas/:id` | Sim | Dono / Admin | Consulta detalhes e configurações da empresa |
-| `POST` | `/empresas` | Sim | Admin | Cadastro corporativo de nova transportadora |
-| `PATCH` | `/empresas/:id` | Sim | Gestor / Admin | Atualização parcial de dados cadastrais e endereço |
-| `PATCH` | `/empresas/:id/status` | Sim | Admin | Altera status entre `ativo` e `inativo` |
-| `DELETE` | `/empresas/:id` | Sim | Admin | Exclusão de empresa (com trava de motoristas/frota vinculada) |
-| `GET` | `/empresas/:id/motoristas` | Sim | Gestor / Admin | Lista motoristas vinculados à transportadora |
-| `POST` | `/empresas/:id/motoristas` | Sim | Gestor / Admin | Cadastra novo motorista e vincula à empresa |
-| `POST` | `/empresas/:id/motoristas/vincular` | Sim | Gestor / Admin | Vincula motorista existente por ID, e-mail ou CPF |
-| `DELETE` | `/empresas/:id/motoristas/:motoristaId` | Sim | Gestor / Admin | Desvincula motorista da empresa |
-| `GET` | `/empresas/:id/veiculos` | Sim | Gestor / Admin | Lista veículos pertencentes à frota da empresa |
-| `GET` | `/empresas/:id/viagens` | Sim | Gestor / Admin | Lista viagens realizadas pela equipe de condutores |
-| `GET` | `/empresas/:id/dashboard` | Sim | Gestor / Admin | Métricas executivas consolidadas para o Painel Web |
-| `POST` | `/empresas/:id/foto` | Sim | Gestor / Admin | Upload ou substituição de logotipo da empresa |
-| `DELETE` | `/empresas/:id/foto` | Sim | Gestor / Admin | Remoção do logotipo da empresa |
+| `GET` | `/empresas` | Sim | Gestor / Admin / SuperAdmin | Lista empresas com paginação (até 1000 ou `todos=true`) e filtros (`nome_empresa`, `cnpj`, `status`, `cidade`, `estado`) |
+| `GET` | `/empresas/:id` | Sim | Dono / Gestor / Admin / SuperAdmin | Consulta detalhes e configurações da empresa |
+| `POST` | `/empresas` | Sim | Admin / SuperAdmin | Cadastro corporativo de nova transportadora |
+| `PATCH` | `/empresas/:id` | Sim | Gestor / Admin / SuperAdmin | Atualização parcial de dados cadastrais e endereço |
+| `PATCH` | `/empresas/:id/status` | Sim | Admin / SuperAdmin | Altera status entre `ativo` e `inativo` |
+| `DELETE` | `/empresas/:id` | Sim | Admin / SuperAdmin | Exclusão de empresa (com trava de motoristas/frota vinculada) |
+| `GET` | `/empresas/:id/motoristas` | Sim | Gestor / Admin / SuperAdmin | Lista motoristas vinculados à transportadora (suporta `todos=true` e `limite` até 1000) |
+| `POST` | `/empresas/:id/motoristas` | Sim | Gestor / Admin / SuperAdmin | Cadastra novo motorista e vincula à empresa |
+| `POST` | `/empresas/:id/motoristas/vincular` | Sim | Gestor / Admin / SuperAdmin | Vincula motorista existente por ID, e-mail ou CPF |
+| `DELETE` | `/empresas/:id/motoristas/:motoristaId` | Sim | Gestor / Admin / SuperAdmin | Desvincula motorista da empresa |
+| `GET` | `/empresas/:id/veiculos` | Sim | Gestor / Admin / SuperAdmin | Lista veículos pertencentes à frota da empresa (suporta `todos=true` e `limite` até 1000) |
+| `GET` | `/empresas/:id/viagens` | Sim | Gestor / Admin / SuperAdmin | Lista viagens realizadas pela equipe de condutores (suporta `todos=true` e `limite` até 1000) |
+| `GET` | `/empresas/:id/dashboard` | Sim | Gestor / Admin / SuperAdmin | Métricas executivas consolidadas para o Painel Web |
+| `POST` | `/empresas/:id/foto` | Sim | Gestor / Admin / SuperAdmin | Upload ou substituição de logotipo da empresa |
+| `DELETE` | `/empresas/:id/foto` | Sim | Gestor / Admin / SuperAdmin | Remoção do logotipo da empresa |
 
 ### 🚛 4. Gestão de Frota (`/veiculos`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/veiculos` | Sim | Qualquer | Lista veículos da frota com paginação e filtros (`status`, `modelo`, `placa`) |
-| `GET` | `/veiculos/:id` | Sim | Qualquer | Detalhes do veículo, tanque e reboques engatados (multi-carretas) |
-| `POST` | `/veiculos` | Sim | Gestor / Admin | Cadastro de veículo de tração e conjunto bitrem/rodotrem |
-| `PATCH` | `/veiculos/:id` | Sim | Gestor / Admin | Atualização dos dados do veículo e implementos |
-| `PATCH` | `/veiculos/:id/status` | Sim | Gestor / Admin | Altera o status operacional do veículo entre `ativo` e `inativo` |
-| `DELETE` | `/veiculos/:id` | Sim | Gestor / Admin | Exclusão de veículo da frota |
+| `GET` | `/veiculos` | Sim | Qualquer / Gestor / Admin / SuperAdmin | Lista veículos da frota com paginação (até 1000 ou `todos=true`) e filtros (`status`, `modelo`, `placa`, `empresa_id`) |
+| `GET` | `/veiculos/:id` | Sim | Qualquer / Gestor / Admin / SuperAdmin | Detalhes do veículo, tanque e reboques engatados (multi-carretas) |
+| `POST` | `/veiculos` | Sim | Gestor / Admin / SuperAdmin | Cadastro de veículo de tração e conjunto bitrem/rodotrem |
+| `PATCH` | `/veiculos/:id` | Sim | Gestor / Admin / SuperAdmin | Atualização dos dados do veículo e implementos |
+| `PATCH` | `/veiculos/:id/status` | Sim | Gestor / Admin / SuperAdmin | Altera o status operacional do veículo entre `ativo` e `inativo` |
+| `DELETE` | `/veiculos/:id` | Sim | Gestor / Admin / SuperAdmin | Exclusão de veículo da frota |
 
 ### 🛣️ 5. Controle de Viagens (`/viagens`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/viagens` | Sim | Dono / Admin | Lista viagens (filtradas automaticamente por motorista) |
-| `GET` | `/viagens/:id` | Sim | Dono / Admin | Detalhes da viagem com injeção do **Resumo Financeiro** |
-| `POST` | `/viagens` | Sim | Dono / Admin | Inicia nova viagem e grava snapshots imutáveis |
-| `PATCH` | `/viagens/:id` | Sim | Dono / Admin | Atualiza dados ou encerra a viagem (`concluída`) |
-| `DELETE` | `/viagens/:id` | Sim | Dono / Admin | Remove o registro da viagem |
+| `GET` | `/viagens` | Sim | Dono / Gestor / Admin / SuperAdmin | Lista viagens com paginação (até 1000 ou `todos=true`) e filtros (`status`, `veiculo_id`, `empresa_id`, período) |
+| `GET` | `/viagens/:id` | Sim | Dono / Gestor / Admin / SuperAdmin | Detalhes da viagem com injeção do **Resumo Financeiro** |
+| `POST` | `/viagens` | Sim | Dono / Gestor / Admin / SuperAdmin | Inicia nova viagem e grava snapshots imutáveis |
+| `PATCH` | `/viagens/:id` | Sim | Dono / Gestor / Admin / SuperAdmin | Atualiza dados ou encerra a viagem (`concluída`) |
+| `DELETE` | `/viagens/:id` | Sim | Dono / Gestor / Admin / SuperAdmin | Remove o registro da viagem |
 
 ### 🧾 6. Gestão de Despesas (`/despesas`)
 
 | Método | Endpoint | Protegido | Perfil | Descrição |
 | :---: | :--- | :---: | :---: | :--- |
-| `GET` | `/despesas` | Sim | Dono / Admin | Lista despesas paginadas com filtro por `viagem_id` |
-| `GET` | `/despesas/:id` | Sim | Dono / Admin | Consulta os detalhes de uma despesa específica |
-| `POST` | `/despesas` | Sim | Dono / Admin | Lança despesa polimórfica em viagem em andamento |
-| `DELETE` | `/despesas/:id` | Sim | Dono / Admin | Remove despesa de viagem em andamento |
+| `GET` | `/despesas` | Sim | Dono / Gestor / Admin / SuperAdmin | Lista despesas com paginação (até 1000), exportação completa (`todos=true` / `limite=0`) e filtros (`viagem_id`, `empresa_id`, `tipo`, período) |
+| `GET` | `/despesas/:id` | Sim | Dono / Gestor / Admin / SuperAdmin | Consulta os detalhes de uma despesa específica |
+| `POST` | `/despesas` | Sim | Dono / Gestor / Admin / SuperAdmin | Lança despesa polimórfica em viagem em andamento |
+| `DELETE` | `/despesas/:id` | Sim | Dono / Gestor / Admin / SuperAdmin | Remove despesa de viagem em andamento |
+| `POST` | `/despesas/:id/foto` | Sim | Dono / Gestor / Admin / SuperAdmin | Anexa foto/comprovante fiscal da despesa no bucket S3 |
+| `DELETE` | `/despesas/:id/foto` | Sim | Dono / Gestor / Admin / SuperAdmin | Remove comprovante fiscal da despesa |
 
 ### 🔄 7. Motor de Sincronização Offline-First (`/sync`)
 

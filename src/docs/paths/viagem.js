@@ -15,14 +15,14 @@ const viagemRoutes = {
             + Função de Negócio:
                 - Retornar uma lista paginada de viagens.
                 + Recebe como query parameters (opcionais):
-                    • filtros: **status** ("em_andamento", "concluída", "cancelada"), **veiculo_id**, **data_inicio**, **data_fim**.
-                    • paginação: **page** (padrão: 1), **limite** (padrão: 10, máx: 100).
+                    • filtros: **empresa_id**, **status** ("em_andamento", "concluída", "cancelada"), **veiculo_id**, **data_inicio**, **data_fim**.
+                    • paginação/exportação: **page** (padrão: 1), **limite** (padrão: 10, máx: 1000, 0 para todos), **todos** (booleano).
 
             + Regras de Negócio:
-                - **Administradores**: Visualizam viagens de todos os usuários e empresas.
-                - **Gestores**: Visualizam as viagens de todos os motoristas pertencentes à sua transportadora (\`empresa_id\`).
+                - **SuperAdmin**: Visualiza viagens de todos os usuários e empresas (podendo filtrar por `empresa_id`).
+                - **Gestores / Administradores da Empresa**: Visualizam as viagens de todos os motoristas pertencentes à sua transportadora (`empresa_id`).
                 - **Motoristas**: Visualizam apenas as suas próprias viagens.
-                - Suporte à paginação via parâmetros \`page\` e \`limite\`.
+                - Suporte à paginação via parâmetros `page` e `limite` (ou `todos=true`/`limite=0` para listagem completa de relatórios).
 
             + Resultado Esperado:
                 - HTTP 200 OK com array conforme schema **ViagemListagem** contendo snapshots de usuário e veículo.
@@ -33,14 +33,14 @@ const viagemRoutes = {
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 10, maximum: 1000 },
                     required: false,
-                    description: "Quantidade de registros por página"
+                    description: "Quantidade de registros por página (máximo 1000, ou 0 para todos)"
                 },
                 {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     required: false,
                     description: "Número da página"
                 }

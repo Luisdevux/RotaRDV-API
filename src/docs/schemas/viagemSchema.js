@@ -4,11 +4,13 @@ const viagemSchemas = {
     ViagemFiltro: {
         type: "object",
         properties: {
+            empresa_id: { type: "string", description: "Filtra por ID da empresa (SuperAdmin / Admin)" },
             usuario_id: { type: "string", description: "Filtra por ID do usuário" },
             veiculo_id: { type: "string", description: "Filtra por ID do veículo" },
             status: { type: "string", enum: ["em_andamento", "concluída", "cancelada"], description: "Filtra pelo status da viagem" },
             data_inicio: { type: "string", format: "date", description: "Data de início (filtro range)" },
-            data_fim: { type: "string", format: "date", description: "Data de fim (filtro range)" }
+            data_fim: { type: "string", format: "date", description: "Data de fim (filtro range)" },
+            todos: { type: "boolean", description: "Se true, retorna todas as viagens sem paginação" }
         }
     },
 

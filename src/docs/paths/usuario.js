@@ -15,15 +15,16 @@ const usuarioRoutes = {
         + Função de Negócio:
             - Permitir ao front-end obter uma lista dos usuários cadastrados.
             + Recebe como query parameters (opcionais):
-                • filtros: nome, email, status, cpf, veiculo_id, empresa_nome e isAdmin.
+                • filtros: nome, email, status, role, cpf, cnh, veiculo_id, empresa_id, empresa_nome, isAdmin e todos.
+                • paginação: page (padrão 1), limite (padrão 10, máx 1000, 0 para todos).
 
         + Regras de Negócio:
             - Validar formatos e valores dos filtros fornecidos.
             - A listagem deve ocorrer mesmo se nenhum filtro for enviado.
-            - **Administradores**: Podem listar e filtrar todos os usuários do sistema.
-            - **Gestores**: Visualizam a listagem dos motoristas vinculados à sua transportadora (\`empresa_id\`).
-            - **Motoristas**: Podem visualizar apenas os seus próprios dados.
-            - Suporte a paginação via parâmetros page e limite.
+            - **SuperAdmin**: Pode listar e filtrar todos os usuários do sistema global.
+            - **Administradores / Gestores da Empresa**: Visualizam a listagem dos motoristas e membros vinculados à sua transportadora (`empresa_id`).
+            - **Motoristas**: Podem visualizar apenas os seus próprios dados de perfil.
+            - Suporte a paginação via parâmetros page e limite (ou todos=true para listagem completa).
 
         + Resultado Esperado:
             - 200 OK com corpo conforme schema **UsuarioListagem**, contendo:
@@ -35,14 +36,14 @@ const usuarioRoutes = {
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 10, maximum: 1000 },
                     required: false,
-                    description: "Quantidade de registros por página"
+                    description: "Quantidade de registros por página (máximo 1000, ou 0 para todos)"
                 },
                 {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     required: false,
                     description: "Número da página"
                 }
