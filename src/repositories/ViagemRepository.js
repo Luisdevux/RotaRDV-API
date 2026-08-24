@@ -39,17 +39,16 @@ class ViagemRepository {
         return ultimaViagem ? (ultimaViagem.km_final || 0) : 0;
     }
 
-    async listar(req, filtrosOverride = {}) {
-        const { id } = req.params;
+    async listar(req = {}, filtrosOverride = {}) {
+        const id = req.params?.id;
         if (id) {
             return await this.buscarPorID(id);
         }
 
-        const query = req.validatedQuery || req.query;
-        const { veiculo_id, status, data_inicio, data_fim, page = 1 } = query;
+        const query = req.validatedQuery || req.query || {};
+        const { veiculo_id, status, data_inicio, data_fim, page = 1, todos = false } = query;
         const usuario_id = filtrosOverride.usuario_id || query.usuario_id;
         const empresa_id = filtrosOverride.empresa_id || query.empresa_id;
-        const limite = Math.min(parseInt(query.limite, 10) || 10, 100);
 
         const filterBuilder = new ViagemFilterBuild()
             .comEmpresaId(empresa_id)
@@ -59,6 +58,31 @@ class ViagemRepository {
             .comDataRange(data_inicio, data_fim);
 
         const filtros = filterBuilder.build();
+
+        if (todos || parseInt(query.limite, 10) === 0) {
+            const docs = await this.modelViagem.find(filtros)
+                .populate([
+                    { path: 'usuario_id', select: 'nome email' },
+                    { path: 'veiculo_id', select: 'modelo placa' }
+                ])
+                .sort({ data_inicio: -1 })
+                .lean();
+
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limite = Math.min(parseInt(query.limite, 10) || 10, 1000);
 
         const options = {
             page: parseInt(page, 10),

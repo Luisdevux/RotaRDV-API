@@ -8,6 +8,9 @@ export const UsuarioIdSchema = z.string().refine((id) => mongoose.Types.ObjectId
 });
 
 export const UsuarioQuerySchema = z.object({
+    todos: z
+        .preprocess((val) => val === 'true' || val === true || val === '1' || val === 1, z.boolean())
+        .optional(),
     nome: z
         .string()
         .optional()
@@ -63,7 +66,7 @@ export const UsuarioQuerySchema = z.object({
         .string()
         .optional()
         .transform((val) => (val ? parseInt(val, 10) : 10))
-        .refine((val) => Number.isInteger(val) && val > 0 && val <= 100, {
-            message: 'Limite deve ser um número inteiro entre 1 e 100.',
+        .refine((val) => Number.isInteger(val) && val >= 0 && val <= 1000, {
+            message: 'Limite deve ser um número inteiro entre 0 e 1000.',
         }),
 });
