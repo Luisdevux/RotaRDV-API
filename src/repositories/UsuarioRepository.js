@@ -120,8 +120,8 @@ class UsuarioRepository {
             return data;
         }
 
-        const { nome, email, status, cpf, cnh, isAdmin, veiculo_id, empresa_nome, empresa_id, role, page = 1 } = req.query;
-        const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
+        const query = req.validatedQuery || req.query;
+        const { nome, email, status, cpf, cnh, isAdmin, veiculo_id, empresa_nome, empresa_id, role, page = 1, todos = false } = query;
 
         const filterBuilder = new UsuarioFilterBuild()
             .comNome(nome)
@@ -136,6 +136,28 @@ class UsuarioRepository {
             .comRole(role);
 
         const filtros = { ...filterBuilder.build(), ...filtrosOverride };
+
+        if (todos || parseInt(query.limite, 10) === 0) {
+            const docs = await this.modelUsuario.find(filtros)
+                .populate('veiculo_id')
+                .sort({ nome: 1 })
+                .lean();
+
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limite = Math.min(parseInt(query.limite, 10) || 10, 1000);
 
         const options = {
             page: parseInt(page, 10),
