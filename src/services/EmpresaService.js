@@ -420,8 +420,8 @@ class EmpresaService {
             customMessage: 'Você não tem permissão para listar motoristas desta empresa.',
         });
 
-        const { page = 1, limite = 10, nome, status, cpf: cpfFiltro } = req.query || {};
-        const limitOptions = Math.min(parseInt(limite, 10), 100);
+        const query = req.validatedQuery || req.query || {};
+        const { page = 1, limite = 10, nome, status, cpf: cpfFiltro, todos = false } = query;
 
         const filtros = {
             empresa_id: empresaId,
@@ -431,6 +431,28 @@ class EmpresaService {
         if (nome) filtros.nome = { $regex: nome, $options: 'i' };
         if (status) filtros.status = status;
         if (cpfFiltro) filtros.cpf = { $regex: cpfFiltro.replace(/\D/g, ''), $options: 'i' };
+
+        if (todos || parseInt(limite, 10) === 0) {
+            const docs = await this.usuarioRepository.modelUsuario.find(filtros)
+                .populate('veiculo_id')
+                .sort({ nome: 1 })
+                .lean();
+
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limitOptions = Math.min(parseInt(limite, 10), 1000);
 
         const options = {
             page: parseInt(page, 10),
@@ -460,12 +482,33 @@ class EmpresaService {
             customMessage: 'Você não tem permissão para listar veículos desta empresa.',
         });
 
-        const { page = 1, limite = 10, placa, modelo } = req.query || {};
-        const limitOptions = Math.min(parseInt(limite, 10), 100);
+        const query = req.validatedQuery || req.query || {};
+        const { page = 1, limite = 10, placa, modelo, todos = false } = query;
 
         const filtros = { empresa_id: empresaId };
         if (placa) filtros.placa = { $regex: placa, $options: 'i' };
         if (modelo) filtros.modelo = { $regex: modelo, $options: 'i' };
+
+        if (todos || parseInt(limite, 10) === 0) {
+            const docs = await this.veiculoRepository.modelVeiculo.find(filtros)
+                .sort({ modelo: 1 })
+                .lean();
+
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limitOptions = Math.min(parseInt(limite, 10), 1000);
 
         const options = {
             page: parseInt(page, 10),
@@ -494,8 +537,8 @@ class EmpresaService {
             customMessage: 'Você não tem permissão para listar viagens desta empresa.',
         });
 
-        const { page = 1, limite = 10, status, data_inicio, data_fim, usuario_id, veiculo_id } = req.query || {};
-        const limitOptions = Math.min(parseInt(limite, 10), 100);
+        const query = req.validatedQuery || req.query || {};
+        const { page = 1, limite = 10, status, data_inicio, data_fim, usuario_id, veiculo_id, todos = false } = query;
 
         const filtros = { empresa_id: empresaId };
         if (status) filtros.status = status;
@@ -515,6 +558,38 @@ class EmpresaService {
             }
         }
 
+        const ViagemService = (await import('./ViagemService.js')).default;
+        const viagemServiceInstance = new ViagemService();
+
+        if (todos || parseInt(limite, 10) === 0) {
+            const docs = await this.viagemRepository.modelViagem.find(filtros)
+                .populate([
+                    { path: 'usuario_id', select: 'nome email cpf' },
+                    { path: 'veiculo_id', select: 'modelo placa' }
+                ])
+                .sort({ data_inicio: -1 })
+                .lean();
+
+            for (const doc of docs) {
+                doc.resumo_financeiro = await viagemServiceInstance._calcularResumoFinanceiro(doc._id, doc);
+            }
+
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limitOptions = Math.min(parseInt(limite, 10), 1000);
+
         const options = {
             page: parseInt(page, 10),
             limit: limitOptions,
@@ -528,9 +603,6 @@ class EmpresaService {
         const resultado = await this.viagemRepository.modelViagem.paginate(filtros, options);
         resultado.docs = resultado.docs.map(doc => (typeof doc.toObject === 'function' ? doc.toObject() : doc));
 
-        // Injetar resumo financeiro e consumo em cada viagem retornada
-        const ViagemService = (await import('./ViagemService.js')).default;
-        const viagemServiceInstance = new ViagemService();
         for (const doc of resultado.docs) {
             doc.resumo_financeiro = await viagemServiceInstance._calcularResumoFinanceiro(doc._id, doc);
         }

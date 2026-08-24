@@ -64,6 +64,7 @@ class EmpresaRepository {
             return data;
         }
 
+        const query = req.validatedQuery || req.query || {};
         const {
             nome_empresa,
             cnpj,
@@ -72,11 +73,11 @@ class EmpresaRepository {
             cidade,
             estado,
             gestor_id,
-            page = 1
-        } = req.query || {};
+            page = 1,
+            todos = false
+        } = query;
 
-        const _id = filtrosOverride._id || req.query?._id;
-        const limite = Math.min(parseInt(req.query?.limite, 10) || 10, 100);
+        const _id = filtrosOverride._id || query._id;
 
         const filterBuilder = new EmpresaFilterBuild()
             .comId(_id)
@@ -89,6 +90,28 @@ class EmpresaRepository {
             .comGestorId(gestor_id);
 
         const filtros = filterBuilder.build();
+
+        if (todos || parseInt(query.limite, 10) === 0) {
+            const docs = await this.modelEmpresa.find(filtros)
+                .populate({ path: 'gestor_id', select: 'nome email foto_perfil' })
+                .sort({ nome_empresa: 1 })
+                .lean();
+
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limite = Math.min(parseInt(query.limite, 10) || 10, 1000);
 
         const options = {
             page: parseInt(page, 10),
