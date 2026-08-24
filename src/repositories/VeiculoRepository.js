@@ -39,10 +39,10 @@ class VeiculoRepository {
             return data;
         }
 
-        const { placa, modelo, reboque_placa, reboque_modelo, status, page = 1 } = req.query;
-        const _id = filtrosOverride._id || req.query._id;
-        const empresa_id = filtrosOverride.empresa_id || req.query.empresa_id;
-        const limite = Math.min(parseInt(req.query.limite, 10) || 10, 100);
+        const query = req.validatedQuery || req.query;
+        const { placa, modelo, reboque_placa, reboque_modelo, status, page = 1, todos = false } = query;
+        const _id = filtrosOverride._id || query._id;
+        const empresa_id = filtrosOverride.empresa_id || query.empresa_id;
 
         const filterBuilder = new VeiculoFilterBuild()
             .comId(_id)
@@ -55,12 +55,29 @@ class VeiculoRepository {
 
         const filtros = filterBuilder.build();
 
+        if (todos || parseInt(query.limite, 10) === 0) {
+            const docs = await this.modelVeiculo.find(filtros).sort({ modelo: 1 }).lean();
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limite = Math.min(parseInt(query.limite, 10) || 10, 1000);
+
         const options = {
             page: parseInt(page, 10),
             limit: parseInt(limite, 10),
             sort: { modelo: 1 }
         };
-
 
         const resultado = await this.modelVeiculo.paginate(filtros, options);
         resultado.docs = resultado.docs.map(doc => {

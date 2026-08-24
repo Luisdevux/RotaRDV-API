@@ -28,23 +28,40 @@ class DespesaRepository {
         return despesa;
     }
 
-    async listar(req, filtrosOverride = {}) {
-        const { id } = req.params;
+    async listar(req = {}, filtrosOverride = {}) {
+        const id = req.params?.id;
         if (id) {
             return await this.buscarPorID(id);
         }
 
-        const query = req.validatedQuery || req.query;
-        const { tipo, data_inicio, data_fim, page = 1, limite = 10 } = query;
+        const query = req.validatedQuery || req.query || {};
+        const { tipo, data_inicio, data_fim, page = 1, limite = 10, todos = false } = query;
         const viagem_id = filtrosOverride.viagem_id || query.viagem_id;
-
-        const limitOptions = Math.min(parseInt(limite, 10), 100);
 
         const filtro = new DespesaFilterBuild()
             .comViagemId(viagem_id)
             .comTipo(tipo)
             .comDataEntre(data_inicio, data_fim)
             .build();
+
+        // Se solicitado todos ou limite 0 (para relatórios em PDF e exportação)
+        if (todos || parseInt(limite, 10) === 0) {
+            const docs = await this.modelDespesa.find(filtro).sort({ data: -1 }).lean();
+            return {
+                docs,
+                totalDocs: docs.length,
+                limit: docs.length,
+                totalPages: 1,
+                page: 1,
+                pagingCounter: 1,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: null,
+                nextPage: null
+            };
+        }
+
+        const limitOptions = Math.min(parseInt(limite, 10), 1000);
 
         const options = {
             page: parseInt(page, 10),

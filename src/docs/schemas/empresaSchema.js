@@ -9,7 +9,8 @@ const empresaSchemas = {
             email: { type: "string", description: "Filtra pelo email corporativo" },
             status: { type: "string", enum: ["ativo", "inativo"], description: "Filtra pelo status" },
             cidade: { type: "string", description: "Filtra pela cidade" },
-            estado: { type: "string", description: "Filtra pela sigla do estado (UF)" }
+            estado: { type: "string", description: "Filtra pela sigla do estado (UF)" },
+            todos: { type: "boolean", description: "Se true, retorna todas as empresas sem paginação" }
         }
     },
 

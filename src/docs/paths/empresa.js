@@ -19,10 +19,10 @@ const empresaRoutes = {
                     • paginação: page, limite.
 
             + Regras de Negócio:
-                - Administradores do sistema podem listar todas as empresas cadastradas.
-                - Gestores de empresa visualizam apenas a transportadora à qual pertencem.
+                - **SuperAdmin**: Lista e gerencia todas as empresas cadastradas no sistema global.
+                - **Gestores / Administradores de Empresa**: Visualizam apenas a transportadora à qual pertencem.
                 - Validar formatos dos filtros fornecidos.
-                - Paginação padrão suportada via parâmetros page (mínimo 1) e limite (máximo 100).
+                - Paginação padrão suportada via parâmetros `page` e `limite` (máximo 1000), ou `todos=true` para desativar paginação.
 
             + Resultado Esperado:
                 - HTTP 200 OK com corpo conforme schema **EmpresaListagem** contendo a lista e metadados de paginação.
@@ -33,14 +33,14 @@ const empresaRoutes = {
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 10, maximum: 1000 },
                     required: false,
-                    description: "Quantidade de registros por página"
+                    description: "Quantidade de registros por página (máximo 1000, ou 0 para todos)"
                 },
                 {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     required: false,
                     description: "Número da página"
                 }
@@ -322,16 +322,22 @@ const empresaRoutes = {
                     description: "ID da empresa"
                 },
                 {
+                    name: "todos",
+                    in: "query",
+                    schema: { type: "boolean", default: false },
+                    description: "Se true, desativa a paginação e retorna todos os motoristas da empresa"
+                },
+                {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     description: "Página"
                 },
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
-                    description: "Limite por página"
+                    schema: { type: "number", default: 10, maximum: 1000 },
+                    description: "Limite por página (máximo 1000, ou 0 para todos)"
                 }
             ],
             responses: {
@@ -545,16 +551,22 @@ const empresaRoutes = {
                     description: "ID da empresa"
                 },
                 {
+                    name: "todos",
+                    in: "query",
+                    schema: { type: "boolean", default: false },
+                    description: "Se true, desativa a paginação e retorna toda a frota de veículos"
+                },
+                {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     description: "Página"
                 },
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
-                    description: "Limite por página"
+                    schema: { type: "number", default: 10, maximum: 1000 },
+                    description: "Limite por página (máximo 1000, ou 0 para todos)"
                 }
             ],
             responses: {
@@ -609,16 +621,22 @@ const empresaRoutes = {
                     description: "Filtra pelo status da viagem"
                 },
                 {
+                    name: "todos",
+                    in: "query",
+                    schema: { type: "boolean", default: false },
+                    description: "Se true, desativa a paginação e retorna todas as viagens da empresa"
+                },
+                {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     description: "Página"
                 },
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
-                    description: "Limite por página"
+                    schema: { type: "number", default: 10, maximum: 1000 },
+                    description: "Limite por página (máximo 1000, ou 0 para todos)"
                 }
             ],
             responses: {

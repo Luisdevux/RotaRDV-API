@@ -13,7 +13,8 @@ const usuarioSchemas = {
             cnh: { type: "string", description: "Filtra pela CNH (Expressão Regular)" },
             veiculo_id: { type: "string", description: "Filtra pelo ID do veículo atual do motorista" },
             empresa_nome: { type: "string", description: "Filtra por parte do nome da empresa/transportadora" },
-            isAdmin: { type: "boolean", description: "Filtra os Administradores" }
+            isAdmin: { type: "boolean", description: "Filtra os Administradores" },
+            todos: { type: "boolean", description: "Se true, retorna todos os usuários sem paginação" }
         }
     },
 

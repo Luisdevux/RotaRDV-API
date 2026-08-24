@@ -116,5 +116,5 @@ Os Requisitos Não Funcionais descrevem **os aspectos qualitativos, de seguranç
 ### 📈 3. Banco de Dados e Sincronização
 - **[RNF-11] Identificadores Universais Distribuídos (UUID v4):** Coleções de Viagens e Despesas utilizam `_id` tipado em `String` com UUID v4, viabilizando a geração autônoma de IDs pelo cliente móvel offline sem colisões.
 - **[RNF-12] Índices e Restrições Únicas:** Aplicação de índices `unique` nativos no MongoDB para placas de veículos, e-mails de usuários, CPFs e identificadores Google (`googleId`).
-- **[RNF-13] Paginação Otimizada:** Endpoints de listagem utilizam `mongoose-paginate-v2` com ordenação e limite de registros, preservando a memória dos clientes móveis.
+- **[RNF-13] Paginação Otimizada e Exportação Completa:** Endpoints de listagem utilizam `mongoose-paginate-v2` com ordenação por data, limites flexíveis e seguros de até 1.000 registros e suporte a `todos=true` / `limite=0` para desativação da paginação na geração e exportação de relatórios corporativos completos em PDF.
 - **[RNF-14] Formatação Brasileira de Datas:** Plugin customizado `mongooseBrazilianDatePlugin` que assegura a formatação e serialização consistente de datas no padrão brasileiro (`dd/MM/yyyy`).

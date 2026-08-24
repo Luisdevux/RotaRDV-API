@@ -15,12 +15,12 @@ const veiculoRoutes = {
             + Função de Negócio:
                 - Obter uma lista paginada dos veículos cadastrados.
                 + Recebe como query parameters (opcionais):
-                    • filtros: **modelo**, **placa**, **reboque_placa**, **reboque_modelo**.
-                    • paginação: **page** (padrão: 1), **limite** (padrão: 10, máx: 100).
+                    • filtros: **empresa_id**, **modelo**, **placa**, **reboque_placa**, **reboque_modelo**, **status**.
+                    • paginação/exportação: **page** (padrão: 1), **limite** (padrão: 10, máx: 1000, 0 para todos), **todos** (booleano).
 
             + Regras de Negócio:
-                - **Administradores**: Visualizam todos os veículos de todas as frotas.
-                - **Gestores**: Visualizam todos os veículos da frota da sua própria transportadora (\`empresa_id\`).
+                - **SuperAdmin**: Visualiza todos os veículos de todas as frotas e empresas (podendo filtrar por `empresa_id`).
+                - **Gestores / Administradores da Empresa**: Visualizam todos os veículos da frota da sua própria transportadora (`empresa_id`).
                 - **Motoristas**: Visualizam apenas o veículo atribuído ao seu próprio perfil de usuário.
 
             + Resultado Esperado:
@@ -32,14 +32,14 @@ const veiculoRoutes = {
                 {
                     name: "limite",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 10, maximum: 1000 },
                     required: false,
-                    description: "Quantidade de registros por página"
+                    description: "Quantidade de registros por página (máximo 1000, ou 0 para todos)"
                 },
                 {
                     name: "page",
                     in: "query",
-                    schema: { type: "number" },
+                    schema: { type: "number", default: 1 },
                     required: false,
                     description: "Número da página"
                 }
