@@ -153,14 +153,13 @@ class AuthService {
 
         // 2. Buscar usuário pelo googleId ou email
         let user = await this.repository.buscarPorGoogleId(googleId);
-        let isNewUser = false;
 
         if(!user) {
             // Tentar buscar por email (conta local existente)
             const userPorEmail = await this.repository.buscarPorEmail(email);
 
             if(userPorEmail) {
-                // Vincular conta Google a conta existente (mantém authProvider original se já tem senha)
+                // Vincular conta Google à conta pré-cadastrada no painel web
                 const novoProvider = userPorEmail.senha ? userPorEmail.authProvider : 'google';
                 user = await this.repository.atualizar(userPorEmail._id, {
                     googleId,
@@ -169,16 +168,13 @@ class AuthService {
                     email_verificado: true // Conta validada pelo Google
                 });
             } else {
-                // Criar novo usuário Google
-                isNewUser = true;
-                user = await this.repository.criar({
-                    nome: name,
-                    email,
-                    googleId,
-                    authProvider: 'google',
-                    foto_perfil: picture || '',
-                    email_verificado: true, // Contas Google já vêm validadas
-                    senha: null
+                // Não permitir criação de contas aleatóriamente. Motoristas devem ser previamente cadastrados no painel web.
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.NOT_FOUND.code,
+                    errorType: 'userNotFound',
+                    field: 'Email',
+                    details: [],
+                    customMessage: 'Conta não encontrada no sistema. O seu cadastro deve ser realizado previamente pelo gestor da sua empresa no Painel Web.'
                 });
             }
         }
