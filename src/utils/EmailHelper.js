@@ -7,8 +7,7 @@ import {
     HermesAuthError,
     HermesRateLimitError,
     HermesTimeoutError,
-    HermesNetworkError,
-    templateHelpers
+    HermesNetworkError
 } from '@ruanlopes1350/hermes-client';
 import logger from './logger.js';
 
@@ -92,10 +91,9 @@ class EmailHelper {
     /**
      * Envia email de boas-vindas com instruções de login quando a empresa cadastra um motorista
      */
-    static async enviarEmailBoasVindasMotorista({ email, nome, nomeEmpresa }) {
+    static async enviarEmailBoasVindasMotorista({ email, nome, nomeEmpresa, linkApp }) {
         try {
-            const saudacao = templateHelpers.greeting(nome);
-            const mensagem = `${saudacao}!\n\nVocê foi cadastrado na plataforma RotaRDV pela transportadora ${nomeEmpresa}.\n\nVocê já pode acessar o aplicativo móvel com o seu email (${email}) utilizando o Login com Google ou cadastrando sua senha de acesso.\n\nBom trabalho e boa viagem!`;
+            const link = linkApp || process.env.APP_SCHEME_URL || 'rotardv://auth/login';
 
             const resposta = await hermesClient.email()
                 .to(email)
@@ -104,7 +102,7 @@ class EmailHelper {
                     nomeUsuario: nome,
                     nomeEmpresa,
                     email,
-                    mensagem
+                    linkApp: link
                 })
                 .priority('high')
                 .send();
