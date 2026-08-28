@@ -17,11 +17,11 @@ const despesaPaths = {
                     • paginação/exportação: **page** (padrão: 1), **limite** (padrão: 10, máx: 1000, 0 para todos), **todos** (booleano).
 
             + Regras de Negócio:
-                - **SuperAdmin**: Visualiza e filtra despesas de todas as viagens e empresas (podendo filtrar por `empresa_id`).
-                - **Administrador/Gestor da Empresa**: Visualiza as despesas de todas as viagens vinculadas aos motoristas da sua transportadora (`empresa_id`).
+                - **SuperAdmin**: Visualiza e filtra despesas de todas as viagens e empresas (podendo filtrar por empresa_id).
+                - **Administrador/Gestor da Empresa**: Visualiza as despesas de todas as viagens vinculadas aos motoristas da sua transportadora (empresa_id).
                 - **Motorista**: Visualiza apenas as despesas das suas próprias viagens.
-                - **(Offline-First)**: Se o motorista não enviar o `viagem_id`, a API retornará automaticamente todas as despesas vinculadas a todas as viagens dele, permitindo o "Pull Sync" global no banco local do dispositivo.
-                - **(Exportação/Relatórios)**: Enviar `todos=true` ou `limite=0` desativa a paginação e retorna a totalidade dos registros do período selecionado (ideal para geração de relatórios e PDFs).
+                - **(Offline-First)**: Se o motorista não enviar o viagem_id, a API retornará automaticamente todas as despesas vinculadas a todas as viagens dele, permitindo o "Pull Sync" global no banco local do dispositivo.
+                - **(Exportação/Relatórios)**: Enviar todos=true ou limite=0 desativa a paginação e retorna a totalidade dos registros do período selecionado (ideal para geração de relatórios e PDFs).
 
             + Resultado Esperado:
                 - HTTP 200 OK com array de despesas formatadas e metadados de paginação.

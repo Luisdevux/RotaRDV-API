@@ -22,7 +22,7 @@ const empresaRoutes = {
                 - **SuperAdmin**: Lista e gerencia todas as empresas cadastradas no sistema global.
                 - **Gestores / Administradores de Empresa**: Visualizam apenas a transportadora à qual pertencem.
                 - Validar formatos dos filtros fornecidos.
-                - Paginação padrão suportada via parâmetros `page` e `limite` (máximo 1000), ou `todos=true` para desativar paginação.
+                - Paginação padrão suportada via parâmetros page e limite (máximo 1000), ou todos=true para desativar paginação.
 
             + Resultado Esperado:
                 - HTTP 200 OK com corpo conforme schema **EmpresaListagem** contendo a lista e metadados de paginação.

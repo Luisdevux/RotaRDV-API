@@ -19,10 +19,10 @@ const viagemRoutes = {
                     • paginação/exportação: **page** (padrão: 1), **limite** (padrão: 10, máx: 1000, 0 para todos), **todos** (booleano).
 
             + Regras de Negócio:
-                - **SuperAdmin**: Visualiza viagens de todos os usuários e empresas (podendo filtrar por `empresa_id`).
-                - **Gestores / Administradores da Empresa**: Visualizam as viagens de todos os motoristas pertencentes à sua transportadora (`empresa_id`).
+                - **SuperAdmin**: Visualiza viagens de todos os usuários e empresas (podendo filtrar por empresa_id).
+                - **Gestores / Administradores da Empresa**: Visualizam as viagens de todos os motoristas pertencentes à sua transportadora (empresa_id).
                 - **Motoristas**: Visualizam apenas as suas próprias viagens.
-                - Suporte à paginação via parâmetros `page` e `limite` (ou `todos=true`/`limite=0` para listagem completa de relatórios).
+                - Suporte à paginação via parâmetros page e limite (ou todos=true/limite=0 para listagem completa de relatórios).
 
             + Resultado Esperado:
                 - HTTP 200 OK com array conforme schema **ViagemListagem** contendo snapshots de usuário e veículo.

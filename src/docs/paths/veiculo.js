@@ -19,8 +19,8 @@ const veiculoRoutes = {
                     • paginação/exportação: **page** (padrão: 1), **limite** (padrão: 10, máx: 1000, 0 para todos), **todos** (booleano).
 
             + Regras de Negócio:
-                - **SuperAdmin**: Visualiza todos os veículos de todas as frotas e empresas (podendo filtrar por `empresa_id`).
-                - **Gestores / Administradores da Empresa**: Visualizam todos os veículos da frota da sua própria transportadora (`empresa_id`).
+                - **SuperAdmin**: Visualiza todos os veículos de todas as frotas e empresas (podendo filtrar por empresa_id).
+                - **Gestores / Administradores da Empresa**: Visualizam todos os veículos da frota da sua própria transportadora (empresa_id).
                 - **Motoristas**: Visualizam apenas o veículo atribuído ao seu próprio perfil de usuário.
 
             + Resultado Esperado:
