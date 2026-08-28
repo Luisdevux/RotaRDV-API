@@ -266,20 +266,23 @@ const authRoutes = {
     "/google": {
         post: {
             tags: ["Auth"],
-            summary: "Autentica via Google Sign-In",
+            summary: "Autentica via Google Sign-In (OAuth2)",
             description: `
-            + Caso de uso: Login simplificado utilizando conta do Google.
+            + Caso de uso: Login simplificado e seguro utilizando conta Google (OAuth2) no aplicativo móvel ou painel web.
 
             + Função de Negócio:
-                - Permitir que o motorista acesse o sistema sem digitar senha, via OAuth2.
+                - Permitir que condutores e gestores autentiquem-se no sistema sem digitar senha.
                 + Recebe no corpo da requisição:
-                    - **idToken**: token de identidade gerado pelo SDK do Google no Mobile.
+                    - **idToken**: token de identidade JWT emitido pelo SDK do Google.
 
             + Regras de Negócio:
-                - Valida o idToken junto ao Google Auth Library.
-                - Se o usuário não existir, cria um novo perfil com base nos dados do Google.
-                - Se o email já existir, vincula o googleId à conta existente.
-                - Retorna accessToken e refreshToken.
+                - Valida o idToken junto à biblioteca oficial Google Auth Library.
+                - Busca o usuário pelo googleId já associado.
+                - Se não encontrar por googleId, busca pelo email do payload do Google:
+                    • Se o usuário já existir (pré-cadastrado no painel web ou via signup), vincula o googleId ao perfil existente, ativa email_verificado e atualiza a foto.
+                    • Se o email não existir no sistema, retorna HTTP 404 (não cria conta automaticamente, exigindo cadastro prévio pelo gestor da empresa).
+                - Se o usuário estiver inativo no sistema, retorna HTTP 403 Forbidden.
+                - Gera par de tokens (accessToken e refreshToken) e autentica o usuário.
 
             + Resultado Esperado:
                 - HTTP 200 OK com corpo conforme **RespostaLogin**.
@@ -296,6 +299,8 @@ const authRoutes = {
             responses: {
                 200: commonResponses[200]("#/components/schemas/RespostaLogin"),
                 401: commonResponses[401](),
+                403: commonResponses[403](),
+                404: commonResponses[404](),
                 500: commonResponses[500]()
             }
         }

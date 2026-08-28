@@ -22,7 +22,7 @@ const usuarioRoutes = {
             - Validar formatos e valores dos filtros fornecidos.
             - A listagem deve ocorrer mesmo se nenhum filtro for enviado.
             - **SuperAdmin**: Pode listar e filtrar todos os usuários do sistema global.
-            - **Administradores / Gestores da Empresa**: Visualizam a listagem dos motoristas e membros vinculados à sua transportadora (`empresa_id`).
+            - **Administradores / Gestores da Empresa**: Visualizam a listagem dos motoristas e membros vinculados à sua transportadora (empresa_id).
             - **Motoristas**: Podem visualizar apenas os seus próprios dados de perfil.
             - Suporte a paginação via parâmetros page e limite (ou todos=true para listagem completa).
 
