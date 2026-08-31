@@ -3,18 +3,21 @@
 import Viagem from '../models/Viagem.js';
 import Despesa from '../models/Despesa.js';
 import Usuario from '../models/Usuario.js';
+import Veiculo from '../models/Veiculo.js';
 import { DateHelper } from '../utils/helpers/index.js';
 
 class SyncService {
     async pushSync(usuarioRef, viagens, despesas) {
         const userId = usuarioRef._id || usuarioRef;
-        const usuarioLogado = await Usuario.findById(userId);
+        const usuarioLogado = await Usuario.findById(userId).populate('veiculo_id');
 
         const results = { viagensUpserted: 0, viagensDeleted: 0, despesasUpserted: 0, despesasDeleted: 0 };
 
         if (!usuarioLogado) {
             return results;
         }
+
+        const veiculoDoc = usuarioLogado.veiculo_id;
 
         if (viagens && viagens.length > 0) {
             const bulkViagens = [];
@@ -28,6 +31,30 @@ class SyncService {
                     if (usuarioLogado.empresa_id && !v.empresa_id) {
                         v.empresa_id = usuarioLogado.empresa_id;
                     }
+
+                    // Autopreenche snapshot do motorista caso não venha no payload
+                    if (!v.usuario_snapshot) {
+                        v.usuario_snapshot = {
+                            nome: usuarioLogado.nome,
+                            email: usuarioLogado.email
+                        };
+                    }
+
+                    // Autopreenche veículo e snapshot do caminhão vinculado ao motorista
+                    if (!v.veiculo_id && veiculoDoc) {
+                        v.veiculo_id = veiculoDoc._id;
+                    }
+                    if (!v.veiculo_snapshot && veiculoDoc) {
+                        v.veiculo_snapshot = {
+                            placa: veiculoDoc.placa,
+                            modelo: veiculoDoc.modelo,
+                            reboque: {
+                                modelo: veiculoDoc.reboque?.modelo || '',
+                                placas: veiculoDoc.reboque?.placas || []
+                            }
+                        };
+                    }
+
                     delete v.is_deleted;
                     v.updatedAt = new Date();
 
