@@ -12,11 +12,13 @@ import {
 import logger from './logger.js';
 
 class EmailHelper {
-    static TEMPLATES = {
-        VERIFICACAO_EMAIL: '2abdd387-b4f3-4d20-917a-fd8920df25ae',
-        RECUPERACAO_SENHA: '647584d9-76ac-4179-b7e6-bc74180c4776',
-        BOAS_VINDAS_MOTORISTA: 'f27fed7e-8e3c-4c12-bd2d-f2ea180b4056'
-    };
+    static get TEMPLATES() {
+        return {
+            VERIFICACAO_EMAIL: process.env.HERMES_TEMPLATE_VERIFICACAO_EMAIL || 'a718e877-a25d-49f7-ada6-203a154b2d6b',
+            RECUPERACAO_SENHA: process.env.HERMES_TEMPLATE_RECUPERACAO_SENHA || '8755ec5b-6d73-49f6-a6f7-2ecc2d2c5a79',
+            BOAS_VINDAS_MOTORISTA: process.env.HERMES_TEMPLATE_BOAS_VINDAS_MOTORISTA || '15081568-c3da-4935-985c-e8670ce5eb8b'
+        };
+    }
 
     /**
      * Trata e formata logs de erros específicos do SDK Hermes
