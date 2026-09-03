@@ -74,6 +74,21 @@ class DespesaRepository {
         return resultado;
     }
 
+    // Método utilizado estritamente para o upload de imagens que deve conseguir atualizar o campo para inserir a URL da imagem
+    async atualizar(id, parsedData) {
+        const despesa = await this.modelDespesa.findByIdAndUpdate(id, parsedData, { returnDocument: 'after' });
+        if (!despesa) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
+                errorType: 'resourceNotFound',
+                field: 'Despesa',
+                details: [],
+                customMessage: messages.error.resourceNotFound('Despesa')
+            });
+        }
+        return despesa;
+    }
+
     async deletar(id) {
         const despesa = await this.modelDespesa.findByIdAndDelete(id);
         if (!despesa) {
