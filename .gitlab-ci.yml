@@ -6,11 +6,12 @@ variables:
   DOCKER_IMAGE: $DOCKERHUB_USER/rotardv-api:$CI_COMMIT_SHORT_SHA
   KUBERNETES_NAMESPACE: "rotardv-prod"
   KUBERNETES_NAMESPACE_QA: "rotardv-qa"
+  ENABLE_QA: "false" # <-- Alternar para "true" para ativar o deploy de QA
 
 build_job:
   stage: build
-  only:
-    - main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -22,19 +23,19 @@ build_job:
 
 deploy_job:
   stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   image: bitnami/kubectl:latest
   tags:
     - k3s-runner-rotardv
   script:
     - kubectl set image deployment/rotardv-api rotardv-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE
     - kubectl rollout status deployment/rotardv-api -n $KUBERNETES_NAMESPACE
-  only:
-    - main
 
 build_job_qa:
   stage: build
-  only:
-    - develop
+  rules:
+    - if: '$ENABLE_QA == "true" && $CI_COMMIT_BRANCH == "develop"'
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -46,11 +47,12 @@ build_job_qa:
 
 deploy_job_qa:
   stage: deploy
+  rules:
+    - if: '$ENABLE_QA == "true" && $CI_COMMIT_BRANCH == "develop"'
   image: bitnami/kubectl:latest
   tags:
     - k3s-runner-rotardv
   script:
+    - kubectl scale deployment/rotardv-api --replicas=1 -n $KUBERNETES_NAMESPACE_QA
     - kubectl set image deployment/rotardv-api rotardv-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE_QA
     - kubectl rollout status deployment/rotardv-api -n $KUBERNETES_NAMESPACE_QA
-  only:
-    - develop
