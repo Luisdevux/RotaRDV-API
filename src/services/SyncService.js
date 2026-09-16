@@ -118,11 +118,12 @@ class SyncService {
 
             if (bulkDespesas.length > 0) {
                 // ordered: false permite que se um upsert falhar, os outros passem
-                const dRes = await Despesa.bulkWrite(bulkDespesas, { ordered: false }).catch(err => err);
+                // Usa Despesa.collection.bulkWrite para não filtrar campos de discriminators (ex: litros, km_atual)
+                const dRes = await Despesa.collection.bulkWrite(bulkDespesas, { ordered: false }).catch(err => err);
 
                 const resObject = dRes.result ? dRes.result : dRes;
-                results.despesasUpserted = (resObject.upsertedCount || 0) + (resObject.modifiedCount || 0);
-                results.despesasDeleted = resObject.deletedCount || 0;
+                results.despesasUpserted = (resObject.upsertedCount || dRes.upsertedCount || 0) + (resObject.modifiedCount || dRes.modifiedCount || 0);
+                results.despesasDeleted = resObject.deletedCount || dRes.deletedCount || 0;
             }
         }
 
