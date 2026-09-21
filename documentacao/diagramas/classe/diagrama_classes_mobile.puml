@@ -1,0 +1,142 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+
+title **Diagrama de Classes da Arquitetura Mobile (Flutter / IsarDB / Dio - RotaRDV)**
+
+package "Camada de Persistência Local (Isar Database)" #E8F8F5 {
+  class LocalDatabase {
+    +{static} Future<Isar> init()
+    +{static} Isar get instance
+  }
+
+  enum SyncStatus {
+    criado
+    editado
+    sincronizado
+    deletado
+  }
+
+  class ViagemCollection <<(C,#A9DFBF) Isar Collection>> {
+    +id: Id <<autoIncrement>>
+    +uuid: String <<@Index unique>>
+    +origemCidade: String
+    +origemEstado: String
+    +destinoCidade: String
+    +destinoEstado: String
+    +kmInicial: double
+    +kmFinal: double?
+    +dataInicio: DateTime
+    +dataFim: DateTime?
+    +status: String
+    +statusSincronizacao: String <<@Index>>
+    --
+    +bool get estaSincronizado()
+    +bool get estaEmAndamento()
+  }
+
+  class DespesaCollection <<(C,#A9DFBF) Isar Collection>> {
+    +id: Id <<autoIncrement>>
+    +uuid: String <<@Index unique>>
+    +viagemId: String <<@Index>>
+    +tipo: String
+    +valorTotal: double
+    +data: DateTime
+    +local: String?
+    +descricao: String?
+    +fotoAnexoLocalPath: String?
+    +fotoAnexoUrl: String?
+    +fotoTiradaNoApp: bool?
+    +litros: double?
+    +valorLitro: double?
+    +tipoCombustivel: String?
+    +kmAtual: double?
+    +statusSincronizacao: String <<@Index>>
+    --
+    +bool get temFotoPendente()
+    +bool get isAbastecimento()
+  }
+}
+
+package "Camada de Rede & Sincronização Offline-First" #EBF5FB {
+  class ApiClient {
+    -dio: Dio
+    +get(path, queryParameters): Future<Response>
+    +post(path, data): Future<Response>
+    +put(path, data): Future<Response>
+    +delete(path): Future<Response>
+    +uploadMultipart(path, filePath): Future<Response>
+  }
+
+  class SyncService <<(S,#AED6F1) Singleton>> {
+    -{static} _instance: SyncService
+    -isSyncing: bool
+    +syncEventNotifier: ValueNotifier<int>
+    --
+    +initConnectivityListener(): void
+    +dispose(): void
+    +syncAll(maxRetries): Future<bool>
+    -_pushSync(): Future<bool>
+    -_pullSync(): Future<bool>
+    -_uploadPendingPhotos(): Future<void>
+    +obterResumoPendencias(): Future<PendingSyncSummary>
+  }
+
+  class PendingSyncSummary {
+    +viagensPendentes: int
+    +despesasPendentes: int
+    +fotosPendentes: int
+    +totalPendencias: int
+    +hasPending: bool
+  }
+
+  class StorageCleanerService {
+    +{static} limparComprovantesAntigosLocais(dias): Future<int>
+  }
+}
+
+package "Camada de Apresentação & Gerência de Estado" #FEF9E7 {
+  class AuthController {
+    +usuarioAtual: ValueNotifier<UsuarioModel?>
+    +estaAutenticado: bool
+    +login(email, senha): Future<bool>
+    +loginGoogle(): Future<bool>
+    +logout(): Future<void>
+  }
+
+  class ViagemController {
+    +viagens: ValueNotifier<List<ViagemCollection>>
+    +viagemAtiva: ValueNotifier<ViagemCollection?>
+    +carregarViagens(): Future<void>
+    +iniciarViagem(origem, destino, kmInicial): Future<void>
+    +encerrarViagem(viagemId, kmFinal): Future<void>
+  }
+
+  class DespesaController {
+    +despesas: ValueNotifier<List<DespesaCollection>>
+    +carregarDespesasDaViagem(viagemUuid): Future<void>
+    +salvarDespesa(despesa, fotoPath): Future<void>
+    +deletarDespesa(despesaUuid): Future<void>
+  }
+}
+
+' Relacionamentos
+LocalDatabase ..> ViagemCollection : gerencia
+LocalDatabase ..> DespesaCollection : gerencia
+
+ViagemController --> LocalDatabase : lê/escreve
+ViagemController --> SyncService : notifica_sync
+DespesaController --> LocalDatabase : lê/escreve
+DespesaController --> SyncService : notifica_sync
+
+SyncService --> ApiClient : envia_dados_nuvem
+SyncService --> LocalDatabase : atualiza_status
+SyncService --> StorageCleanerService : executa_exclusao_pos_sync
+SyncService ..> PendingSyncSummary : gera
+
+DespesaCollection "0..*" --> "1" ViagemCollection : vinculada_por_viagemId
+
+@enduml

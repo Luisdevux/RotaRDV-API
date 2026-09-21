@@ -1,0 +1,63 @@
+@startuml
+!include <C4/C4_Container>
+
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam wrapWidth 180
+skinparam maxMessageSize 120
+skinparam shadowing false
+
+left to right direction
+LAYOUT_WITH_LEGEND()
+
+title **Diagrama de Containers (C4 Model - Nível 2): Arquitetura Cloud Native em K3s na Oracle Cloud**
+
+Person(motorista, "Motorista Rodoviário", "Opera viagens, registra despesas e comprovantes offline na cabine.")
+Person(superadmin, "Administrador DevOps", "Opera a infraestrutura de nuvem, monitora pods e gerencia pipelines de CI/CD.")
+
+System_Boundary(c_clients, "Camada de Apresentação (Cliente Móvel)") {
+    Container(mobile_app, "Aplicativo Móvel RotaRDV", "Flutter / Dart", "Interface com arquitetura MVVM, monitoramento de conectividade e sincronização assíncrona.")
+    ContainerDb(isar_db, "Banco Embarcado", "Isar Database (NoSQL)", "Fonte da verdade local com latência zero ms. Persiste despesas offline.")
+}
+
+Container(cf_edge, "Cloudflare Edge", "WAF / DNS / Proxy", "Rede Anycast com mitigação de DDoS, terminação SSL/TLS e roteamento seguro.")
+
+System_Boundary(c_k3s, "Cluster Kubernetes (K3s) - Oracle Cloud Infrastructure (ARM64 Ampere A1)") {
+    Container(cf_tunnel, "Cloudflare Tunnel", "cloudflared (kube-system)", "Túnel outbound seguro. Dispensa portas abertas no firewall da OCI.")
+    Container(traefik, "Traefik Ingress", "Traefik v2 (kube-system)", "Ingress Controller nativo; roteia requisições por Host Header HTTP.")
+    Container(backend_api, "API RESTful RotaRDV", "Node.js 22 / Express 5.2 (rotardv-prod)", "Regras de negócio, Zod, RBAC/ABAC, UUID v4 e SyncEngine.")
+    ContainerDb(mongodb, "Banco de Aplicação", "MongoDB 7.0 (rotardv-prod)", "StatefulSet NoSQL com volume persistente local-path.")
+    Container(gitlab_runner, "GitLab Runner", "Pod Executor (tools)", "Executa pipelines de build e deploy no cluster.")
+    Container(vmcontrol, "Dashboard vmcontrol", "Pod Node.js (tools)", "Monitoramento de hardware da VM e estado dos Pods.")
+}
+
+System_Boundary(c_externos, "Serviços em Nuvem") {
+    System_Ext(garage_s3, "Storage Institucional", "Garage Cloud S3 (s3.fslab.dev)", "Armazenamento distribuído S3 com TLS para fotos de cupons fiscais.")
+    System_Ext(google_auth, "Google Identity", "OAuth 2.0", "Validação federada de identidade de usuários corporativos.")
+}
+
+' Conexões do Cliente Móvel
+Rel(motorista, mobile_app, "Opera rotas e despesas", "Material Design 3")
+Rel(mobile_app, isar_db, "Lê e grava instantaneamente", "Isar IPC Local")
+Rel(mobile_app, cf_edge, "Sincroniza Push/Pull e fotos", "HTTPS (rotardv-api.luisfelipe.dpdns.org)")
+
+' Conexões de DevOps
+Rel(superadmin, cf_edge, "Acessa monitoramento", "HTTPS (luisfelipe.dpdns.org)")
+
+' Borda para o Túnel e Ingress
+Rel(cf_edge, cf_tunnel, "Túnel Seguro Outbound", "Cloudflare Tunnel Protocol")
+Rel(cf_tunnel, traefik, "Entrega tráfego interno", "HTTP / Porta 80")
+
+' Roteamento do Traefik
+Rel(traefik, backend_api, "Roteia rotardv-api", "ClusterIP / Porta 5040")
+Rel(traefik, vmcontrol, "Roteia vmcontrol", "ClusterIP / Porta 3000")
+
+' Persistência e Serviços
+Rel(backend_api, mongodb, "Persistência transacional NoSQL", "TCP 27017 (Service mongodb-rotardv)")
+Rel(backend_api, garage_s3, "Upload multipart de comprovantes", "S3 SigV4 API / HTTPS (Porta 443)")
+Rel(backend_api, google_auth, "Valida autenticidade de idTokens", "HTTPS / OAuth 2.0")
+
+' CI/CD
+Rel(gitlab_runner, backend_api, "Aplica manifestos e rolling update", "kubectl apply / K8s API")
+
+@enduml

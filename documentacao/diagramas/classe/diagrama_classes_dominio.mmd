@@ -1,0 +1,205 @@
+classDiagram
+    direction TB
+
+    class RoleUsuario {
+        <<enumeration>>
+        superAdmin
+        admin
+        gestor
+        motorista
+    }
+
+    class StatusUsuario {
+        <<enumeration>>
+        ativo
+        inativo
+    }
+
+    class StatusViagem {
+        <<enumeration>>
+        em_andamento
+        concluída
+        cancelada
+    }
+
+    class TipoCombustivel {
+        <<enumeration>>
+        DIESEL_S10
+        DIESEL_S500
+        GASOLINA
+        ETANOL
+        ARLA_32
+        OUTRO
+    }
+
+    class TipoDespesa {
+        <<enumeration>>
+        ABASTECIMENTO
+        ALIMENTACAO
+        MANUTENCAO
+        PEDAGIO
+        OUTROS
+    }
+
+    class Empresa {
+        +ObjectId _id
+        +String nome_empresa
+        +String cnpj
+        +String email
+        +String telefone
+        +Endereco endereco
+        +String status
+        +String foto_logo
+        +ObjectId gestor_id
+        +Date createdAt
+        +Date updatedAt
+    }
+
+    class Endereco {
+        +String cep
+        +String logradouro
+        +String numero
+        +String complemento
+        +String bairro
+        +String cidade
+        +String estado
+    }
+
+    class Usuario {
+        +ObjectId _id
+        +String nome
+        +String email
+        +String senha
+        +String googleId
+        +String authProvider
+        +String cpf
+        +String cnh
+        +String telefone
+        +StatusUsuario status
+        +Boolean isAdmin
+        +RoleUsuario role
+        +String foto_perfil
+        +ObjectId empresa_id
+        +EmpresaVinculo empresa
+        +ObjectId veiculo_id
+        +Boolean email_verificado
+        +Date createdAt
+        +Date updatedAt
+    }
+
+    class Veiculo {
+        +ObjectId _id
+        +String modelo
+        +String placa
+        +TipoCombustivel combustivel_preferencial
+        +String status
+        +Number capacidade_tanque
+        +Number ano_fabricacao
+        +Reboque reboque
+        +ObjectId empresa_id
+        +Date createdAt
+        +Date updatedAt
+    }
+
+    class Reboque {
+        +String modelo
+        +List~String~ placas
+        +Number ano_fabricacao
+    }
+
+    class Viagem {
+        +String _id
+        +ObjectId usuario_id
+        +ObjectId empresa_id
+        +UsuarioSnapshot usuario_snapshot
+        +ObjectId veiculo_id
+        +VeiculoSnapshot veiculo_snapshot
+        +Localidade origem
+        +Localidade destino
+        +Date data_inicio
+        +Date data_fim
+        +Number km_inicial
+        +Number km_final
+        +String descricao
+        +StatusViagem status
+        +Date createdAt
+        +Date updatedAt
+    }
+
+    class UsuarioSnapshot {
+        +String nome
+        +String email
+    }
+
+    class VeiculoSnapshot {
+        +String placa
+        +String modelo
+        +Reboque reboque
+    }
+
+    class Localidade {
+        +String cidade
+        +String estado
+    }
+
+    class Despesa {
+        <<abstract>>
+        +String _id
+        +String viagem_id
+        +TipoDespesa tipo
+        +Number valor_total
+        +Date data
+        +String local
+        +String descricao
+        +String foto_anexo
+        +Date createdAt
+        +Date updatedAt
+    }
+
+    class DespesaAbastecimento {
+        +Number litros
+        +Number valor_litro
+        +TipoCombustivel tipo_combustivel
+        +Number km_atual
+    }
+
+    class DespesaAlimentacao {
+        +String tipo_refeicao
+    }
+
+    class DespesaManutencao {
+        +String oficina_nome
+    }
+
+    class DespesaPedagio {
+        +String praca_nome
+    }
+
+    class DespesaOutros {
+    }
+
+    %% Relacionamentos
+    Empresa *-- Endereco : possui
+    Empresa o-- Usuario : gestor_id
+    Empresa <-- Usuario : empresa_id
+    Empresa <-- Veiculo : empresa_id
+    Empresa <-- Viagem : empresa_id
+
+    Veiculo *-- Reboque : reboque
+    Usuario o-- Veiculo : veiculo_id
+
+    Viagem *-- UsuarioSnapshot : usuario_snapshot
+    Viagem *-- VeiculoSnapshot : veiculo_snapshot
+    Viagem *-- Localidade : origem
+    Viagem *-- Localidade : destino
+    Viagem --> Usuario : usuario_id
+    Viagem --> Veiculo : veiculo_id
+
+    Despesa --> Viagem : viagem_id
+
+    %% Discriminators (Herança)
+    Despesa <|-- DespesaAbastecimento : discriminator ABASTECIMENTO
+    Despesa <|-- DespesaAlimentacao : discriminator ALIMENTACAO
+    Despesa <|-- DespesaManutencao : discriminator MANUTENCAO
+    Despesa <|-- DespesaPedagio : discriminator PEDAGIO
+    Despesa <|-- DespesaOutros : discriminator OUTROS

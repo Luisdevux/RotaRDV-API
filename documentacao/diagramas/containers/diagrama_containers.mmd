@@ -1,0 +1,31 @@
+C4Container
+    title Diagrama de Containers (C4 Model - Nível 2) - Plataforma RotaRDV
+
+    Person(motorista, "Motorista Rodoviário", "Condutor de carga pesada; registra viagens, despesas e fotos.")
+    Person(gestor, "Gestor de Frota", "Gerencia veículos e motoristas da transportadora.")
+    Person(superadmin, "Super Administrador", "Administra transportadoras e parâmetros globais.")
+
+    Container_Boundary(c1, "Plataforma RotaRDV")
+        Container(mobile_app, "Aplicativo Móvel", "Flutter / Dart / IsarDB", "Interface offline-first para condutores.")
+        Container(web_app, "Painel Web", "Web SPA / React", "Interface administrativa para gestores e administradores.")
+        Container(nginx_proxy, "Proxy Reverso", "Nginx / SSL 443", "Terminação TLS, balanceamento e rate limit.")
+        Container(backend_api, "API Gateway & Backend", "Node.js / Express 5.2 (Docker)", "Processa regras de negócio, RBAC e upload Sharp.")
+        ContainerDb(mongodb, "Banco de Dados NoSQL", "MongoDB 7.0 (Docker)", "Armazena dados de viagens, despesas e frotas.")
+        Container(garage_s3, "Object Storage S3", "Garage S3 Daemon (Docker)", "Armazena fotos compactadas de comprovantes.")
+    UpdateBoundaryStyle(c1, $bgColor="#f8f9fa", $fontColor="#212529", $borderColor="#adb5bd")
+
+    System_Ext(firebase, "Google / Firebase OAuth", "Autenticação federada com contas Google.")
+    System_Ext(smtp_hermes, "Serviço SMTP Hermes", "Envio de e-mails de ativação e recuperação de senha.")
+
+    Rel(motorista, mobile_app, "Registra rotas e despesas", "App Nativo")
+    Rel(gestor, web_app, "Audita prestações de contas", "HTTPS")
+    Rel(superadmin, web_app, "Gerencia transportadoras", "HTTPS")
+
+    Rel(mobile_app, nginx_proxy, "Sincroniza viagens e fotos", "HTTPS / JSON (Porta 443)")
+    Rel(web_app, nginx_proxy, "Consome endpoints REST", "HTTPS / JSON (Porta 443)")
+    Rel(nginx_proxy, backend_api, "Encaminha tráfego filtrado", "HTTP (Porta 3000)")
+
+    Rel(backend_api, mongodb, "Persiste coleções", "MongoDB Protocol (Porta 27017)")
+    Rel(backend_api, garage_s3, "Upload/Deleção de mídia", "S3 API / SigV4 (Porta 3900)")
+    Rel(backend_api, firebase, "Validação de idToken", "HTTPS")
+    Rel(backend_api, smtp_hermes, "Disparo de e-mails", "SMTP TLS (Porta 587)")

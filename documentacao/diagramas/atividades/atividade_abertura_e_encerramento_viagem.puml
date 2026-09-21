@@ -1,0 +1,118 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+
+title **Diagrama de Atividades UML: Ciclo Operacional da Viagem Rodoviária (Abertura e Encerramento)**
+
+|#E8F8F5|Motorista (App Mobile)|
+|#EBF5FB|API Gateway / Express|
+|#FEF9E7|ViagemService (Regras de Domínio)|
+|#FDEDEC|MongoDB Database|
+
+|Motorista (App Mobile)|
+start
+:Seleciona "Iniciar Nova Viagem";
+:Informa Origem, Destino e Odômetro Inicial (KM);
+:Gera UUID v4 e salva no Isar localmente;
+:Dispara requisição de abertura (POST /viagens);
+
+|API Gateway / Express|
+:Recebe requisição HTTP;
+:Valida JWT Bearer (AuthMiddleware);
+if (Token Válido?) then (sim)
+  :Valida ViagemSchema via Zod;
+  if (Payload Íntegro?) then (sim)
+    |ViagemService (Regras de Domínio)|
+    :Consultar viagens em andamento;
+    |MongoDB Database|
+    :Query viagens ativas do motorista e do veículo;
+    |ViagemService (Regras de Domínio)|
+    if (Existe Viagem Ativa?) then (sim)
+      |API Gateway / Express|
+      :Retorna HTTP 409 Conflict;
+      |Motorista (App Mobile)|
+      :Exibe alerta: "Finalize a viagem anterior";
+      stop
+    else (não)
+      |ViagemService (Regras de Domínio)|
+      :Consultar último odômetro registrado do veículo;
+      |MongoDB Database|
+      :Busca última viagem encerrada do veículo;
+      |ViagemService (Regras de Domínio)|
+      if (km_inicial >= ultimaKmDoVeiculo?) then (sim)
+        fork
+          :Capturar dados cadastrais do condutor;
+          :Gerar usuario_snapshot { nome, email };
+        fork again
+          :Capturar dados do veículo e implemento;
+          :Gerar veiculo_snapshot { placa, modelo, reboque };
+        end fork
+        :Montar documento imutável da viagem;
+        |MongoDB Database|
+        :Inserir registro na coleção 'viagens';
+        |API Gateway / Express|
+        :Retorna HTTP 201 Created;
+        |Motorista (App Mobile)|
+        :Atualiza status local para 'sincronizado';
+        :Exibe tela de Cockpit de Viagem Ativa;
+      else (não)
+        |API Gateway / Express|
+        :Retorna HTTP 400 Bad Request;
+        |Motorista (App Mobile)|
+        :Exibe erro: "Odômetro menor que o histórico anterior";
+        stop
+      endif
+    endif
+  else (não)
+    |API Gateway / Express|
+    :Retorna HTTP 400 Bad Request (Erro Zod);
+    |Motorista (App Mobile)|
+    :Exibe erro de validação nos campos;
+    stop
+  endif
+else (não)
+  |API Gateway / Express|
+  :Retorna HTTP 401 Unauthorized;
+  |Motorista (App Mobile)|
+  :Redireciona para tela de login;
+  stop
+endif
+
+|Motorista (App Mobile)|
+:Executa percurso da rota rodoviária;
+:Lança despesas de trânsito (abastecimento, pedágio, etc.);
+:Chega ao destino final;
+:Toca em "Encerrar Viagem" e informa Odômetro Final (KM);
+:Envia requisição (PUT /viagens/:id/encerrar);
+
+|API Gateway / Express|
+:Recebe requisição de encerramento;
+:Valida JWT e Schema de Encerramento;
+
+|ViagemService (Regras de Domínio)|
+:Carrega dados da viagem ativa;
+if (km_final > viagem.km_inicial?) then (sim)
+  :Disparar cálculo dinâmico de Resumo Financeiro;
+  :Executa Despesa.aggregate (match por viagem_id e group por tipo);
+  |ViagemService (Regras de Domínio)|
+  :Calcular km_total rodado, consumo medio km/l e custo medio por km;
+  :Seta status = 'concluída' e data_fim = new Date();
+  |MongoDB Database|
+  :Atualiza documento da viagem no MongoDB;
+  |API Gateway / Express|
+  :Retorna HTTP 200 OK com Resumo Financeiro;
+  |Motorista (App Mobile)|
+  :Atualiza Isar local para 'concluída';
+  :Exibe Resumo Final (KMs rodados, Consumo Km/L e Balanço);
+  stop
+else (não)
+  |API Gateway / Express|
+  :Retorna HTTP 400 Bad Request;
+  |Motorista (App Mobile)|
+  :Exibe erro: "KM final deve ser maior que o KM inicial";
+  stop
+endif
+
+@enduml

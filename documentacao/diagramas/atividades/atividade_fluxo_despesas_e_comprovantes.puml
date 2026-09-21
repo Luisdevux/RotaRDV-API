@@ -1,0 +1,114 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+
+title **Diagrama de Atividades UML: Lançamento de Despesa Polimórfica e Processamento de Comprovantes**
+
+|#E8F8F5|Motorista (App Mobile)|
+|#EBF5FB|API Gateway / Express|
+|#FEF9E7|DespesaService & Regras|
+|#F5EEF8|UploadService & Sharp|
+|#FDEDEC|Garage S3 & MongoDB|
+
+|Motorista (App Mobile)|
+start
+:Seleciona "Nova Despesa";
+:Escolhe Tipo de Categoria;
+if (Qual Categoria?) then (ABASTECIMENTO)
+  :Preenche Litros, Valor/Litro, Tipo Combustível e KM Atual;
+elseif (ALIMENTACAO) then (ALIMENTACAO)
+  :Preenche Tipo de Refeição (Almoço, Jantar, etc.);
+elseif (MANUTENCAO) then (MANUTENCAO)
+  :Preenche Nome da Oficina / Borracharia;
+elseif (PEDAGIO) then (PEDAGIO)
+  :Preenche Nome da Praça de Pedágio / Concessionária;
+else (OUTROS)
+  :Preenche Descrição Detalhada;
+endif
+:Informa Valor Total, Data e Local;
+:Salva registro no IsarDB local (UUID v4);
+:Envia requisição POST /despesas;
+
+|API Gateway / Express|
+:Valida JWT Bearer e DespesaSchema (Zod);
+if (Dados Válidos?) then (sim)
+  |DespesaService & Regras|
+  :Busca viagem vinculada;
+  |Garage S3 & MongoDB|
+  :Query Viagem por ID;
+  |DespesaService & Regras|
+  if (Viagem está 'em_andamento'?) then (sim)
+    if (dataDespesa >= viagem.data_inicio?) then (sim)
+      if (tipo === 'ABASTECIMENTO'?) then (sim)
+        if (km_atual >= viagem.km_inicial?) then (sim)
+          :Instanciar DespesaAbastecimento;
+        else (não)
+          |API Gateway / Express|
+          :Retorna HTTP 400 (KM menor que inicial);
+          |Motorista (App Mobile)|
+          :Exibe erro de odômetro inválido;
+          stop
+        endif
+      else (outros tipos)
+        :Instanciar Discriminator correspondente;
+      endif
+      |Garage S3 & MongoDB|
+      :Insert documento na coleção 'despesas' (discriminatorKey='tipo');
+      |API Gateway / Express|
+      :Retorna HTTP 201 Created;
+      |Motorista (App Mobile)|
+      :Marca despesa como 'sincronizado';
+    else (não)
+      |API Gateway / Express|
+      :Retorna HTTP 400 (Data anterior ao início da viagem);
+      |Motorista (App Mobile)|
+      :Exibe erro de data inconsistente;
+      stop
+    endif
+  else (não)
+    |API Gateway / Express|
+    :Retorna HTTP 400 (Viagem encerrada);
+    |Motorista (App Mobile)|
+    :Exibe erro de viagem finalizada;
+    stop
+  endif
+else (não)
+  |API Gateway / Express|
+  :Retorna HTTP 400 Bad Request (Zod);
+  |Motorista (App Mobile)|
+  :Exibe erro nos campos;
+  stop
+endif
+
+|Motorista (App Mobile)|
+:Tira foto da Nota Fiscal / Recibo;
+:Salva binário em /comprovantes/;
+:Dispara POST /despesas/:id/foto (multipart);
+
+|API Gateway / Express|
+:Recebe arquivo multipart/form-data;
+
+|UploadService & Sharp|
+:Valida extensão (.jpg, .jpeg, .png, .svg);
+:Valida MIME Type real (image/jpeg, etc.);
+:Valida tamanho bruto <= 50MB;
+if (É arquivo SVG?) then (sim)
+  :Sanitizar via DOMPurify + JSDOM (Anti-XSS);
+else (imagem rasterizada)
+  :Comprimir via Sharp mozjpeg (qualidade 80%);
+  :Redimensionar até 1920x1920 (fit inside);
+endif
+|Garage S3 & MongoDB|
+:Enviar buffer para bucket Garage S3 via S3Client;
+:Atualizar campo 'foto_anexo' da despesa com a URL gerada;
+|API Gateway / Express|
+:Retorna HTTP 200 OK com URL da foto;
+|Motorista (App Mobile)|
+:Atualiza fotoAnexoUrl no IsarDB local;
+:Zera pendência de mídia;
+:Exibe comprovante homologado e anexado;
+stop
+
+@enduml

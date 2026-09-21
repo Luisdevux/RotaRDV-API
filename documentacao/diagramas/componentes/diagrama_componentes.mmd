@@ -1,0 +1,44 @@
+flowchart TB
+    subgraph Mobile["Cliente Mobile (Flutter / Dart)"]
+        UI["UI / Telas do Cockpit"]
+        VM["Controllers / ViewModels"]
+        Isar[("Isar Database Local")]
+        Sync["Sync Engine (Connectivity Listener)"]
+        Cleaner["Storage Cleaner Service"]
+        DioClient["Dio HTTP Client (JWT Interceptor)"]
+
+        UI --> VM
+        VM --> Isar
+        VM --> Sync
+        Sync --> Isar
+        Sync --> Cleaner
+        Sync --> DioClient
+    end
+
+    subgraph Backend["Backend API (Node.js / Express 5.2)"]
+        Router["Router Gateway (Express)"]
+        Middlewares["Middlewares (Auth, RateLimit, Logs)"]
+        Controllers["Controllers REST (Zod Schemas)"]
+        Services["Domain Services (Viagem, Despesa, Empresa)"]
+        Sharp["Sharp Pipeline (mozjpeg 80% & DOMPurify)"]
+        Repos["Mongoose Repositories & Discriminators"]
+
+        Router --> Middlewares
+        Middlewares --> Controllers
+        Controllers --> Services
+        Services --> Sharp
+        Services --> Repos
+    end
+
+    subgraph Infra["Persistência e Serviços Externos"]
+        MongoDB[("MongoDB 7.0")]
+        GarageS3["Garage S3 Object Storage"]
+        Firebase["Google / Firebase OAuth"]
+        Hermes["Hermes Mailer (SMTP)"]
+    end
+
+    DioClient -- "HTTPS / JSON (Bearer JWT)" --> Router
+    Repos -- "MongoDB Wire Protocol" --> MongoDB
+    Sharp -- "AWS SDK v3 (SigV4)" --> GarageS3
+    Services -- "OAuth Token Verify" --> Firebase
+    Services -- "SMTP / TLS (Porta 587)" --> Hermes

@@ -1,0 +1,44 @@
+flowchart TB
+    subgraph MobileDevice["Dispositivo Móvel (Android / iOS)"]
+        FlutterApp["rotardv_mobile (Flutter App)"]
+        IsarDB[("Isar Database Local (C++)")]
+        PhotosDir["/comprovantes/*.jpg"]
+
+        FlutterApp --> IsarDB
+        FlutterApp --> PhotosDir
+    end
+
+    subgraph AppServer["Servidor VPS / Cloud (Linux Ubuntu)"]
+        Nginx["Nginx Reverse Proxy (SSL 443)"]
+        subgraph DockerAPI["Container Docker: tcc-despesas-api"]
+            NodeRuntime["Node.js 20 Alpine"]
+            ExpressApp["src/server.js (Express 5.2)"]
+            SharpLib["libvips / mozjpeg Native"]
+        end
+        Nginx --> ExpressApp
+    end
+
+    subgraph DBServer["Servidor de Dados"]
+        subgraph DockerMongo["Container Docker: MongoDB 7.0"]
+            MongoDB[("tcc_despesas_db")]
+            MongoVolume["Volume Persistente (/data/db)"]
+            MongoDB --- MongoVolume
+        end
+    end
+
+    subgraph ObjectStorage["Servidor Object Storage"]
+        GarageS3["Garage S3 Service (Porta 3900)"]
+        S3Bucket[("Bucket: rotardv-comprovantes")]
+        GarageS3 --- S3Bucket
+    end
+
+    subgraph ExternalServices["Serviços em Nuvem Externos"]
+        Firebase["Google / Firebase OAuth Gateway"]
+        SMTP["Servidor SMTP Hermes (Porta 587)"]
+    end
+
+    FlutterApp -- "HTTPS / TLS 1.3 (Porta 443)" --> Nginx
+    ExpressApp -- "MongoDB Wire Protocol (Porta 27017)" --> MongoDB
+    ExpressApp -- "S3 API / SigV4 (Porta 3900)" --> GarageS3
+    ExpressApp -- "OAuth Verification HTTPS" --> Firebase
+    ExpressApp -- "SMTP / TLS (Porta 587)" --> SMTP

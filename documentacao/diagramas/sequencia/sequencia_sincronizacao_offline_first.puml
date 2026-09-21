@@ -1,0 +1,127 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title **Diagrama de Sequência UML: Sincronização Bidirecional Offline-First (Push Bulk, Delta Pull e Storage Cleaner)**
+
+participant "Connectivity Listener\n(Flutter Event)" as Connectivity #LightGreen
+participant "SyncService\n(Mobile App)" as MobileSync #LightBlue
+participant "Isar Database\n(Local NoSQL)" as Isar #LightCyan
+participant "SyncController\n(API Gateway)" as Controller #LightYellow
+participant "SyncService\n(Backend)" as ApiSync #Wheat
+participant "MongoDB Server\n(BulkWrite unordered)" as Mongo #PeachPuff
+participant "StorageCleanerService\n(Mobile Background)" as Cleaner #Pink
+
+== 1. Disparo Reativo de Sincronização por Restauração de Rede ==
+
+Connectivity -> MobileSync: onConnectivityChanged([wifi / mobile])
+activate MobileSync
+
+MobileSync -> MobileSync: Aguarda 1000ms para estabilização da interface de rede
+MobileSync -> MobileSync: syncAll() [Lock de concorrência: isSyncing = true]
+
+== 2. Fase de Push Sync (Envio de Viagens e Despesas Pendentes) ==
+
+MobileSync -> Isar: Consultar viagens e despesas (syncStatus != 'sincronizado')
+activate Isar
+Isar --> MobileSync: Lista de alterações locais (incluindo is_deleted)
+deactivate Isar
+
+MobileSync -> Controller: POST /sync/push { viagens: [...], despesas: [...] }
+activate Controller
+
+Controller -> ApiSync: pushSync(usuarioRef, viagens, despesas)
+activate ApiSync
+
+ApiSync -> Mongo: Usuario.findById(req.user_id).populate('veiculo_id')
+activate Mongo
+Mongo --> ApiSync: Condutor e Veículo vinculado
+deactivate Mongo
+
+ApiSync -> ApiSync: Montar operações de Viagens:\n- Se is_deleted: deleteOne({ _id, usuario_id })\n- Senão: updateOne({ _id, usuario_id }, { $set: v, autoSnapshots }, upsert: true)
+
+ApiSync -> Mongo: Viagem.bulkWrite(bulkViagens, { ordered: false })
+activate Mongo
+Mongo --> ApiSync: { upsertedCount, deletedCount }
+deactivate Mongo
+
+ApiSync -> ApiSync: Montar operações de Despesas (Validando viagens pertencentes ao motorista)
+ApiSync -> Mongo: Despesa.collection.bulkWrite(bulkDespesas, { ordered: false })\n[Usa collection nativa para não perder Discriminators]
+activate Mongo
+Mongo --> ApiSync: { upsertedCount, deletedCount }
+deactivate Mongo
+
+ApiSync --> Controller: { viagensUpserted, despesasUpserted, ... }
+deactivate ApiSync
+Controller --> MobileSync: HTTP 200 OK (Estatísticas do Push)
+deactivate Controller
+
+MobileSync -> Isar: isar.writeTxn():\n- Deleta fisicamente registros marcados com is_deleted\n- Altera status dos demais registros para 'sincronizado'
+activate Isar
+Isar --> MobileSync: OK
+deactivate Isar
+
+== 3. Fase de Upload de Mídia Desacoplado com Auto-Recovery ==
+
+MobileSync -> MobileSync: _uploadPendingPhotos()
+loop Para cada despesa com foto pendente
+    MobileSync -> MobileSync: resolverOuRecuperarFotoLocal(despesaUuid, caminhoAtual)
+    note over MobileSync
+      Se o caminho quebrou, localiza na pasta
+      /comprovantes/comprovante_{uuid}.jpg
+      evitando perda de notas fiscais físicas.
+    end note
+    MobileSync -> Controller: POST /despesas/:id/foto (multipart/form-data)
+    activate Controller
+    Controller --> MobileSync: HTTP 200 OK { url }
+    deactivate Controller
+    MobileSync -> Isar: Atualizar fotoAnexoUrl e limpar flag de foto pendente
+end
+
+== 4. Fase de Pull Sync (Delta Sync com Timestamp) ==
+
+MobileSync -> MobileSync: Obter last_sync_timestamp do SharedPreferences
+MobileSync -> Controller: GET /sync/pull?updatedAfter=2026-09-18T10:00:00Z
+activate Controller
+
+Controller -> ApiSync: pullSync(usuarioRef, updatedAfter)
+activate ApiSync
+
+ApiSync -> Mongo: Viagem.find({ usuario_id, updatedAt: { $gt: dateLimit } }).lean()\nDespesa.find({ viagem_id: { $in: motoristaViagens }, updatedAt: { $gt: dateLimit } }).lean()
+activate Mongo
+Mongo --> ApiSync: Viagens e despesas modificadas na nuvem
+deactivate Mongo
+
+ApiSync --> Controller: { viagens, despesas, veiculo }
+deactivate ApiSync
+Controller --> MobileSync: HTTP 200 OK { deltaData }
+deactivate Controller
+
+MobileSync -> Isar: Inserir/Atualizar registros recebidos no IsarDB
+activate Isar
+Isar --> MobileSync: Banco local atualizado
+deactivate Isar
+
+MobileSync -> MobileSync: Gravar novo last_sync_timestamp (Data do servidor)
+
+== 5. Fase de Exclusão Automática de Fotos Locais Antigas (Storage Cleaner) ==
+
+MobileSync -> Cleaner: limparComprovantesAntigosLocais(dias: 15)
+activate Cleaner
+Cleaner -> Isar: Consultar despesas com foto sincronizada na nuvem há > 15 dias
+activate Isar
+Isar --> Cleaner: Lista de comprovantes antigos seguros
+deactivate Isar
+
+Cleaner -> Cleaner: Exclui arquivos físicos locais do disco do smartphone (/comprovantes/*.jpg)
+Cleaner --> MobileSync: { arquivosRemovidos: 8, bytesLiberados: "24.5 MB" }
+deactivate Cleaner
+
+MobileSync -> MobileSync: syncEventNotifier.value++ (Notifica telas da UI para rebuild)
+MobileSync -> MobileSync: isSyncing = false
+deactivate MobileSync
+
+@enduml

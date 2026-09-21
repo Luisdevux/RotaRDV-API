@@ -1,0 +1,99 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+
+title **Diagrama de Atividades UML: Motor de Sincronização Offline-First e Ciclo de Vida Local**
+
+|#E8F8F5|Conectividade / Sistema Operacional|
+|#EBF5FB|SyncService (Mobile Flutter)|
+|#FEF9E7|Isar Database (Local)|
+|#F5EEF8|API Gateway & SyncService (Backend)|
+|#FDEDEC|MongoDB Server & Storage|
+
+|Conectividade / Sistema Operacional|
+start
+:Dispositivo detecta transição de rede (offline -> online);
+:Dispara evento de conectividade (ConnectivityResult);
+
+|SyncService (Mobile Flutter)|
+:Aguardar 1000ms para estabilização da placa de rede;
+if (Já existe sincronização em andamento?) then (sim)
+  :Ignorar chamada concorrente;
+  stop
+else (não)
+  :Ativar lock de execução (isSyncing = true);
+endif
+
+|Isar Database (Local)|
+:Consultar viagens e despesas pendentes (syncStatus != 'sincronizado');
+|SyncService (Mobile Flutter)|
+if (Existem registros pendentes para Push?) then (sim)
+  :Montar lote JSON com flags 'is_deleted';
+  |API Gateway & SyncService (Backend)|
+  :Receber POST /sync/push;
+  :Autenticar condutor via JWT;
+  :Construir operações em lote de viagens;
+  |MongoDB Server & Storage|
+  :Executar Viagem.bulkWrite(ordered: false);
+  |API Gateway & SyncService (Backend)|
+  :Construir operações de despesas do motorista;
+  |MongoDB Server & Storage|
+  :Executar Despesa.collection.bulkWrite(ordered: false);
+  |API Gateway & SyncService (Backend)|
+  :Retorna HTTP 200 OK com contadores;
+  |Isar Database (Local)|
+  :Deletar fisicamente registros com is_deleted;
+  :Atualizar status dos demais para 'sincronizado';
+else (não)
+  :Pular fase de Push;
+endif
+
+|SyncService (Mobile Flutter)|
+:Verificar despesas com comprovantes pendentes de upload;
+while (Há fotos pendentes?) is (sim)
+  :Executar resolverOuRecuperarFotoLocal(despesaUuid);
+  if (Arquivo físico existe no disco?) then (sim)
+    |API Gateway & SyncService (Backend)|
+    :Enviar POST /despesas/:id/foto (multipart);
+    :Comprimir via Sharp (mozjpeg 80%);
+    |MongoDB Server & Storage|
+    :Salvar binário no Garage S3;
+    :Atualizar 'foto_anexo' no MongoDB;
+    |API Gateway & SyncService (Backend)|
+    :Retorna HTTP 200 OK com URL;
+    |Isar Database (Local)|
+    :Salvar URL no Isar e limpar flag de foto pendente;
+  else (não)
+    |SyncService (Mobile Flutter)|
+    :Registrar log de arquivo órfão irrecuperável;
+  endif
+endwhile (não)
+
+|SyncService (Mobile Flutter)|
+:Recuperar 'last_sync_timestamp' do SharedPreferences;
+|API Gateway & SyncService (Backend)|
+:Chamar GET /sync/pull?updatedAfter={timestamp};
+|MongoDB Server & Storage|
+:Consultar viagens e despesas com updatedAt > timestamp;
+|API Gateway & SyncService (Backend)|
+:Retornar HTTP 200 OK com coleções delta e dados do veículo;
+|Isar Database (Local)|
+:Upsert de viagens e despesas no IsarDB;
+:Atualizar veículo vinculado do condutor;
+
+|SyncService (Mobile Flutter)|
+:Gravar novo 'last_sync_timestamp' com data atual do servidor;
+
+:Acionar StorageCleanerService;
+|Isar Database (Local)|
+:Buscar despesas com foto sincronizada na nuvem com mais de 15 dias;
+|SyncService (Mobile Flutter)|
+:Deletar arquivos locais antigos (/comprovantes/*.jpg);
+:Liberar espaço em disco no smartphone;
+:Notificar UI (syncEventNotifier.value++);
+:Liberar lock (isSyncing = false);
+stop
+
+@enduml

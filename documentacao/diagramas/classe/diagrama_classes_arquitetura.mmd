@@ -1,0 +1,124 @@
+classDiagram
+    direction TB
+
+    class AuthController {
+        -AuthService service
+        +login(req, res)
+        +loginGoogle(req, res)
+        +registro(req, res)
+        +confirmarEmail(req, res)
+        +refreshToken(req, res)
+    }
+
+    class ViagemController {
+        -ViagemService service
+        +criar(req, res)
+        +listar(req, res)
+        +encerrar(req, res)
+        +obterDashboard(req, res)
+    }
+
+    class DespesaController {
+        -DespesaService service
+        +criar(req, res)
+        +listar(req, res)
+        +fotoUpload(req, res)
+        +fotoDelete(req, res)
+    }
+
+    class SyncController {
+        -SyncService service
+        +pushSync(req, res)
+        +pullSync(req, res)
+    }
+
+    class EmpresaController {
+        -EmpresaService service
+        +criar(req, res)
+        +listar(req, res)
+        +atualizar(req, res)
+        +cadastrarMotorista(req, res)
+    }
+
+    class AuthService {
+        -UsuarioRepository usuarioRepo
+        +login(email, senha)
+        +loginGoogle(idToken)
+        +refreshToken(token)
+    }
+
+    class ViagemService {
+        -ViagemRepository repository
+        +criar(dados, req)
+        +listar(req)
+        +encerrar(id, dados, req)
+        -_calcularResumoFinanceiro(viagemId)
+    }
+
+    class DespesaService {
+        -DespesaRepository repository
+        -UploadService uploadService
+        +criar(dados, req)
+        +listar(req)
+        +fotoUpload(id, file, req)
+        +fotoDelete(id, req)
+    }
+
+    class SyncService {
+        +pushSync(usuarioRef, viagens, despesas)
+        +pullSync(usuarioRef, updatedAfter)
+    }
+
+    class UploadService {
+        -UploadRepository repository
+        +processarImagem(file, options)
+        +substituirImagem(file, urlAntiga, options)
+        +deleteImagemComRetry(url)
+    }
+
+    class EmpresaService {
+        -EmpresaRepository repository
+        +criar(dados, req)
+        +listar(req)
+        +cadastrarMotorista(empresaId, dados, req)
+    }
+
+    class ViagemRepository {
+        +buscarViagemAtivaDoMotorista(usuarioId)
+        +buscarUltimaKmDoVeiculo(veiculoId)
+    }
+
+    class DespesaRepository {
+        +buscarPorViagem(viagemId)
+    }
+
+    class UsuarioRepository {
+        +buscarPorEmail(email)
+        +buscarPorCpf(cpf)
+    }
+
+    class EmpresaRepository {
+        +buscarPorCnpj(cnpj)
+        +contarMotoristas(empresaId)
+        +contarVeiculos(empresaId)
+    }
+
+    class UploadRepository {
+        -S3Client s3Client
+        +upload(buffer, fileName, contentType)
+        +delete(fileUrl)
+    }
+
+    %% Injeções e Chamadas
+    AuthController --> AuthService
+    ViagemController --> ViagemService
+    DespesaController --> DespesaService
+    SyncController --> SyncService
+    EmpresaController --> EmpresaService
+
+    AuthService --> UsuarioRepository
+    ViagemService --> ViagemRepository
+    DespesaService --> DespesaRepository
+    DespesaService --> UploadService
+    EmpresaService --> EmpresaRepository
+    UploadService --> UploadRepository

@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    actor User as Motorista Rodoviário
+    participant Mobile as App Mobile (IsarDB)
+    participant Controller as ViagemController (API)
+    participant Service as ViagemService
+    participant Repo as ViagemRepository
+    participant DB as MongoDB (viagens / despesas)
+
+    Note over User, DB: Fase 1: Abertura de Viagem e Congelamento de Snapshots
+    User->>Mobile: Inicia viagem (Origem, Destino, KM Inicial)
+    Mobile->>Mobile: Persiste no IsarDB local (UUID v4)
+    Mobile->>Controller: POST /viagens { origem, destino, km_inicial, veiculo_id }
+    Controller->>Service: criar(dados, req)
+    Service->>Repo: buscarViagemAtivaDoMotorista(motoristaId)
+    Repo->>DB: findOne(em_andamento)
+    DB-->>Repo: null
+    Service->>Repo: buscarUltimaKmDoVeiculo(veiculoId)
+    Repo->>DB: find(sort km desc)
+    DB-->>Repo: 120.450 km
+    Service->>Service: Valida km_inicial >= 120.450 km
+    Service->>Service: Gera snapshots (usuario_snapshot, veiculo_snapshot)
+    Service->>Repo: criar(viagem)
+    Repo->>DB: insertOne(viagem)
+    DB-->>Repo: OK
+    Service-->>Controller: Viagem Criada
+    Controller-->>Mobile: HTTP 201 Created { viagem }
+    Mobile-->>User: Exibe Cockpit de Viagem Ativa
+
+    Note over User, DB: Fase 2: Encerramento e Cálculo Dinâmico de Resumo Financeiro
+    User->>Mobile: Informa KM Final e encerra
+    Mobile->>Controller: PUT /viagens/:id/encerrar { km_final }
+    Controller->>Service: encerrar(viagemId, dados, req)
+    Service->>Service: Valida km_final > km_inicial
+    Service->>DB: Despesa.aggregate([$match, $group por tipo])
+    DB-->>Service: Totais por categoria e litros consumidos
+    Service->>Service: Calcula km_total_rodado, consumo_medio km/l e custo/km
+    Service->>Repo: atualizar(viagemId, { status: 'concluída', resumo_financeiro })
+    Repo->>DB: updateOne(status: 'concluída')
+    DB-->>Repo: OK
+    Service-->>Controller: Viagem Concluída
+    Controller-->>Mobile: HTTP 200 OK { viagem, resumo_financeiro }
+    Mobile-->>User: Exibe Prestação de Contas Finalizada

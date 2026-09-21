@@ -1,0 +1,124 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+left to right direction
+
+title **Diagrama de Casos de Uso UML - Ecossistema RotaRDV (OMG UML 2.5)**
+
+' ATORES HUMANOS
+actor "Motorista Rodoviário" as Motorista #LightGreen
+actor "Gestor de Frota" as Gestor #LightBlue
+actor "Super Administrador" as SuperAdmin #OrangeRed
+
+' ATORES DE SISTEMA / SERVIÇOS EXTERNOS
+actor "Provedor OAuth (Google/Firebase)" as Firebase <<Sistema Externo>> #D5D8DC
+actor "Serviço de E-mail (Hermes/SMTP)" as Hermes <<Sistema Externo>> #D5D8DC
+actor "Object Storage (Garage S3)" as GarageS3 <<Sistema Externo>> #D5D8DC
+actor "Motor de Sincronização Local" as SyncEngine <<Sistema Mobile>> #A2D9CE
+
+rectangle "Fronteira do Sistema: Plataforma RotaRDV" {
+  
+  ' Módulo de Autenticação e Segurança
+  usecase "UC-01: Autenticar no Sistema" as UC01
+  usecase "Autenticar via Credenciais Locais" as UC01_Local
+  usecase "Autenticar via Google OAuth" as UC01_Google
+  usecase "Renovar Sessão JWT (Refresh Token)" as UC01_Refresh
+  usecase "UC-02: Registrar e Ativar Conta" as UC02
+  usecase "Enviar E-mail de Verificação" as UC02_Email
+  usecase "UC-03: Recuperar Senha" as UC03
+
+  ' Módulo de Operações de Viagem
+  usecase "UC-04: Iniciar Viagem Rodoviária" as UC04
+  usecase "Validar Ausência de Viagem Ativa" as UC04_TravaAtiva
+  usecase "Validar Odômetro Mínimo (Última KM)" as UC04_TravaKm
+  usecase "Congelar Snapshots (Condutor & Veículo)" as UC04_Snapshots
+  usecase "UC-08: Encerrar Viagem" as UC08
+  usecase "Validar KM Final > KM Inicial" as UC08_ValidaKm
+  usecase "Calcular Resumo Financeiro Dinâmico ($aggregate)" as UC08_Aggregate
+
+  ' Módulo de Despesas e Comprovantes
+  usecase "UC-05: Lançar Despesa de Viagem" as UC05
+  usecase "Lançar Abastecimento" as UC05_Abast
+  usecase "Lançar Alimentação" as UC05_Alim
+  usecase "Lançar Manutenção" as UC05_Manut
+  usecase "Lançar Pedágio" as UC05_Pedagio
+  usecase "Validar Data Despesa >= Início Viagem" as UC05_DataValida
+  usecase "UC-06: Anexar Comprovante Fiscal" as UC06
+  usecase "Otimizar Foto (Sharp mozjpeg 80% / SVG Clean)" as UC06_Sharp
+
+  ' Módulo de Sincronização e Armazenamento
+  usecase "UC-07: Sincronizar Dados Offline-First" as UC07
+  usecase "Push Sync em Lote (bulkWrite unordered)" as UC07_Push
+  usecase "Pull Sync Incremental (Delta por updatedAfter)" as UC07_Pull
+  usecase "UC-12: Excluir Fotos Antigas Locais (> 15 dias)" as UC12
+
+  ' Módulo de Gestão de Frota e Tenants
+  usecase "UC-09: Gerenciar Transportadoras Multi-Tenant" as UC09
+  usecase "Validar CNPJ (IN RFB 2.229/2024)" as UC09_Cnpj
+  usecase "Atribuir Gestor Responsável" as UC09_Gestor
+  usecase "Validar Integridade Referencial em Exclusão" as UC09_TravaDel
+  usecase "UC-10: Gerenciar Frota de Veículos e Condutores" as UC10
+  usecase "UC-11: Visualizar Painel Analítico e Auditoria" as UC11
+}
+
+' LIGAÇÕES MOTORISTA
+Motorista --> UC01
+Motorista --> UC02
+Motorista --> UC03
+Motorista --> UC04
+Motorista --> UC05
+Motorista --> UC06
+Motorista --> UC08
+
+' LIGAÇÕES GESTOR
+Gestor --> UC01
+Gestor --> UC10
+Gestor --> UC11
+
+' LIGAÇÕES SUPERADMIN
+SuperAdmin --> UC01
+SuperAdmin --> UC09
+SuperAdmin --> UC11
+
+' LIGAÇÕES ENGINES / SISTEMAS EXTERNOS
+SyncEngine --> UC07
+SyncEngine --> UC12
+UC01_Google ..> Firebase : <<communicate>>
+UC02_Email ..> Hermes : <<communicate>>
+UC06 ..> GarageS3 : <<communicate>>
+
+' RELAÇÕES <<include>>
+UC04 ..> UC04_TravaAtiva : <<include>>
+UC04 ..> UC04_TravaKm : <<include>>
+UC04 ..> UC04_Snapshots : <<include>>
+
+UC08 ..> UC08_ValidaKm : <<include>>
+UC08 ..> UC08_Aggregate : <<include>>
+
+UC05 ..> UC05_DataValida : <<include>>
+UC06 ..> UC06_Sharp : <<include>>
+
+UC07 ..> UC07_Push : <<include>>
+UC07 ..> UC07_Pull : <<include>>
+
+UC09 ..> UC09_Cnpj : <<include>>
+UC09 ..> UC09_Gestor : <<include>>
+UC09 ..> UC09_TravaDel : <<include>>
+UC02 ..> UC02_Email : <<include>>
+
+' RELAÇÕES <<extend>>
+UC01_Local ..> UC01 : <<extend>>
+UC01_Google ..> UC01 : <<extend>>
+UC01_Refresh ..> UC01 : <<extend>>
+UC06 ..> UC05 : <<extend>>
+
+' ESPECIALIZAÇÕES / GENERALIZAÇÕES DE DESPESAS
+UC05_Abast --|> UC05
+UC05_Alim --|> UC05
+UC05_Manut --|> UC05
+UC05_Pedagio --|> UC05
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+!include <C4/C4_Container>
+
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam TitleFontSize 16
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam wrapWidth 140
+
+LAYOUT_WITH_LEGEND()
+
+title **Diagrama de Containers (C4 Model - Nível 2): Plataforma RotaRDV**
+
+Person(motorista, "Motorista Rodoviário", "Condutor em trânsito rodoviário.")
+
+System_Boundary(c_client, "Dispositivo Móvel (Borda)") {
+    Container(mobile_app, "App Móvel RotaRDV", "Flutter / Dart", "Interface MVVM e sincronização.")
+    ContainerDb(isar_db, "Isar Database", "NoSQL Local", "Fonte da verdade offline (latência zero).")
+}
+
+System_Ext(cf_edge, "Cloudflare Edge", "WAF / DNS Anycast\nProteção e terminação TLS.")
+
+System_Boundary(c_k3s, "Cluster Kubernetes (K3s na Oracle Cloud ARM64)") {
+    Container(cf_tunnel, "Cloudflare Tunnel", "cloudflared", "Túnel seguro outbound Zero Trust.")
+    Container(traefik, "Traefik Ingress", "Traefik v2", "Roteador interno do cluster.")
+    Container(backend_api, "API RESTful RotaRDV", "Node.js 22 / Express 5.2", "Regras de negócio e SyncEngine.")
+    ContainerDb(mongodb, "Banco de Aplicação", "MongoDB 7.0", "StatefulSet NoSQL com PVC local-path.")
+}
+
+System_Boundary(c_externos, "Armazenamento & Nuvem") {
+    System_Ext(garage_s3, "Garage Cloud S3", "s3.fslab.dev", "Storage de fotos de cupons fiscais.")
+    System_Ext(google_auth, "Google Identity", "OAuth 2.0", "Autenticação federada.")
+}
+
+' Nível Superior: Cliente Móvel
+Rel(motorista, mobile_app, "Opera na cabine")
+Rel(mobile_app, isar_db, "Lê/Grava local")
+Rel(mobile_app, cf_edge, "Sincroniza Push/Pull (HTTPS)")
+
+' Intermediação de Borda
+Rel(cf_edge, cf_tunnel, "Túnel Outbound Criptografado")
+Rel(cf_tunnel, traefik, "Entrega interna (Porta 80)")
+
+' Nível Inferior: Cluster e Serviços
+Rel(traefik, backend_api, "Roteia Service (Porta 5040)")
+Rel(backend_api, mongodb, "Persistência NoSQL (Porta 27017)")
+Rel(backend_api, garage_s3, "Upload fotos (S3 SigV4)")
+Rel(backend_api, google_auth, "Valida idToken")
+
+@enduml
