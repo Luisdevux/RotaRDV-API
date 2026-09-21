@@ -8,19 +8,19 @@ skinparam sequenceMessageAlign center
 title **Diagrama de Sequência UML: Autenticação JWT, Sessão e Renovação Transparente (RotaRDV)**
 
 actor "Usuário / Motorista" as User #LightGreen
-participant "App Mobile / Web\n(Flutter / Dio Client)" as Client #LightBlue
+participant "App Móvel RotaRDV\n(Flutter / ApiClient)" as Client #LightBlue
 participant "API Gateway\n(Express / AuthMiddleware)" as Gateway #LightYellow
 participant "AuthService" as Service #LightCyan
 participant "Bcrypt Helper" as Bcrypt #Wheat
 participant "MongoDB\n(Coleção: usuarios)" as DB #PeachPuff
-participant "Firebase Admin SDK\n(Google OAuth)" as Firebase #LightGray
+participant "Google Identity\n(google-auth-library)" as GoogleAuth #LightGray
 
 == Cenário 1: Autenticação Local (E-mail e Senha) ==
 
 User -> Client: Informa e-mail e senha e clica em "Entrar"
 activate Client
 
-Client -> Gateway: POST /auth/login { email, senha }
+Client -> Gateway: POST /login { email, senha }
 activate Gateway
 
 Gateway -> Gateway: Validar Payload via LoginSchema (Zod)
@@ -59,7 +59,7 @@ else Usuário Ativo e Verificado
     deactivate Client
 end
 
-== Cenário 2: Renovação Transparente de Token Expirado (Refresh Automático via Interceptor Dio) ==
+== Cenário 2: Renovação Transparente de Token Expirado (Refresh Automático via ApiClient) ==
 
 User -> Client: Toca em "Minhas Viagens" (Ação comum)
 activate Client
@@ -72,12 +72,12 @@ Gateway --> Client: HTTP 401 Unauthorized (Token Expirado)
 deactivate Gateway
 
 note over Client
-  Dio Interceptor captura HTTP 401.
-  Pausa a requisição original na fila e
+  ApiClient intercepta HTTP 401.
+  Pausa a requisição original e
   inicia renovação sem deslogar o motorista.
 end note
 
-Client -> Gateway: POST /auth/refresh { refreshToken }
+Client -> Gateway: POST /refresh { refreshToken }
 activate Gateway
 
 Gateway -> Service: refreshToken(refreshToken)

@@ -45,7 +45,7 @@ classDiagram
     }
 
     class ApiClient {
-        -Dio dio
+        -Client client
         +get(path, queryParameters)
         +post(path, data)
         +uploadMultipart(path, filePath)

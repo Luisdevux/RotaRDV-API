@@ -88,11 +88,11 @@ end note
 User -> Mobile: Toca em "Encerrar Viagem" e informa KM Final (ex: 121.300 km)
 activate Mobile
 
-Mobile -> Controller: PUT /viagens/:id/encerrar { km_final: 121300 }
+Mobile -> Controller: PATCH /viagens/:id { km_final: 121300, status: 'concluída' }
 activate Controller
 
-Controller -> Controller: Validar JWT e Schema de Encerramento (Zod)
-Controller -> Service: encerrar(viagemId, { km_final }, req)
+Controller -> Controller: Validar JWT e Schema de Atualização (Zod)
+Controller -> Service: atualizar(viagemId, { km_final: 121300, status: 'concluída' }, req)
 activate Service
 
 Service -> ViagemRepo: buscarPorID(viagemId)

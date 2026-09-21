@@ -12,34 +12,34 @@ O **Diagrama de Containers** do modelo **C4 (C4 Model for Software Architecture)
 1. **Aplicativo Móvel (`mobile_app`):**
    - **Tecnologia:** Flutter / Dart / IsarDB.
    - **Responsabilidade:** Fornecer interface rica e **100% Offline-First** para os motoristas registrarem viagens, odômetros, abastecimentos, refeições e fotografarem cupons fiscais em rodovias sem sinal.
-   - **Protocolo:** HTTPS / JSON REST (Porta 443).
+   - **Protocolo:** HTTPS / JSON REST (Porta 443 via Cloudflare Edge).
 
-2. **Painel Web Administrativo (`web_app`):**
-   - **Tecnologia:** Web Single Page Application (React / HTML5 / JS).
-   - **Responsabilidade:** Interface de controle da frota, acompanhamento de viagens em andamento, auditoria e aprovação de prestações de contas e relatórios analíticos.
-   - **Protocolo:** HTTPS / JSON REST (Porta 443).
+2. **Cloudflare Tunnel (`cf_tunnel`):**
+   - **Tecnologia:** Daemon `cloudflared` em Pod K3s (`kube-system`).
+   - **Responsabilidade:** Conectar o cluster K3s na Oracle Cloud de forma segura à borda global da Cloudflare via túnel outbound criptografado, dispensando portas abertas no firewall público da OCI.
 
-3. **Proxy Reverso & Gateway (`nginx_proxy`):**
-   - **Tecnologia:** Nginx / SSL Let's Encrypt / Docker.
-   - **Responsabilidade:** Ponto único de entrada, terminação TLS 1.3 na porta 443, proxy reverso para o backend na porta 3000, rate limiting e cabeçalhos de segurança.
+3. **Traefik Ingress Controller (`traefik`):**
+   - **Tecnologia:** Traefik v2 em Pod K3s (`kube-system`).
+   - **Responsabilidade:** Roteador interno do cluster, distribuindo o tráfego HTTP para os Services internos dos pods.
 
 4. **API Gateway & Backend (`backend_api`):**
-   - **Tecnologia:** Node.js 20 / Express 5.2 / Docker Container.
+   - **Tecnologia:** Node.js 22 / Express 5.2 (Pod K3s no namespace `rotardv-prod`).
    - **Responsabilidade:** Regras de negócio, autorização RBAC hierárquica, isolamento multi-tenant (`empresa_id`), otimização de imagens com Sharp mozjpeg 80%, sanitização SVG anti-XSS via DOMPurify e orquestração do motor de sincronização em lote (`bulkWrite`).
+   - **Porta:** 5040 (ClusterIP interno).
 
 5. **Banco de Dados de Aplicação (`mongodb`):**
-   - **Tecnologia:** MongoDB 7.0 / Docker Container com volume persistente.
+   - **Tecnologia:** MongoDB 7.0 (StatefulSet K3s no namespace `rotardv-prod` com volume persistente local-path de 20GB SSD).
    - **Responsabilidade:** Armazenamento transacional e flexível de usuários, transportadoras, veículos, viagens com snapshots imutáveis e despesas polimórficas (Mongoose Discriminators).
    - **Protocolo:** MongoDB Wire Protocol (Porta 27017).
 
 6. **Object Storage Nuvem (`garage_s3`):**
-   - **Tecnologia:** Garage S3 Daemon / Docker Container.
+   - **Tecnologia:** Garage Cloud S3 (`s3.fslab.dev:443`).
    - **Responsabilidade:** Armazenamento seguro de fotos de notas fiscais e comprovantes digitais.
-   - **Protocolo:** S3 API / SigV4 (Porta 3900).
+   - **Protocolo:** S3 API / SigV4 com TLS.
 
 ---
 
 ## Sistemas Externos Integrados
 
-- **Google / Firebase Authentication:** Provedor federado de identidade para login social com contas Google.
+- **Google Identity Platform:** Provedor federado de identidade para login social com contas Google via `google-auth-library` (OAuth 2.0).
 - **Servidor SMTP Hermes:** Disparo institucional de e-mails de ativação de conta (24h) e recuperação de senha (1h).

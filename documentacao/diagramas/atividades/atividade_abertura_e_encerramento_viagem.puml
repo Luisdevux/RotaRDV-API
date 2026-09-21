@@ -85,11 +85,11 @@ endif
 :Lança despesas de trânsito (abastecimento, pedágio, etc.);
 :Chega ao destino final;
 :Toca em "Encerrar Viagem" e informa Odômetro Final (KM);
-:Envia requisição (PUT /viagens/:id/encerrar);
+:Envia requisição (PATCH /viagens/:id com km_final e status 'concluída');
 
 |API Gateway / Express|
-:Recebe requisição de encerramento;
-:Valida JWT e Schema de Encerramento;
+:Recebe requisição de atualização de status;
+:Valida JWT e Schema de Atualização;
 
 |ViagemService (Regras de Domínio)|
 :Carrega dados da viagem ativa;

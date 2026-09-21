@@ -14,8 +14,8 @@ classDiagram
         -ViagemService service
         +criar(req, res)
         +listar(req, res)
-        +encerrar(req, res)
-        +obterDashboard(req, res)
+        +atualizar(req, res)
+        +deletar(req, res)
     }
 
     class DespesaController {
@@ -28,8 +28,8 @@ classDiagram
 
     class SyncController {
         -SyncService service
-        +pushSync(req, res)
-        +pullSync(req, res)
+        +push(req, res)
+        +pull(req, res)
     }
 
     class EmpresaController {
@@ -51,7 +51,8 @@ classDiagram
         -ViagemRepository repository
         +criar(dados, req)
         +listar(req)
-        +encerrar(id, dados, req)
+        +atualizar(id, dados, req)
+        +deletar(id, req)
         -_calcularResumoFinanceiro(viagemId)
     }
 
@@ -104,9 +105,10 @@ classDiagram
     }
 
     class UploadRepository {
-        -S3Client s3Client
-        +upload(buffer, fileName, contentType)
-        +delete(fileUrl)
+        -Client garageClient
+        +uploadFile(buffer, fileName, contentType)
+        +getFile(fileName)
+        +deleteFile(fileName)
     }
 
     %% Injeções e Chamadas

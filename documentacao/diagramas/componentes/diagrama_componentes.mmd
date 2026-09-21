@@ -5,14 +5,14 @@ flowchart TB
         Isar[("Isar Database Local")]
         Sync["Sync Engine (Connectivity Listener)"]
         Cleaner["Storage Cleaner Service"]
-        DioClient["Dio HTTP Client (JWT Interceptor)"]
+        HttpClient["ApiClient (http.Client + JWT)"]
 
         UI --> VM
         VM --> Isar
         VM --> Sync
         Sync --> Isar
         Sync --> Cleaner
-        Sync --> DioClient
+        Sync --> HttpClient
     end
 
     subgraph Backend["Backend API (Node.js / Express 5.2)"]
@@ -33,12 +33,12 @@ flowchart TB
     subgraph Infra["Persistência e Serviços Externos"]
         MongoDB[("MongoDB 7.0")]
         GarageS3["Garage S3 Object Storage"]
-        Firebase["Google / Firebase OAuth"]
+        GoogleAuth["Google Identity (OAuth 2.0)"]
         Hermes["Hermes Mailer (SMTP)"]
     end
 
-    DioClient -- "HTTPS / JSON (Bearer JWT)" --> Router
+    HttpClient -- "HTTPS / JSON (Bearer JWT)" --> Router
     Repos -- "MongoDB Wire Protocol" --> MongoDB
     Sharp -- "AWS SDK v3 (SigV4)" --> GarageS3
-    Services -- "OAuth Token Verify" --> Firebase
+    Services -- "OAuth Token Verify" --> GoogleAuth
     Services -- "SMTP / TLS (Porta 587)" --> Hermes

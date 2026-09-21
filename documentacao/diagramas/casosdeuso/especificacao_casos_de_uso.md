@@ -18,7 +18,7 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
 | **UC-08** | Encerrar Viagem e Calcular Resumo Financeiro Dinâmico | Motorista | Alta |
 | **UC-09** | Gerenciar Transportadoras e Multi-Tenancy | Super Administrador | Alta |
 | **UC-10** | Gerenciar Frota, Veículos e Alocação de Condutores | Gestor de Frota | Alta |
-| **UC-11** | Visualizar Painel Analítico e Auditoria de Despesas | Gestor, Administrador | Média |
+| **UC-11** | Visualizar Resumo Financeiro e Auditoria de Despesas | Gestor, Administrador | Média |
 | **UC-12** | Excluir Fotos Locais Antigas de Comprovantes (Storage Cleaner) | Sistema Mobile Background | Baixa |
 
 ---
@@ -71,10 +71,10 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
   7. O `refreshToken` é persistido com hash no documento do usuário.
   8. A API retorna HTTP 200 com os tokens e os dados cadastrais (role, empresa, veiculo vinculado).
 - **Fluxo Alternativo 1A (Login Social com Google OAuth):**
-  1. No passo 1, o usuário opta por "Entrar com Google" no Mobile/Web.
-  2. O cliente autentica via Firebase Authentication e obtém o `idToken`.
-  3. O cliente envia `POST /auth/google` com o token recebido.
-  4. O backend valida a autenticidade do token junto aos servidores do Google via `firebase-admin`.
+  1. No passo 1, o usuário opta por "Entrar com Google" no App Mobile.
+  2. O cliente autentica via Google Sign-In e obtém o `idToken`.
+  3. O cliente envia `POST /google` com o token recebido.
+  4. O backend valida a autenticidade do token junto aos servidores do Google via `google-auth-library` (`OAuth2Client`).
   5. Se o usuário não existir, é provisionado com role `motorista` e `email_verificado: true`. Prossegue ao passo 6.
 - **Fluxo Alternativo 1B (Renovação Transparente de Token - Refresh):**
   1. O cliente detecta expiração do `accessToken` (HTTP 401).
@@ -253,13 +253,13 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
 
 ---
 
-### UC-11: Visualizar Painel Analítico e Auditoria de Despesas
+### UC-11: Visualizar Resumo Financeiro e Auditoria de Despesas
 - **Atores:** Gestor de Frota, Administrador.
 - **Pré-condições:** Usuário autenticado com role `gestor` ou `admin`.
 - **Fluxo Principal:**
-  1. O gestor acessa a tela de Dashboard Analítico.
-  2. O frontend solicita `GET /viagens/dashboard` ou `GET /despesas` com filtros de período (mês/ano).
-  3. O backend aplica o filtro mandatório de isolamento: `{ empresa_id: usuarioLogado.empresa_id }`.
+  1. O usuário consulta as métricas consolidadas da frota ou de viagens específicas.
+  2. O cliente solicita `GET /viagens` ou `GET /despesas` com filtros de período (mês/ano) e parâmetros de paginação.
+  3. O backend aplica o filtro mandatório de isolamento multi-tenant: `{ empresa_id: usuarioLogado.empresa_id }`.
   4. O MongoDB executa pipelines de agregação para agrupar:
      - Total gasto por tipo de despesa (gráfico pizza/rosca).
      - Consumo médio de combustível por veículo (km/l).

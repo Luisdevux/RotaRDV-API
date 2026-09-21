@@ -32,8 +32,8 @@ System_Boundary(c_k3s, "Cluster Kubernetes (K3s) - Oracle Cloud Infrastructure (
 }
 
 System_Boundary(c_externos, "Serviços em Nuvem") {
-    System_Ext(garage_s3, "Storage Institucional", "Garage Cloud S3 (s3.fslab.dev)", "Armazenamento distribuído S3 com TLS para fotos de cupons fiscais.")
-    System_Ext(google_auth, "Google Identity", "OAuth 2.0", "Validação federada de identidade de usuários corporativos.")
+    System_Ext(garage_s3, "Storage Institucional", "Garage Cloud S3 (s3.fslab.dev)\nArmazenamento distribuído S3 com TLS para fotos de cupons fiscais.")
+    System_Ext(google_auth, "Google Identity", "Google OAuth 2.0\nValidação federada de identidade de usuários corporativos.")
 }
 
 ' Conexões do Cliente Móvel

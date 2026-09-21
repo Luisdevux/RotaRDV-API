@@ -40,19 +40,14 @@ package "Camada de Controllers (Recepção HTTP & Zod Schemas)" #E6F3FF {
     -service: ViagemService
     +criar(req, res): Promise<void>
     +listar(req, res): Promise<void>
-    +buscarPorID(req, res): Promise<void>
     +atualizar(req, res): Promise<void>
-    +encerrar(req, res): Promise<void>
     +deletar(req, res): Promise<void>
-    +obterDashboard(req, res): Promise<void>
   }
 
   class DespesaController {
     -service: DespesaService
     +criar(req, res): Promise<void>
     +listar(req, res): Promise<void>
-    +buscarPorID(req, res): Promise<void>
-    +atualizar(req, res): Promise<void>
     +deletar(req, res): Promise<void>
     +fotoUpload(req, res): Promise<void>
     +fotoDelete(req, res): Promise<void>
@@ -60,8 +55,8 @@ package "Camada de Controllers (Recepção HTTP & Zod Schemas)" #E6F3FF {
 
   class SyncController {
     -service: SyncService
-    +pushSync(req, res): Promise<void>
-    +pullSync(req, res): Promise<void>
+    +push(req, res): Promise<void>
+    +pull(req, res): Promise<void>
   }
 
   class EmpresaController {
@@ -103,7 +98,8 @@ package "Camada de Services (Regras de Domínio e Orquestração)" #E8F8F5 {
     -veiculoRepository: VeiculoRepository
     +criar(dados, req): Promise<Object>
     +listar(req): Promise<Object>
-    +encerrar(id, dados, req): Promise<Object>
+    +atualizar(id, dados, req): Promise<Object>
+    +deletar(id, req): Promise<Boolean>
     -_calcularResumoFinanceiro(viagemId): Promise<Object>
   }
 
@@ -186,9 +182,10 @@ package "Camada de Repositories (Data Access Object / Mongoose)" #FFF3E0 {
   }
 
   class UploadRepository {
-    -s3Client: S3Client
-    +upload(buffer, fileName, contentType): Promise<String>
-    +delete(fileUrl): Promise<Boolean>
+    -garageClient: Minio.Client
+    +uploadFile(buffer, fileName, contentType): Promise<String>
+    +getFile(fileName): Promise<Buffer>
+    +deleteFile(fileName): Promise<Boolean>
   }
 }
 

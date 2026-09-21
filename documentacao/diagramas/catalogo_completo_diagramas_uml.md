@@ -25,10 +25,10 @@ tcc-despesas-api/documentacao/diagramas/
 │   │   ├── diagrama_containers.mmd                   # Diagrama de Containers C4 Model em Mermaid
 │   │   └── README.md                                 # Especificação técnica dos containers
 │   │
-│   └── implantacao/
-│       ├── diagrama_implantacao.puml                 # Nós físicos, Containers Docker, VPS, Nginx e Celular
-│       └── diagrama_implantacao.mmd                  # Implantação em Mermaid
-│
+│    └── implantacao/
+        ├── diagrama_implantacao.puml                 # Nós físicos, Cluster K3s na OCI ARM64, Cloudflare e Celular
+        └── diagrama_implantacao.mmd                  # Implantação em Mermaid
+
 └── 2. DIAGRAMAS COMPORTAMENTAIS (Comportamento Dinâmico do Sistema)
     ├── casosdeuso/
     │   ├── diagrama_casos_de_uso.puml                # Casos de Uso formal (Atores, Includes e Extends)
@@ -36,7 +36,7 @@ tcc-despesas-api/documentacao/diagramas/
     │   └── especificacao_casos_de_uso.md             # Especificação formal completa (UC-01 a UC-12 + 20 RNs)
     │
     ├── sequencia/
-    │   ├── sequencia_autenticacao_e_refresh.puml / .mmd  # Autenticação JWT, Bcrypt e Interceptor Dio (Refresh)
+    │   ├── sequencia_autenticacao_e_refresh.puml / .mmd  # Autenticação JWT, Bcrypt e ApiClient (Refresh)
     │   ├── sequencia_ciclo_vida_viagem.puml / .mmd       # Abertura com Snapshots e Encerramento $aggregate
     │   ├── sequencia_lancamento_despesa_e_upload.puml / .mmd # Discriminators Mongoose, Sharp mozjpeg e S3
     │   └── sequencia_sincronizacao_offline_first.puml / .mmd # Push bulkWrite, Auto-Recovery e Delta Pull
@@ -56,23 +56,24 @@ tcc-despesas-api/documentacao/diagramas/
 1. **Diagrama de Classes (`classe/`):**
    - **Domínio:** Modela os esquemas Mongoose, herança polimórfica com discriminators na coleção `despesas` (`ABASTECIMENTO`, `ALIMENTACAO`, `MANUTENCAO`, `PEDAGIO`, `OUTROS`), snapshots imutáveis (`usuario_snapshot` e `veiculo_snapshot`), e controle de múltiplos reboques e placas.
    - **Arquitetura API:** Modela a divisão de responsabilidades da API Express 5.2 (`Routes` -> `Middlewares` -> `Controllers` -> `Services` -> `Repositories` -> `Helpers`).
-   - **Mobile Flutter:** Modela a arquitetura reativa offline-first do app móvel com coleções Isar (`ViagemCollection`, `DespesaCollection`), `SyncService`, `StorageCleanerService` e `ApiClient` (Dio).
+   - **Mobile Flutter:** Modela a arquitetura reativa offline-first do app móvel com coleções Isar (`ViagemCollection`, `DespesaCollection`), `SyncService`, `StorageCleanerService` e `ApiClient` (`package:http`).
 
 2. **Diagrama de Componentes (`componentes/`):**
-   - Modela os módulos de software e suas interfaces (`tcc-despesas-mobile`, `tcc-despesas-api`, `MongoDB Database`, `Garage S3 Storage`, `Firebase Authentication` e `Hermes SMTP Mailer`).
-   - Mapeia as portas e protocolos de comunicação: REST JSON HTTPS, S3 API SigV4, MongoDB Wire Protocol, OAuth SDK e SMTP TLS.
+   - Modela os módulos de software e suas interfaces (`tcc-despesas-mobile`, `tcc-despesas-api`, `MongoDB Database`, `Garage S3 Storage`, `Google Identity Platform` e `Hermes SMTP Mailer`).
+   - Mapeia as portas e protocolos de comunicação: REST JSON HTTPS, S3 API SigV4, MongoDB Wire Protocol, Google OAuth 2.0 e SMTP TLS.
 
 3. **Diagrama de Implantação (`implantacao/`):**
    - Modela a topologia de infraestrutura física e nuvem:
      - Dispositivo Móvel do Motorista (Smartphone Android/iOS com APK Flutter, IsarDB embutido em C++ e storage local de fotos).
-     - Servidor VPS em Nuvem (Nginx Reverse Proxy com SSL Let's Encrypt na porta 443 redirecionando para o Container Docker da API Node.js 20 Alpine).
-     - Servidor de Banco de Dados (Container Docker MongoDB 7.0 com persistência em volume).
-     - Servidor de Armazenamento de Objetos (Daemon Garage S3 dedicado para fotos de comprovantes).
+     - Instância OCI ARM64 Ampere na Oracle Cloud (Ubuntu 22.04 LTS com cluster Kubernetes leve K3s).
+     - Namespace `kube-system`: daemon `cloudflared` (Cloudflare Tunnel seguro sem portas abertas) e `traefik` (Ingress Controller v2).
+     - Namespace `rotardv-prod`: container da API Node.js 22 / Express 5.2 (porta 5040) e StatefulSet MongoDB 7.0 com PVC local-path.
+     - Storage Institucional: Garage Cloud S3 (`s3.fslab.dev:443`) com TLS e SigV4.
 
 4. **Diagrama de Containers (`containers/`):**
    - Modela a arquitetura de software no padrão **C4 Model (Nível 2)**:
-     - Containers de Software: `App Mobile Flutter` (offline-first com IsarDB), `Painel Web SPA`, `Nginx Reverse Proxy` (SSL 443), `API Gateway & Backend` (Node.js 20 / Express 5.2), `MongoDB 7.0` e `Garage S3 Storage`.
-     - Protocolos e portas mapeados: HTTPS REST JSON (443), Reverse Proxy HTTP (3000), Wire Protocol (27017) e S3 API SigV4 (3900).
+     - Containers de Software: `App Móvel RotaRDV` (Flutter / IsarDB), `Cloudflare Edge Anycast`, `Cloudflare Tunnel (cloudflared)`, `Traefik Ingress`, `API RESTful RotaRDV` (Node.js 22 / Express 5.2), `MongoDB 7.0 StatefulSet` e `Garage Cloud S3`.
+     - Protocolos e portas mapeados: HTTPS Anycast (443), Tunnel Protocol seguro, HTTP interno (80), ClusterIP REST (5040), MongoDB Wire Protocol (27017) e S3 SigV4 TLS (443).
    - Disponível em [**`diagrama_containers.puml`**](file:///C:/Users/Pichau/Documents/TCCDespesas/tcc-despesas-api/documentacao/diagramas/containers/diagrama_containers.puml) e [**`.mmd`**](file:///C:/Users/Pichau/Documents/TCCDespesas/tcc-despesas-api/documentacao/diagramas/containers/diagrama_containers.mmd).
 
 ---

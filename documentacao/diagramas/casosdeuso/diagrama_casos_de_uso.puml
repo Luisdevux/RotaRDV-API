@@ -14,7 +14,7 @@ actor "Gestor de Frota" as Gestor #LightBlue
 actor "Super Administrador" as SuperAdmin #OrangeRed
 
 ' ATORES DE SISTEMA / SERVIÇOS EXTERNOS
-actor "Provedor OAuth (Google/Firebase)" as Firebase <<Sistema Externo>> #D5D8DC
+actor "Provedor OAuth (Google Identity)" as GoogleAuth <<Sistema Externo>> #D5D8DC
 actor "Serviço de E-mail (Hermes/SMTP)" as Hermes <<Sistema Externo>> #D5D8DC
 actor "Object Storage (Garage S3)" as GarageS3 <<Sistema Externo>> #D5D8DC
 actor "Motor de Sincronização Local" as SyncEngine <<Sistema Mobile>> #A2D9CE
@@ -61,7 +61,7 @@ rectangle "Fronteira do Sistema: Plataforma RotaRDV" {
   usecase "Atribuir Gestor Responsável" as UC09_Gestor
   usecase "Validar Integridade Referencial em Exclusão" as UC09_TravaDel
   usecase "UC-10: Gerenciar Frota de Veículos e Condutores" as UC10
-  usecase "UC-11: Visualizar Painel Analítico e Auditoria" as UC11
+  usecase "UC-11: Visualizar Resumo Financeiro e Auditoria" as UC11
 }
 
 ' LIGAÇÕES MOTORISTA
@@ -86,7 +86,7 @@ SuperAdmin --> UC11
 ' LIGAÇÕES ENGINES / SISTEMAS EXTERNOS
 SyncEngine --> UC07
 SyncEngine --> UC12
-UC01_Google ..> Firebase : <<communicate>>
+UC01_Google ..> GoogleAuth : <<communicate>>
 UC02_Email ..> Hermes : <<communicate>>
 UC06 ..> GarageS3 : <<communicate>>
 

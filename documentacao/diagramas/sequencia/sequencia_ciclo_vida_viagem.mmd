@@ -29,8 +29,8 @@ sequenceDiagram
 
     Note over User, DB: Fase 2: Encerramento e Cálculo Dinâmico de Resumo Financeiro
     User->>Mobile: Informa KM Final e encerra
-    Mobile->>Controller: PUT /viagens/:id/encerrar { km_final }
-    Controller->>Service: encerrar(viagemId, dados, req)
+    Mobile->>Controller: PATCH /viagens/:id { km_final, status: 'concluída' }
+    Controller->>Service: atualizar(viagemId, dados, req)
     Service->>Service: Valida km_final > km_inicial
     Service->>DB: Despesa.aggregate([$match, $group por tipo])
     DB-->>Service: Totais por categoria e litros consumidos

@@ -1,7 +1,7 @@
 sequenceDiagram
     autonumber
     actor User as Usuário / Motorista
-    participant Client as App Mobile (Flutter / Dio)
+    participant Client as App Móvel (Flutter / ApiClient)
     participant Gateway as API Gateway (Express / AuthMiddleware)
     participant Service as AuthService
     participant Bcrypt as Bcrypt Helper
@@ -9,7 +9,7 @@ sequenceDiagram
 
     Note over User, DB: Fluxo de Autenticação Local (E-mail e Senha)
     User->>Client: Informa e-mail e senha
-    Client->>Gateway: POST /auth/login { email, senha }
+    Client->>Gateway: POST /login { email, senha }
     Gateway->>Gateway: Validar Schema Zod
     Gateway->>Service: login(email, senha)
     Service->>DB: findOne({ email }).select('+senha +refreshtoken')
@@ -23,12 +23,12 @@ sequenceDiagram
     Gateway-->>Client: HTTP 200 OK { tokens, usuario }
     Client-->>User: Redireciona para o Cockpit / Home
 
-    Note over User, DB: Renovação Automática via Dio Interceptor (Refresh Token)
+    Note over User, DB: Renovação Automática via ApiClient (Refresh Token)
     User->>Client: Acessa tela de viagens
     Client->>Gateway: GET /viagens (Token expirado)
     Gateway-->>Client: HTTP 401 Unauthorized
-    Note over Client: Interceptor pausa a fila e solicita refresh
-    Client->>Gateway: POST /auth/refresh { refreshToken }
+    Note over Client: ApiClient pausa requisição e solicita refresh
+    Client->>Gateway: POST /refresh { refreshToken }
     Gateway->>Service: refreshToken(refreshToken)
     Service->>DB: findById(userId).select('+refreshtoken')
     DB-->>Service: Usuário com token

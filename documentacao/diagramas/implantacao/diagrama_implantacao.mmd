@@ -1,44 +1,53 @@
 flowchart TB
-    subgraph MobileDevice["Dispositivo Móvel (Android / iOS)"]
-        FlutterApp["rotardv_mobile (Flutter App)"]
-        IsarDB[("Isar Database Local (C++)")]
-        PhotosDir["/comprovantes/*.jpg"]
+    subgraph MobileDevice["Dispositivo Móvel do Condutor (Android / iOS)"]
+        FlutterApp["rotardv_mobile.apk (Flutter App)"]
+        IsarDB[("Isar NoSQL Database (Local)")]
+        PhotosDir["Armazenamento Local (/comprovantes/*.jpg)"]
 
         FlutterApp --> IsarDB
         FlutterApp --> PhotosDir
     end
 
-    subgraph AppServer["Servidor VPS / Cloud (Linux Ubuntu)"]
-        Nginx["Nginx Reverse Proxy (SSL 443)"]
-        subgraph DockerAPI["Container Docker: tcc-despesas-api"]
-            NodeRuntime["Node.js 20 Alpine"]
-            ExpressApp["src/server.js (Express 5.2)"]
-            SharpLib["libvips / mozjpeg Native"]
-        end
-        Nginx --> ExpressApp
+    subgraph CFEdge["Borda Global Cloudflare"]
+        EdgeServices["Cloudflare Edge (WAF, DDoS, DNS Anycast)"]
     end
 
-    subgraph DBServer["Servidor de Dados"]
-        subgraph DockerMongo["Container Docker: MongoDB 7.0"]
-            MongoDB[("tcc_despesas_db")]
-            MongoVolume["Volume Persistente (/data/db)"]
-            MongoDB --- MongoVolume
+    subgraph OCI["Oracle Cloud Infrastructure (OCI) - ARM64 Ubuntu 22.04 LTS"]
+        subgraph K3sCluster["Cluster Kubernetes Leve (K3s)"]
+            subgraph NS_KubeSystem["Namespace: kube-system"]
+                Tunnel["Pod: cloudflared (Cloudflare Tunnel)"]
+                Traefik["Pod: traefik (Ingress Controller v2)"]
+            end
+
+            subgraph NS_Prod["Namespace: rotardv-prod"]
+                ExpressApp["Pod: rotardv-api (Node.js 22 / Express 5.2 - Porta 5040)"]
+                MongoDB[("StatefulSet: mongodb-0 (MongoDB 7.0 - Porta 27017)")]
+                PVC["Volume Persistente (PVC local-path 20GB SSD)"]
+                MongoDB --- PVC
+            end
+
+            subgraph NS_Tools["Namespace: tools"]
+                Runner["Pod: gitlab-runner-rotardv"]
+                VmControl["Pod: vmcontrol (Monitoramento)"]
+            end
         end
     end
 
-    subgraph ObjectStorage["Servidor Object Storage"]
-        GarageS3["Garage S3 Service (Porta 3900)"]
-        S3Bucket[("Bucket: rotardv-comprovantes")]
+    subgraph StorageServer["Infraestrutura de Armazenamento Institucional"]
+        GarageS3["Garage Cloud S3 (s3.fslab.dev:443)"]
+        S3Bucket[("Bucket: rota-rdv (Comprovantes)")]
         GarageS3 --- S3Bucket
     end
 
-    subgraph ExternalServices["Serviços em Nuvem Externos"]
-        Firebase["Google / Firebase OAuth Gateway"]
-        SMTP["Servidor SMTP Hermes (Porta 587)"]
+    subgraph IdentityCloud["Google Identity Platform"]
+        GoogleAuth["Google OAuth 2.0 (Token Verification)"]
     end
 
-    FlutterApp -- "HTTPS / TLS 1.3 (Porta 443)" --> Nginx
+    FlutterApp -- "HTTPS / REST (rotardv-api.luisfelipe.dpdns.org)" --> EdgeServices
+    EdgeServices <--> "Cloudflare Tunnel Protocol (Outbound)" <--> Tunnel
+    Tunnel -- "HTTP / Porta 80" --> Traefik
+    Traefik -- "ClusterIP / Porta 5040" --> ExpressApp
     ExpressApp -- "MongoDB Wire Protocol (Porta 27017)" --> MongoDB
-    ExpressApp -- "S3 API / SigV4 (Porta 3900)" --> GarageS3
-    ExpressApp -- "OAuth Verification HTTPS" --> Firebase
-    ExpressApp -- "SMTP / TLS (Porta 587)" --> SMTP
+    ExpressApp -- "Upload S3 SigV4 com TLS (Porta 443)" --> GarageS3
+    ExpressApp -- "Valida idToken OAuth 2.0" --> GoogleAuth
+    Runner -. "kubectl apply (CI/CD)" .-> ExpressApp

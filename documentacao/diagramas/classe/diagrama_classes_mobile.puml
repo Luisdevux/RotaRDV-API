@@ -5,7 +5,7 @@ skinparam defaultFontName Arial
 skinparam roundCorner 8
 skinparam shadowing false
 
-title **Diagrama de Classes da Arquitetura Mobile (Flutter / IsarDB / Dio - RotaRDV)**
+title **Diagrama de Classes da Arquitetura Mobile (Flutter / IsarDB / ApiClient - RotaRDV)**
 
 package "Camada de Persistência Local (Isar Database)" #E8F8F5 {
   class LocalDatabase {
@@ -63,7 +63,7 @@ package "Camada de Persistência Local (Isar Database)" #E8F8F5 {
 
 package "Camada de Rede & Sincronização Offline-First" #EBF5FB {
   class ApiClient {
-    -dio: Dio
+    -client: http.Client
     +get(path, queryParameters): Future<Response>
     +post(path, data): Future<Response>
     +put(path, data): Future<Response>

@@ -13,14 +13,14 @@ package "Cliente Móvel: tcc-despesas-mobile (Flutter / Dart)" #E8F8F5 {
   [Sync Engine\n(Listener de Conectividade)] as Comp_Sync
   [Storage Cleaner Service\n(Exclusão > 15 dias)] as Comp_Cleaner
   [Local Database\n(Isar NoSQL Database)] as Comp_Isar
-  [HTTP Client Resiliente\n(Dio + Interceptors JWT)] as Comp_Dio
+  [HTTP Client Resiliente\n(ApiClient / http + JWT)] as Comp_HttpClient
 
   Comp_UI ..> Comp_VM : interage
   Comp_VM ..> Comp_Isar : lê / escreve
   Comp_VM ..> Comp_Sync : notifica eventos
   Comp_Sync ..> Comp_Isar : consulta pendências
   Comp_Sync ..> Comp_Cleaner : dispara limpeza
-  Comp_Sync ..> Comp_Dio : usa para Push/Pull
+  Comp_Sync ..> Comp_HttpClient : usa para Push/Pull
 }
 
 package "Backend: tcc-despesas-api (Node.js / Express 5.2)" #EBF5FB {
@@ -41,7 +41,7 @@ package "Backend: tcc-despesas-api (Node.js / Express 5.2)" #EBF5FB {
 package "Serviços de Persistência e Infraestrutura Externa" #FEF9E7 {
   database "MongoDB Database\n(Coleções: viagens, despesas, usuarios, empresas)" as Comp_Mongo #PeachPuff
   cloud "Garage S3 Object Storage\n(Bucket de Fotos de Comprovantes)" as Comp_GarageS3 #Wheat
-  cloud "Firebase Authentication\n(Google Sign-In OAuth)" as Comp_Firebase #LightGray
+  cloud "Google Identity Platform\n(Google Sign-In OAuth)" as Comp_GoogleAuth #LightGray
   node "Serviço de E-mail Hermes\n(SMTP Mailer / Verificação)" as Comp_SMTP #LightGray
 }
 
@@ -49,10 +49,10 @@ package "Serviços de Persistência e Infraestrutura Externa" #FEF9E7 {
 interface "REST API / JSON\n(HTTPS / Bearer JWT)" as Inter_REST
 interface "S3 API\n(AWS SDK v3 / SigV4)" as Inter_S3
 interface "Wire Protocol\n(MongoDB Driver TCP)" as Inter_Mongo
-interface "Firebase Admin API\n(OAuth SDK)" as Inter_Firebase
+interface "Google OAuth 2.0 API\n(google-auth-library)" as Inter_GoogleAuth
 interface "SMTP / TLS\n(Porta 587 / 465)" as Inter_SMTP
 
-Comp_Dio --( Inter_REST
+Comp_HttpClient --( Inter_REST
 Inter_REST -- Comp_Router
 
 Comp_Repo --( Inter_Mongo
@@ -61,8 +61,8 @@ Inter_Mongo -- Comp_Mongo
 Comp_Sharp --( Inter_S3
 Inter_S3 -- Comp_GarageS3
 
-Comp_Services --( Inter_Firebase
-Inter_Firebase -- Comp_Firebase
+Comp_Services --( Inter_GoogleAuth
+Inter_GoogleAuth -- Comp_GoogleAuth
 
 Comp_Services --( Inter_SMTP
 Inter_SMTP -- Comp_SMTP
