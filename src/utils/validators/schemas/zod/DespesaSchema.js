@@ -1,12 +1,16 @@
 // src/utils/validators/schemas/zod/DespesaSchema.js
 
 import { z } from 'zod';
-import objectIdSchema from './ObjectIdSchema.js';
 import { DateHelper } from '../../../helpers/index.js';
 
 // Schema Base
+const viagemIdSchema = z.string().refine(
+    (val) => /^[0-9a-fA-F]{24}$/.test(val) || /^[0-9a-fA-F-]{36}$/.test(val),
+    { message: "ID da viagem inválido (deve ser UUID ou ObjectId)." }
+);
+
 const baseDespesaSchema = z.object({
-    viagem_id: objectIdSchema,
+    viagem_id: viagemIdSchema,
     data: z.preprocess((arg) => {
         if (!arg) return arg;
         if (arg instanceof Date) return arg;

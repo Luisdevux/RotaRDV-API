@@ -3,15 +3,22 @@
 import Viagem from '../models/Viagem.js';
 import Despesa from '../models/Despesa.js';
 import Usuario from '../models/Usuario.js';
-import Veiculo from '../models/Veiculo.js';
 import { DateHelper } from '../utils/helpers/index.js';
+import ViagemDomainValidator from '../utils/validators/domain/ViagemDomainValidator.js';
+import DespesaDomainValidator from '../utils/validators/domain/DespesaDomainValidator.js';
 
 class SyncService {
     async pushSync(usuarioRef, viagens, despesas) {
         const userId = usuarioRef._id || usuarioRef;
         const usuarioLogado = await Usuario.findById(userId).populate('veiculo_id');
 
-        const results = { viagensUpserted: 0, viagensDeleted: 0, despesasUpserted: 0, despesasDeleted: 0 };
+        const results = {
+            viagensUpserted: 0,
+            viagensDeleted: 0,
+            despesasUpserted: 0,
+            despesasDeleted: 0,
+            rejeitados: []
+        };
 
         if (!usuarioLogado) {
             return results;
@@ -19,6 +26,14 @@ class SyncService {
 
         const veiculoDoc = usuarioLogado.veiculo_id;
 
+        // Mapa de viagens do motorista para validação contextual de despesas e integridade relacional
+        const mapaViagens = new Map();
+        const viagensDoMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }).lean();
+        for (const v of viagensDoMotorista) {
+            mapaViagens.set(String(v._id), v);
+        }
+
+        // 1. Processamento e validação de Viagens
         if (viagens && viagens.length > 0) {
             const bulkViagens = [];
             for (const v of viagens) {
@@ -26,7 +41,20 @@ class SyncService {
                     bulkViagens.push({
                         deleteOne: { filter: { _id: v._id, usuario_id: usuarioLogado._id } }
                     });
+                    mapaViagens.delete(String(v._id));
                 } else {
+                    // Validação de invariantes de domínio da viagem
+                    const validacaoViagem = ViagemDomainValidator.validar(v);
+                    if (!validacaoViagem.valido) {
+                        results.rejeitados.push({
+                            id: v._id,
+                            tipo: 'VIAGEM',
+                            motivo: validacaoViagem.motivo,
+                            campo: validacaoViagem.campo
+                        });
+                        continue; // Rejeitado: não é incluído no lote de escrita do MongoDB
+                    }
+
                     v.usuario_id = usuarioLogado._id;
                     if (usuarioLogado.empresa_id && !v.empresa_id) {
                         v.empresa_id = usuarioLogado.empresa_id;
@@ -65,6 +93,9 @@ class SyncService {
                             upsert: true
                         }
                     });
+
+                    // Disponibiliza a viagem atualizada para as despesas do lote atual
+                    mapaViagens.set(String(v._id), v);
                 }
             }
 
@@ -75,45 +106,63 @@ class SyncService {
             }
         }
 
+        // 2. Processamento e validação de Despesas
         if (despesas && despesas.length > 0) {
-            // Busca todas as viagens que pertencem ao usuário logado na base + viagens do lote atual
-            const viagensDoMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }, '_id');
-            const incomingViagemIds = (viagens || []).filter(v => !v.is_deleted).map(v => String(v._id));
-            const validViagemIds = new Set([
-                ...viagensDoMotorista.map(v => String(v._id)),
-                ...incomingViagemIds
-            ]);
-
             const bulkDespesas = [];
 
             for (const d of despesas) {
-                // Ignora despesas sem viagem ou de viagens que não são deste motorista
-                if (!d.viagem_id || !validViagemIds.has(String(d.viagem_id))) {
+                // Se for exclusão física solicitada pelo cliente
+                if (d.is_deleted) {
+                    if (d.viagem_id && mapaViagens.has(String(d.viagem_id))) {
+                        bulkDespesas.push({
+                            deleteOne: { filter: { _id: d._id, viagem_id: d.viagem_id } }
+                        });
+                    }
                     continue;
                 }
 
-                if (d.is_deleted) {
-                    bulkDespesas.push({
-                        deleteOne: { filter: { _id: d._id, viagem_id: d.viagem_id } }
+                // 2.1 Verifica se a viagem informada pertence a este motorista
+                const viagemVinculada = mapaViagens.get(String(d.viagem_id));
+                if (!d.viagem_id || !viagemVinculada) {
+                    results.rejeitados.push({
+                        id: d._id,
+                        tipo: 'DESPESA',
+                        motivo: 'A viagem associada a esta despesa não existe ou não pertence a este motorista.',
+                        campo: 'viagem_id'
                     });
-                } else {
-                    delete d.is_deleted;
-
-                    // Protege contra sobrescrever uma foto_anexo já enviada caso o sync venha sem a URL
-                    if (!d.foto_anexo) {
-                        delete d.foto_anexo;
-                    }
-
-                    d.updatedAt = new Date();
-
-                    bulkDespesas.push({
-                        updateOne: {
-                            filter: { _id: d._id, viagem_id: d.viagem_id },
-                            update: { $set: d },
-                            upsert: true
-                        }
-                    });
+                    continue;
                 }
+
+                // 2.2 Validação unificada de invariantes de domínio da despesa contra a viagem
+                const validacaoDespesa = DespesaDomainValidator.validar(d, viagemVinculada);
+                if (!validacaoDespesa.valido) {
+                    results.rejeitados.push({
+                        id: d._id,
+                        tipo: 'DESPESA',
+                        motivo: validacaoDespesa.motivo,
+                        campo: validacaoDespesa.campo
+                    });
+                    continue; // Rejeitado: não é incluído no lote de escrita do MongoDB
+                }
+
+                delete d.is_deleted;
+
+                // Protege contra sobrescrever uma foto_anexo já enviada caso o sync venha sem a URL
+                if (!d.foto_anexo) {
+                    delete d.foto_anexo;
+                }
+
+                d.updatedAt = new Date();
+
+                // Despesas são imutáveis após o lançamento (motoristas não possuem permissão de edição).
+                // O $setOnInsert garante a inserção inicial e impede qualquer alteração indevida de dados já persistidos.
+                bulkDespesas.push({
+                    updateOne: {
+                        filter: { _id: d._id, viagem_id: d.viagem_id },
+                        update: { $setOnInsert: d },
+                        upsert: true
+                    }
+                });
             }
 
             if (bulkDespesas.length > 0) {
