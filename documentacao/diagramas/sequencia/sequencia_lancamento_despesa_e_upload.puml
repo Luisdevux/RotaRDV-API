@@ -1,0 +1,110 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title **Diagrama de Sequência UML: Lançamento de Despesa com Polimorfismo e Upload de Comprovante (RotaRDV)**
+
+actor "Motorista Rodoviário" as User #LightGreen
+participant "App Mobile Flutter\n(Câmera & IsarDB)" as Mobile #LightBlue
+participant "API Gateway\n(Express / DespesaController)" as Controller #LightYellow
+participant "DespesaService" as Service #LightCyan
+participant "UploadService" as Upload #LightGray
+participant "Sharp & DOMPurify\n(Optimizer Pipeline)" as Optimizer #Wheat
+participant "Garage S3 Storage\n(Object Storage)" as S3 #PeachPuff
+participant "MongoDB\n(Coleção: despesas)" as Mongo #PeachPuff
+
+== Etapa 1: Registro da Despesa Polimórfica (JSON) ==
+
+User -> Mobile: Preenche Tipo (ex: ABASTECIMENTO), Valor, Data, Litros e KM Atual
+activate Mobile
+
+Mobile -> Mobile: Salva registro no IsarDB local com statusSincronizacao: 'criado'
+Mobile -> Controller: POST /despesas { viagem_id, tipo: 'ABASTECIMENTO', valor_total, litros, km_atual, ... }
+activate Controller
+
+Controller -> Controller: Validar Bearer JWT e DespesaSchema (Zod)
+Controller -> Service: criar(dados, req)
+activate Service
+
+Service -> Mongo: Viagem.findById(viagem_id)
+activate Mongo
+Mongo --> Service: Viagem encontrada
+deactivate Mongo
+
+Service -> Service: Validar Regras de Domínio:\n1. Usuário é o dono da viagem ou gestor da empresa\n2. Viagem está 'em_andamento'\n3. dataDespesa >= viagem.data_inicio\n4. Se ABASTECIMENTO: km_atual >= viagem.km_inicial
+
+Service -> Mongo: DespesaAbastecimento.create(dados) [Instancia Discriminator 'ABASTECIMENTO']
+activate Mongo
+Mongo --> Service: Despesa persistida com UUID v4
+deactivate Mongo
+
+Service --> Controller: Despesa Criada
+deactivate Service
+Controller --> Mobile: HTTP 201 Created { despesa }
+deactivate Controller
+
+Mobile -> Mobile: Atualiza status da despesa para 'sincronizado' no IsarDB
+Mobile --> User: Exibe comprovante pendente de foto
+deactivate Mobile
+
+== Etapa 2: Captura e Upload Desacoplado do Comprovante Físico (Multipart/Form-Data) ==
+
+User -> Mobile: Tira foto da Nota Fiscal / Cupom do Posto
+activate Mobile
+
+Mobile -> Mobile: Salva arquivo físico em /comprovantes/comprovante_{uuid}.jpg
+Mobile -> Controller: POST /despesas/:id/foto (Header: multipart/form-data)
+activate Controller
+
+Controller -> Controller: AuthMiddleware: Validar JWT Bearer
+Controller -> Service: fotoUpload(despesaId, file, req)
+activate Service
+
+Service -> Mongo: Despesa.findById(despesaId)
+activate Mongo
+Mongo --> Service: Despesa
+deactivate Mongo
+
+Service -> Upload: substituirImagem(file, urlAntiga, { width: 1920, quality: 80 })
+activate Upload
+
+Upload -> Upload: Dupla Validação:\n1. Extensão (.jpg, .jpeg, .png, .svg)\n2. MIME Type Real (image/jpeg, etc.)\n3. Tamanho bruto <= 50MB
+
+alt Arquivo Rasterizado (JPEG / PNG)
+    Upload -> Optimizer: sharp(buffer).resize(1920).jpeg({ quality: 80, mozjpeg: true })
+    activate Optimizer
+    Optimizer --> Upload: Buffer de imagem otimizado e comprimido
+    deactivate Optimizer
+else Arquivo Vetorial (SVG)
+    Upload -> Optimizer: DOMPurify.sanitize(svgString) [Remove scripts maliciosos XSS]
+    activate Optimizer
+    Optimizer --> Upload: Buffer SVG sanitizado
+    deactivate Optimizer
+end
+
+Upload -> S3: PutObjectCommand(bucket, fileName, buffer, contentType)
+activate S3
+S3 --> Upload: 200 OK (Objeto armazenado)
+deactivate S3
+
+Upload --> Service: { url: "https://storage.rotardv.com.br/bucket/uuid.jpeg" }
+deactivate Upload
+
+Service -> Mongo: Despesa.updateOne({ _id: despesaId }, { foto_anexo: url })
+activate Mongo
+Mongo --> Service: OK
+deactivate Mongo
+
+Service --> Controller: { url }
+deactivate Service
+Controller --> Mobile: HTTP 200 OK { foto_anexo: url }
+deactivate Controller
+
+Mobile -> Mobile: Atualiza fotoAnexoUrl no IsarDB e zera pendência local
+Mobile --> User: Exibe miniatura do comprovante anexado com sucesso
+deactivate Mobile
+
+@enduml

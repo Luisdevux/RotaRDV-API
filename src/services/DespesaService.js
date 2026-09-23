@@ -6,6 +6,8 @@ import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import UploadService from './UploadService.js';
 import { CustomError, HttpStatusCodes, ValidationHelper } from '../utils/helpers/index.js';
 
+import DespesaDomainValidator from '../utils/validators/domain/DespesaDomainValidator.js';
+
 class DespesaService {
     constructor() {
         this.repository = new DespesaRepository();
@@ -36,41 +38,16 @@ class DespesaService {
             });
         }
 
-        // 3. Viagem precisa estar em andamento
-        if (viagem.status !== 'em_andamento') {
+        // 3. Validação unificada de validações de domínio
+        const validacao = DespesaDomainValidator.validar(dados, viagem);
+        if (!validacao.valido) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validation',
-                field: 'status',
+                field: validacao.campo || 'despesa',
                 details: [],
-                customMessage: `Não é possível lançar despesas. A viagem está ${viagem.status}.`
+                customMessage: validacao.motivo
             });
-        }
-
-        // 4. Data da despesa (não pode ser antes do início da viagem)
-        const dataDespesa = new Date(dados.data);
-        const dataInicioViagem = new Date(viagem.data_inicio);
-        if (dataDespesa < dataInicioViagem) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validation',
-                field: 'data',
-                details: [],
-                customMessage: 'A data da despesa não pode ser anterior à data de início da viagem.'
-            });
-        }
-
-        // 5. Checagem de Abastecimento Odômetro (KM)
-        if (dados.tipo === 'ABASTECIMENTO') {
-            if (dados.km_atual < viagem.km_inicial) {
-                throw new CustomError({
-                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                    errorType: 'validation',
-                    field: 'km_atual',
-                    details: [],
-                    customMessage: `O KM de abastecimento (${dados.km_atual}) não pode ser menor que o KM inicial da viagem (${viagem.km_inicial}).`
-                });
-            }
         }
 
         return await this.repository.criar(dados);

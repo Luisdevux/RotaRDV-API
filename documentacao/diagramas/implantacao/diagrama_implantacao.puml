@@ -1,0 +1,76 @@
+@startuml
+!theme plain
+skinparam nodeStyle rectangle
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+
+title **Diagrama de Implantação UML: Arquitetura Física e Infraestrutura Cloud Native (K3s / OCI / Cloudflare)**
+
+node "Dispositivo Móvel do Condutor\n<<device>> Smartphone (Android / iOS)" as Node_Mobile #E8F8F5 {
+  artifact "rotardv_mobile.apk\n<<artifact / Flutter App>>" as Art_App
+  node "Armazenamento Local Embarcado" as Node_LocalStorage {
+    database "Isar NoSQL Database\n<<Embedded Engine C++ / Rust>>" as Node_IsarDB
+    folder "Armazenamento de Imagens\n(/comprovantes/*.jpg)" as Folder_Fotos
+  }
+  Art_App ..> Node_IsarDB : leitura e gravação instantânea
+  Art_App ..> Folder_Fotos : salva fotos comprimidas
+}
+
+cloud "Borda Global Cloudflare\n<<cloud / Edge Network>>" as Cloud_Cloudflare #FDEBD0 {
+  node "Cloudflare Edge Services\n(WAF, DDoS Mitigation, DNS Anycast)" as Node_CFEdge
+}
+
+node "Oracle Cloud Infrastructure (OCI) - Região São Paulo / Vinhedo\n<<server / VM ARM64 Ampere Altra (4 OCPU, 24 GB RAM)>>" as Node_OCI #EBF5FB {
+  node "Sistema Operacional: Ubuntu 22.04 LTS\n<<OS / Linux aarch64>>" as Node_OS {
+    
+    node "Cluster Kubernetes Leve (K3s)\n<<runtime / Container Orchestration>>" as Node_K3s {
+      
+      node "Namespace: kube-system" as NS_KubeSystem #E8EAED {
+        node "Pod: cloudflared\n<<daemon / Cloudflare Tunnel>>" as Pod_Tunnel
+        node "Pod: traefik\n<<service / Ingress Controller v2>>" as Pod_Traefik
+        node "Pod: oracle-keepalive\n<<daemon / Resource Keep-Alive>>" as Pod_Keepalive
+      }
+
+      node "Namespace: rotardv-prod" as NS_Prod #E8F8F5 {
+        node "Pod: rotardv-api (Node.js 22)\n<<container / Express 5.2 (Porta 5040)>>" as Pod_Api {
+          artifact "src/server.js\n<<REST API + SyncEngine>>" as Art_Api
+        }
+        node "StatefulSet: mongodb-0\n<<container / MongoDB 7.0 (Porta 27017)>>" as Pod_Mongo
+        storage "Volume Persistente (PVC)\n<<local-path / 20 GB SSD>>" as PVC_Mongo
+        Pod_Mongo --> PVC_Mongo : persiste dados
+      }
+
+      node "Namespace: tools" as NS_Tools #FEF9E7 {
+        node "Pod: gitlab-runner-rotardv\n<<executor / K8s Runner>>" as Pod_Runner
+        node "Pod: vmcontrol\n<<container / Node.js 20 (Porta 3000)>>" as Pod_VmControl
+      }
+    }
+  }
+}
+
+node "Infraestrutura de Armazenamento Institucional\n<<server / Storage Cluster FSLab>>" as Node_StorageServer #Wheat {
+  node "Garage Cloud S3 Daemon\n<<service / s3.fslab.dev (Porta 443)>>" as Node_Garage {
+    storage "Bucket: rota-rdv\n(Comprovantes e Fotos em Nuvem)" as Storage_Bucket
+  }
+}
+
+cloud "Google Identity Platform\n<<cloud>>" as Cloud_Google #LightGray {
+  node "Google OAuth 2.0\n(Token Verification)" as Node_GoogleAuth
+}
+
+' Fluxo de Rede e Comunicações
+Art_App --> Node_CFEdge : "HTTPS / REST JSON\n(rotardv-api.luisfelipe.dpdns.org)"
+
+Node_CFEdge <--> Pod_Tunnel : "Cloudflare Tunnel Protocol\n(Conexão Outbound Criptografada / Sem portas abertas na OCI)"
+Pod_Tunnel --> Pod_Traefik : "Repassa tráfego interno\n(HTTP / Porta 80)"
+
+Pod_Traefik --> Pod_Api : "Roteia rotardv-api\n(Service rotardv-api-service)"
+
+Pod_Api --> Pod_Mongo : "MongoDB Wire Protocol\n(mongodb-rotardv:27017)"
+Pod_Api --> Node_Garage : "Upload S3 SigV4 com TLS\n(s3.fslab.dev:443)"
+Pod_Api --> Node_GoogleAuth : "Valida idToken OAuth 2.0\n(HTTPS)"
+
+Pod_Runner ..> Pod_Api : "Executa rolling updates em pipelines CI/CD\n(kubectl apply)"
+
+@enduml

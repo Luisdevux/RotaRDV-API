@@ -1,0 +1,53 @@
+flowchart TB
+    subgraph MobileDevice["Dispositivo Móvel do Condutor (Android / iOS)"]
+        FlutterApp["rotardv_mobile.apk (Flutter App)"]
+        IsarDB[("Isar NoSQL Database (Local)")]
+        PhotosDir["Armazenamento Local (/comprovantes/*.jpg)"]
+
+        FlutterApp --> IsarDB
+        FlutterApp --> PhotosDir
+    end
+
+    subgraph CFEdge["Borda Global Cloudflare"]
+        EdgeServices["Cloudflare Edge (WAF, DDoS, DNS Anycast)"]
+    end
+
+    subgraph OCI["Oracle Cloud Infrastructure (OCI) - ARM64 Ubuntu 22.04 LTS"]
+        subgraph K3sCluster["Cluster Kubernetes Leve (K3s)"]
+            subgraph NS_KubeSystem["Namespace: kube-system"]
+                Tunnel["Pod: cloudflared (Cloudflare Tunnel)"]
+                Traefik["Pod: traefik (Ingress Controller v2)"]
+            end
+
+            subgraph NS_Prod["Namespace: rotardv-prod"]
+                ExpressApp["Pod: rotardv-api (Node.js 22 / Express 5.2 - Porta 5040)"]
+                MongoDB[("StatefulSet: mongodb-0 (MongoDB 7.0 - Porta 27017)")]
+                PVC["Volume Persistente (PVC local-path 20GB SSD)"]
+                MongoDB --- PVC
+            end
+
+            subgraph NS_Tools["Namespace: tools"]
+                Runner["Pod: gitlab-runner-rotardv"]
+                VmControl["Pod: vmcontrol (Monitoramento)"]
+            end
+        end
+    end
+
+    subgraph StorageServer["Infraestrutura de Armazenamento Institucional"]
+        GarageS3["Garage Cloud S3 (s3.fslab.dev:443)"]
+        S3Bucket[("Bucket: rota-rdv (Comprovantes)")]
+        GarageS3 --- S3Bucket
+    end
+
+    subgraph IdentityCloud["Google Identity Platform"]
+        GoogleAuth["Google OAuth 2.0 (Token Verification)"]
+    end
+
+    FlutterApp -- "HTTPS / REST (rotardv-api.luisfelipe.dpdns.org)" --> EdgeServices
+    EdgeServices <--> "Cloudflare Tunnel Protocol (Outbound)" <--> Tunnel
+    Tunnel -- "HTTP / Porta 80" --> Traefik
+    Traefik -- "ClusterIP / Porta 5040" --> ExpressApp
+    ExpressApp -- "MongoDB Wire Protocol (Porta 27017)" --> MongoDB
+    ExpressApp -- "Upload S3 SigV4 com TLS (Porta 443)" --> GarageS3
+    ExpressApp -- "Valida idToken OAuth 2.0" --> GoogleAuth
+    Runner -. "kubectl apply (CI/CD)" .-> ExpressApp

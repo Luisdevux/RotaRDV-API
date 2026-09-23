@@ -1,0 +1,229 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam roundCorner 10
+skinparam shadowing false
+skinparam linetype ortho
+
+title **Diagrama de Classes de Domínio - Plataforma RotaRDV (Modelos & Entidades)**
+
+enum RoleUsuario {
+  superAdmin
+  admin
+  gestor
+  motorista
+}
+
+enum StatusUsuario {
+  ativo
+  inativo
+}
+
+enum StatusViagem {
+  em_andamento
+  concluída
+  cancelada
+}
+
+enum TipoCombustivel {
+  DIESEL_S10
+  DIESEL_S500
+  GASOLINA
+  ETANOL
+  ARLA_32
+  OUTRO
+}
+
+enum TipoDespesa {
+  ABASTECIMENTO
+  ALIMENTACAO
+  MANUTENCAO
+  PEDAGIO
+  OUTROS
+}
+
+class Endereco <<(E,#FFAAAA) Embedded>> {
+  +cep: String
+  +logradouro: String
+  +numero: String
+  +complemento: String
+  +bairro: String
+  +cidade: String
+  +estado: String
+}
+
+class Reboque <<(R,#FFAAAA) Embedded>> {
+  +modelo: String
+  +placas: List<String>
+  +ano_fabricacao: Number
+}
+
+class EmpresaVínculo <<(V,#FFAAAA) Embedded>> {
+  +nome: String
+  +cargo: String
+}
+
+class UsuarioSnapshot <<(S,#FFAAAA) Embedded Snapshot>> {
+  +nome: String
+  +email: String
+}
+
+class VeiculoSnapshot <<(S,#FFAAAA) Embedded Snapshot>> {
+  +placa: String
+  +modelo: String
+  +reboque: Reboque
+}
+
+class Empresa {
+  +_id: ObjectId
+  +nome_empresa: String
+  +cnpj: String
+  +email: String
+  +telefone: String
+  +endereco: Endereco
+  +status: String
+  +foto_logo: String
+  +gestor_id: ObjectId
+  +createdAt: Date
+  +updatedAt: Date
+  --
+  +validarCnpj(): Boolean
+}
+
+class Usuario {
+  +_id: ObjectId
+  +nome: String
+  +email: String
+  +senha: String [select: false]
+  +googleId: String
+  +authProvider: String
+  +cpf: String
+  +cnh: String
+  +telefone: String
+  +status: StatusUsuario
+  +isAdmin: Boolean
+  +role: RoleUsuario
+  +foto_perfil: String
+  +empresa_id: ObjectId
+  +empresa: EmpresaVínculo
+  +veiculo_id: ObjectId
+  +email_verificado: Boolean
+  +createdAt: Date
+  +updatedAt: Date
+  --
+  +compararSenha(senhaInformada): Boolean
+}
+
+class Veiculo {
+  +_id: ObjectId
+  +modelo: String
+  +placa: String
+  +combustivel_preferencial: TipoCombustivel
+  +status: String
+  +capacidade_tanque: Number
+  +ano_fabricacao: Number
+  +reboque: Reboque
+  +empresa_id: ObjectId
+  +createdAt: Date
+  +updatedAt: Date
+  --
+  +validarPlaca(): Boolean
+}
+
+class Viagem {
+  +_id: String <<UUID v4>>
+  +usuario_id: ObjectId
+  +empresa_id: ObjectId
+  +usuario_snapshot: UsuarioSnapshot
+  +veiculo_id: ObjectId
+  +veiculo_snapshot: VeiculoSnapshot
+  +origem: Localidade
+  +destino: Localidade
+  +data_inicio: Date
+  +data_fim: Date
+  +km_inicial: Number
+  +km_final: Number
+  +descricao: String
+  +status: StatusViagem
+  +createdAt: Date
+  +updatedAt: Date
+  --
+  +calcularDistanciaTotal(): Number
+  +estaEmAndamento(): Boolean
+}
+
+class Localidade <<(L,#FFAAAA) Embedded>> {
+  +cidade: String
+  +estado: String
+}
+
+abstract class Despesa <<(M, #FFDD88) Base Mongoose Document>> {
+  +_id: String <<UUID v4>>
+  +viagem_id: String
+  +tipo: TipoDespesa
+  +valor_total: Number
+  +data: Date
+  +local: String
+  +descricao: String
+  +foto_anexo: String
+  +createdAt: Date
+  +updatedAt: Date
+  --
+  +validarDataCompativel(dataViagem): Boolean
+}
+
+class DespesaAbastecimento {
+  +litros: Number
+  +valor_litro: Number
+  +tipo_combustivel: TipoCombustivel
+  +km_atual: Number
+  --
+  +validarKmMinimo(kmInicialViagem): Boolean
+  +calcularPrecoTotal(): Number
+}
+
+class DespesaAlimentacao {
+  +tipo_refeicao: String
+}
+
+class DespesaManutencao {
+  +oficina_nome: String
+}
+
+class DespesaPedagio {
+  +praca_nome: String
+}
+
+class DespesaOutros {
+  // Mantém atributos da classe base
+}
+
+' Relacionamentos Estruturais
+Empresa "1" *-- "1" Endereco : possui
+Empresa "1" o-- "0..1" Usuario : gestor_responsavel
+Empresa "1" <-- "0..*" Usuario : vinculada_a
+Empresa "1" <-- "0..*" Veiculo : pertence_a
+Empresa "1" <-- "0..*" Viagem : tenant_viagem
+
+Veiculo "1" *-- "0..1" Reboque : carreta_conjunto
+Usuario "1" o-- "0..1" Veiculo : veiculo_padrao
+Usuario "1" *-- "0..1" EmpresaVínculo : detalhes_cargo
+
+Viagem "1" *-- "1" UsuarioSnapshot : congela_snapshot
+Viagem "1" *-- "1" VeiculoSnapshot : congela_snapshot
+Viagem "1" *-- "1" Localidade : origem
+Viagem "1" *-- "1" Localidade : destino
+Viagem "0..*" --> "1" Usuario : motorista_executor
+Viagem "0..*" --> "1" Veiculo : caminhao_utilizado
+
+Despesa "0..*" --> "1" Viagem : pertence_a
+
+' Polimorfismo / Mongoose Discriminators
+Despesa <|-- DespesaAbastecimento : <<discriminator>> "ABASTECIMENTO"
+Despesa <|-- DespesaAlimentacao : <<discriminator>> "ALIMENTACAO"
+Despesa <|-- DespesaManutencao : <<discriminator>> "MANUTENCAO"
+Despesa <|-- DespesaPedagio : <<discriminator>> "PEDAGIO"
+Despesa <|-- DespesaOutros : <<discriminator>> "OUTROS"
+
+@enduml

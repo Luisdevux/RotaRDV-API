@@ -1,0 +1,135 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title **Diagrama de Sequência UML: Ciclo de Vida da Viagem Rodoviária (Abertura, Snapshots e Encerramento Dinâmico)**
+
+actor "Motorista Rodoviário" as User #LightGreen
+participant "App Mobile Flutter\n(IsarDB Local)" as Mobile #LightBlue
+participant "API Gateway\n(Express / ViagemController)" as Controller #LightYellow
+participant "ViagemService" as Service #LightCyan
+participant "ViagemRepository" as ViagemRepo #Wheat
+participant "VeiculoRepository" as VeiculoRepo #Wheat
+participant "MongoDB Server\n(viagens / veiculos / despesas)" as Mongo #PeachPuff
+
+== Fase 1: Abertura de Viagem Rodoviária com Snapshots Imutáveis ==
+
+User -> Mobile: Informa Origem, Destino e KM Inicial (ex: 120.500 km)
+activate Mobile
+
+Mobile -> Mobile: Gera UUID v4 e salva no IsarDB local (status: 'em_andamento')
+Mobile -> Controller: POST /viagens { origem, destino, km_inicial, veiculo_id }
+activate Controller
+
+Controller -> Controller: Validar Bearer JWT e ViagemSchema (Zod)
+Controller -> Service: criar(dados, req)
+activate Service
+
+Service -> ViagemRepo: buscarViagemAtivaDoMotorista(motoristaId)
+activate ViagemRepo
+ViagemRepo -> Mongo: findOne({ usuario_id: motoristaId, status: 'em_andamento' })
+activate Mongo
+Mongo --> ViagemRepo: null (Nenhuma viagem ativa)
+deactivate Mongo
+ViagemRepo --> Service: null
+deactivate ViagemRepo
+
+Service -> ViagemRepo: buscarViagemAtivaDoVeiculo(veiculoId)
+activate ViagemRepo
+ViagemRepo -> Mongo: findOne({ veiculo_id: veiculoId, status: 'em_andamento' })
+activate Mongo
+Mongo --> ViagemRepo: null (Veículo livre)
+deactivate Mongo
+ViagemRepo --> Service: null
+deactivate ViagemRepo
+
+Service -> ViagemRepo: buscarUltimaKmDoVeiculo(veiculoId)
+activate ViagemRepo
+ViagemRepo -> Mongo: find({ veiculo_id }).sort({ km_final: -1, km_inicial: -1 }).limit(1)
+activate Mongo
+Mongo --> ViagemRepo: Último registro (ex: 120.450 km)
+deactivate Mongo
+ViagemRepo --> Service: 120.450 km
+deactivate ViagemRepo
+
+Service -> Service: Validar se km_inicial (120.500) >= ultimaKm (120.450)\n[OK: Odômetro não retrocedeu]
+
+Service -> Service: Capturar dados cadastrais e gerar Snapshots Imutáveis:\n- usuario_snapshot: { nome, email }\n- veiculo_snapshot: { placa, modelo, reboque: { modelo, placas } }
+
+Service -> ViagemRepo: criar(viagemComSnapshots)
+activate ViagemRepo
+ViagemRepo -> Mongo: insertOne({ _id: uuid, usuario_snapshot, veiculo_snapshot, status: 'em_andamento', ... })
+activate Mongo
+Mongo --> ViagemRepo: Viagem persistida com sucesso
+deactivate Mongo
+ViagemRepo --> Service: Documento da Viagem
+deactivate ViagemRepo
+
+Service --> Controller: Viagem Criada
+deactivate Service
+Controller --> Mobile: HTTP 201 Created { viagem }
+deactivate Controller
+
+Mobile -> Mobile: Marca viagem como 'sincronizado' no IsarDB
+Mobile --> User: Exibe Cockpit de Viagem Ativa ("Viagem Iniciada com Sucesso")
+deactivate Mobile
+
+== Fase 2: Execução da Viagem (Lançamento de Despesas em Trânsito) ==
+note over User, Mongo
+  Durante o trânsito, o condutor registra paradas,
+  abastecimentos, refeições e pedágios vinculados ao UUID da viagem.
+end note
+
+== Fase 3: Encerramento de Viagem e Auditoria Financeira Dinâmica ==
+
+User -> Mobile: Toca em "Encerrar Viagem" e informa KM Final (ex: 121.300 km)
+activate Mobile
+
+Mobile -> Controller: PATCH /viagens/:id { km_final: 121300, status: 'concluída' }
+activate Controller
+
+Controller -> Controller: Validar JWT e Schema de Atualização (Zod)
+Controller -> Service: atualizar(viagemId, { km_final: 121300, status: 'concluída' }, req)
+activate Service
+
+Service -> ViagemRepo: buscarPorID(viagemId)
+activate ViagemRepo
+ViagemRepo -> Mongo: findById(viagemId)
+activate Mongo
+Mongo --> ViagemRepo: Documento Viagem
+deactivate Mongo
+ViagemRepo --> Service: Viagem
+deactivate ViagemRepo
+
+Service -> Service: Validar se km_final (121.300) > km_inicial (120.500)\n[OK: Distância percorrida = 800 km]
+
+Service -> Service: Executar pipeline dinâmico _calcularResumoFinanceiro(viagemId)
+Service -> Mongo: Despesa.aggregate([\n  { $match: { viagem_id: viagemId } },\n  { $group: { _id: "$tipo", total: { $sum: "$valor_total" }, litros: { $sum: "$litros" } } }\n])
+activate Mongo
+Mongo --> Service: Resultados agregados (Total Despesas, Total Litros, etc.)
+deactivate Mongo
+
+Service -> Service: Calcular Indicadores Operacionais:\n- km_total_rodado = 800 km\n- consumo_medio = 800 km / litros_diesel\n- custo_medio_km = total_despesas / 800 km
+
+Service -> ViagemRepo: atualizar(viagemId, { status: 'concluída', km_final: 121300, data_fim, resumo_financeiro })
+activate ViagemRepo
+ViagemRepo -> Mongo: updateOne({ _id: viagemId }, { $set: { status: 'concluída', ... } })
+activate Mongo
+Mongo --> ViagemRepo: OK
+deactivate Mongo
+ViagemRepo --> Service: Viagem Finalizada
+deactivate ViagemRepo
+
+Service --> Controller: Viagem Concluída com Auditoria
+deactivate Service
+Controller --> Mobile: HTTP 200 OK { viagem, resumo_financeiro }
+deactivate Controller
+
+Mobile -> Mobile: Atualiza status para 'concluída' no IsarDB local
+Mobile --> User: Exibe Resumo Consolidado (Km rodados, consumo km/l e balanço)
+deactivate Mobile
+
+@enduml

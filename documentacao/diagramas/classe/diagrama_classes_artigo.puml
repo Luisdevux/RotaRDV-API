@@ -1,0 +1,85 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam linetype ortho
+
+title **Figura 2 - Diagrama de Classes Focado: Modelagem de Viagens e Despesas Polimórficas (RotaRDV)**
+
+enum StatusViagem {
+  em_andamento
+  concluída
+  cancelada
+}
+
+enum TipoCombustivel {
+  DIESEL_S10
+  DIESEL_S500
+  GASOLINA
+  ETANOL
+  ARLA_32
+  OUTRO
+}
+
+class Viagem {
+  +_id: String <<UUID v4>>
+  +usuario_id: ObjectId
+  +empresa_id: ObjectId
+  +veiculo_id: ObjectId
+  +origem: { cidade: String, estado: String }
+  +destino: { cidade: String, estado: String }
+  +usuario_snapshot: { nome: String, email: String }
+  +veiculo_snapshot: { placa: String, modelo: String, reboque: Object }
+  +data_inicio: Date
+  +data_fim: Date
+  +km_inicial: Number
+  +km_final: Number
+  +descricao: String
+  +status: StatusViagem
+}
+
+abstract class Despesa <<Base Schema>> {
+  +_id: String <<UUID v4>>
+  +viagem_id: String <<UUID v4>>
+  +tipo: String
+  +valor_total: Number
+  +data: Date
+  +local: String
+  +descricao: String
+  +foto_anexo: String
+}
+
+class DespesaAbastecimento <<Discriminator>> {
+  +litros: Number
+  +valor_litro: Number
+  +tipo_combustivel: TipoCombustivel
+  +km_atual: Number
+}
+
+class DespesaAlimentacao <<Discriminator>> {
+  +tipo_refeicao: String
+}
+
+class DespesaManutencao <<Discriminator>> {
+  +oficina_nome: String
+}
+
+class DespesaPedagio <<Discriminator>> {
+  +praca_nome: String
+}
+
+class DespesaOutros <<Discriminator>> {
+  // Reutiliza atributos da classe base
+}
+
+Viagem "1" *-- "0..*" Despesa : agrega lançamentos
+
+Despesa <|-- DespesaAbastecimento : "ABASTECIMENTO"
+Despesa <|-- DespesaAlimentacao : "ALIMENTACAO"
+Despesa <|-- DespesaManutencao : "MANUTENCAO"
+Despesa <|-- DespesaPedagio : "PEDAGIO"
+Despesa <|-- DespesaOutros : "OUTROS"
+
+@enduml

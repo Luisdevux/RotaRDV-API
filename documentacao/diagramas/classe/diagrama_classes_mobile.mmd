@@ -1,0 +1,106 @@
+classDiagram
+    direction TB
+
+    class LocalDatabase {
+        +init() Future~Isar~
+        +instance Isar
+    }
+
+    class ViagemCollection {
+        +Id id
+        +String uuid
+        +String origemCidade
+        +String origemEstado
+        +String destinoCidade
+        +String destinoEstado
+        +double kmInicial
+        +double kmFinal
+        +DateTime dataInicio
+        +DateTime dataFim
+        +String status
+        +String statusSincronizacao
+        +estaSincronizado() bool
+        +estaEmAndamento() bool
+    }
+
+    class DespesaCollection {
+        +Id id
+        +String uuid
+        +String viagemId
+        +String tipo
+        +double valorTotal
+        +DateTime data
+        +String local
+        +String descricao
+        +String fotoAnexoLocalPath
+        +String fotoAnexoUrl
+        +bool fotoTiradaNoApp
+        +double litros
+        +double valorLitro
+        +String tipoCombustivel
+        +double kmAtual
+        +String statusSincronizacao
+        +temFotoPendente() bool
+        +isAbastecimento() bool
+    }
+
+    class ApiClient {
+        -Client client
+        +get(path, queryParameters)
+        +post(path, data)
+        +uploadMultipart(path, filePath)
+    }
+
+    class SyncService {
+        -bool isSyncing
+        +ValueNotifier~int~ syncEventNotifier
+        +initConnectivityListener()
+        +syncAll(maxRetries) Future~bool~
+        -_pushSync() Future~bool~
+        -_pullSync() Future~bool~
+        -_uploadPendingPhotos() Future~void~
+        +obterResumoPendencias() Future~PendingSyncSummary~
+    }
+
+    class PendingSyncSummary {
+        +int viagensPendentes
+        +int despesasPendentes
+        +int fotosPendentes
+        +int totalPendencias
+        +bool hasPending
+    }
+
+    class StorageCleanerService {
+        +limparComprovantesAntigosLocais(dias) Future~int~
+    }
+
+    class ViagemController {
+        +ValueNotifier viagens
+        +ValueNotifier viagemAtiva
+        +carregarViagens()
+        +iniciarViagem(origem, destino, kmInicial)
+        +encerrarViagem(viagemId, kmFinal)
+    }
+
+    class DespesaController {
+        +ValueNotifier despesas
+        +carregarDespesasDaViagem(viagemUuid)
+        +salvarDespesa(despesa, fotoPath)
+        +deletarDespesa(despesaUuid)
+    }
+
+    %% Relacionamentos
+    LocalDatabase ..> ViagemCollection : armazena
+    LocalDatabase ..> DespesaCollection : armazena
+
+    ViagemController --> LocalDatabase : gerencia
+    ViagemController --> SyncService : notifica
+    DespesaController --> LocalDatabase : gerencia
+    DespesaController --> SyncService : notifica
+
+    SyncService --> ApiClient : sincroniza
+    SyncService --> LocalDatabase : atualiza_status
+    SyncService --> StorageCleanerService : executa_exclusao
+    SyncService ..> PendingSyncSummary : emite
+
+    DespesaCollection --> ViagemCollection : viagemId

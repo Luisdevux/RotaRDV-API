@@ -1,0 +1,98 @@
+flowchart LR
+    %% Atores
+    subgraph Atores["Atores do Sistema"]
+        Motorista["fa:fa-truck Motorista Rodoviário"]
+        Gestor["fa:fa-user-tie Gestor de Frota"]
+        SuperAdmin["fa:fa-shield-halved Super Administrador"]
+        Firebase["fa:fa-google Google/Firebase OAuth"]
+        Hermes["fa:fa-envelope Hermes Mailer (SMTP)"]
+        GarageS3["fa:fa-cloud Garage S3 Storage"]
+        SyncEngine["fa:fa-rotate Sync Engine (Mobile)"]
+    end
+
+    %% Casos de Uso
+    subgraph Sistema["Fronteira da Plataforma RotaRDV"]
+        UC01(["UC-01: Autenticar no Sistema"]):::uc
+        UC01_Local(["Autenticar Localmente"]):::subuc
+        UC01_Google(["Autenticar Google OAuth"]):::subuc
+        UC01_Refresh(["Renovar Token JWT"]):::subuc
+
+        UC02(["UC-02: Registrar e Ativar Conta"]):::uc
+        UC03(["UC-03: Recuperar Senha"]):::uc
+
+        UC04(["UC-04: Iniciar Viagem Rodoviária"]):::uc
+        UC04_Snapshots(["Congelar Snapshots Condutor/Veículo"]):::subuc
+        UC04_Trava(["Validar Ausência de Viagem Ativa"]):::subuc
+
+        UC05(["UC-05: Lançar Despesa de Viagem"]):::uc
+        UC05_Abast(["Lançar Abastecimento"]):::subuc
+        UC05_Alim(["Lançar Alimentação"]):::subuc
+        UC05_Manut(["Lançar Manutenção"]):::subuc
+        UC05_Pedagio(["Lançar Pedágio"]):::subuc
+
+        UC06(["UC-06: Anexar Comprovante Fiscal"]):::uc
+        UC06_Sharp(["Otimizar Foto Sharp / Clean SVG"]):::subuc
+
+        UC07(["UC-07: Sincronizar Offline-First"]):::uc
+        UC07_Push(["Push Sync em Lote (bulkWrite)"]):::subuc
+        UC07_Pull(["Pull Sync Delta (updatedAfter)"]):::subuc
+
+        UC08(["UC-08: Encerrar Viagem e Calcular Resumo"]):::uc
+        UC08_Agg(["Calcular Resumo ($aggregate)"]):::subuc
+
+        UC09(["UC-09: Gerenciar Transportadoras Multi-Tenant"]):::uc
+        UC09_Cnpj(["Validar CNPJ IN RFB 2.229/2024"]):::subuc
+
+        UC10(["UC-10: Gerenciar Frota e Alocar Motoristas"]):::uc
+        UC11(["UC-11: Visualizar Resumo Financeiro e Auditoria"]):::uc
+        UC12(["UC-12: Excluir Fotos Locais Antigas (> 15 dias)"]):::uc
+    end
+
+    %% Ligações de Atores
+    Motorista --> UC01
+    Motorista --> UC02
+    Motorista --> UC03
+    Motorista --> UC04
+    Motorista --> UC05
+    Motorista --> UC06
+    Motorista --> UC08
+
+    Gestor --> UC01
+    Gestor --> UC10
+    Gestor --> UC11
+
+    SuperAdmin --> UC01
+    SuperAdmin --> UC09
+    SuperAdmin --> UC11
+
+    SyncEngine --> UC07
+    SyncEngine --> UC12
+
+    UC01_Google -.-> Firebase
+    UC02 -.-> Hermes
+    UC06 -.-> GarageS3
+
+    %% Includes & Extends
+    UC01 -. extend .-> UC01_Local
+    UC01 -. extend .-> UC01_Google
+    UC01 -. extend .-> UC01_Refresh
+
+    UC04 -. include .-> UC04_Trava
+    UC04 -. include .-> UC04_Snapshots
+
+    UC05 -. include .-> UC05_Abast
+    UC05 -. include .-> UC05_Alim
+    UC05 -. include .-> UC05_Manut
+    UC05 -. include .-> UC05_Pedagio
+
+    UC05 -. extend .-> UC06
+    UC06 -. include .-> UC06_Sharp
+
+    UC07 -. include .-> UC07_Push
+    UC07 -. include .-> UC07_Pull
+
+    UC08 -. include .-> UC08_Agg
+    UC09 -. include .-> UC09_Cnpj
+
+    classDef uc fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+    classDef subuc fill:#f1f8e9,stroke:#689f38,stroke-width:1.5px,color:#33691e;

@@ -1,0 +1,49 @@
+sequenceDiagram
+    autonumber
+    participant Net as Connectivity Event (Flutter)
+    participant Sync as SyncService (Mobile)
+    participant Isar as Isar Database (Local)
+    participant API as SyncController (API)
+    participant Service as SyncService (Backend)
+    participant DB as MongoDB (bulkWrite)
+    participant Cleaner as StorageCleanerService
+
+    Net->>Sync: Conexão detectada (Wi-Fi/4G)
+    Note over Sync: Aguarda 1s de estabilização
+    Sync->>Sync: syncAll() [Inicia ciclo]
+
+    Note over Sync, DB: Fase 1: Push Sync em Lote
+    Sync->>Isar: Coleta pendências (status != sincronizado)
+    Isar-->>Sync: Viagens e despesas locais
+    Sync->>API: POST /sync/push { viagens, despesas }
+    API->>Service: pushSync(usuario, viagens, despesas)
+    Service->>DB: Viagem.bulkWrite({ ordered: false })
+    Service->>DB: Despesa.collection.bulkWrite({ ordered: false })
+    DB-->>Service: Contadores de sucesso
+    Service-->>API: Estatísticas do lote
+    API-->>Sync: HTTP 200 OK
+    Sync->>Isar: Exclui deletados e marca restantes como sincronizado
+
+    Note over Sync, API: Fase 2: Upload Desacoplado de Comprovantes
+    loop Para cada foto pendente
+        Sync->>Sync: resolverOuRecuperarFotoLocal(uuid)
+        Sync->>API: POST /despesas/:id/foto (multipart)
+        API-->>Sync: HTTP 200 OK { url }
+        Sync->>Isar: Salva URL remota e zera flag
+    end
+
+    Note over Sync, DB: Fase 3: Pull Sync Incremental (Delta)
+    Sync->>API: GET /sync/pull?updatedAfter=timestamp
+    API->>Service: pullSync(usuario, updatedAfter)
+    Service->>DB: find({ updatedAt > updatedAfter })
+    DB-->>Service: Registros atualizados na nuvem
+    Service-->>API: { viagens, despesas, veiculo }
+    API-->>Sync: HTTP 200 OK
+    Sync->>Isar: Upsert local dos dados recebidos
+    Sync->>Sync: Atualiza last_sync_timestamp
+
+    Note over Sync, Cleaner: Fase 4: Exclusão de Fotos Locais Antigas (> 15 dias)
+    Sync->>Cleaner: limparComprovantesAntigosLocais(15)
+    Cleaner->>Cleaner: Deleta arquivos locais de fotos já seguras na nuvem
+    Cleaner-->>Sync: Espaço liberado em disco
+    Sync->>Sync: Notifica UI via syncEventNotifier

@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+    actor User as Motorista Rodoviário
+    participant Mobile as App Mobile (IsarDB)
+    participant Controller as DespesaController (API)
+    participant Service as DespesaService
+    participant Upload as UploadService (Sharp & S3)
+    participant S3 as Garage S3 Storage
+    participant DB as MongoDB (despesas)
+
+    Note over User, DB: Etapa 1: Persistência do JSON Polimórfico (Discriminator)
+    User->>Mobile: Preenche despesa (ex: Abastecimento, R$ 1.850, 300L)
+    Mobile->>Mobile: Salva localmente no IsarDB
+    Mobile->>Controller: POST /despesas { viagem_id, tipo: 'ABASTECIMENTO', ... }
+    Controller->>Service: criar(dados, req)
+    Service->>DB: Viagem.findById(viagem_id)
+    DB-->>Service: Viagem em_andamento
+    Service->>Service: Valida data >= data_inicio e km_atual >= km_inicial
+    Service->>DB: Despesa.create(dados com Discriminator)
+    DB-->>Service: Documento criado
+    Service-->>Controller: Despesa Criada
+    Controller-->>Mobile: HTTP 201 Created { despesa }
+
+    Note over User, DB: Etapa 2: Captura, Otimização e Upload do Comprovante Físico
+    User->>Mobile: Tira foto da nota do posto
+    Mobile->>Controller: POST /despesas/:id/foto (multipart/form-data)
+    Controller->>Service: fotoUpload(id, file, req)
+    Service->>Upload: processarImagem(file, { width: 1920, quality: 80 })
+    Upload->>Upload: Valida MIME (image/jpeg) e extensão (.jpg)
+    Upload->>Upload: Comprime via Sharp (mozjpeg 80%)
+    Upload->>S3: PutObjectCommand (Upload binário)
+    S3-->>Upload: OK (URL gerada)
+    Upload-->>Service: { url }
+    Service->>DB: Despesa.updateOne({ _id }, { foto_anexo: url })
+    DB-->>Service: OK
+    Service-->>Controller: { url }
+    Controller-->>Mobile: HTTP 200 OK { foto_anexo: url }
+    Mobile-->>User: Comprovante anexado e auditado com sucesso

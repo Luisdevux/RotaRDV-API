@@ -10,6 +10,7 @@ import {
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
+import ViagemDomainValidator from '../utils/validators/domain/ViagemDomainValidator.js';
 
 class ViagemService {
     constructor() {
@@ -193,14 +194,15 @@ class ViagemService {
             });
         }
 
-        // Validação de KM Inicial (Não pode retroceder)
+        // Validação unificada de regras de negócio da viagem
         const ultimaKm = await this.repository.buscarUltimaKmDoVeiculo(parsedData.veiculo_id);
-        if (parsedData.km_inicial < ultimaKm) {
+        const validacao = ViagemDomainValidator.validar(parsedData, ultimaKm);
+        if (!validacao.valido) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'businessRuleError',
-                field: 'km_inicial',
-                customMessage: `O KM inicial (${parsedData.km_inicial}) não pode ser menor que o KM final da última viagem do veículo (${ultimaKm}).`,
+                field: validacao.campo || 'km_inicial',
+                customMessage: validacao.motivo,
             });
         }
 
@@ -253,26 +255,22 @@ class ViagemService {
             });
         }
 
-        // Validação para Fechamento (Status: concluída)
+        // Validação unificada para Fechamento (Status: concluída)
         if (parsedData.status === 'concluída') {
-            // Garantir KM Final
             const kmFinal = parsedData.km_final || viagemOriginal.km_final;
-            if (!kmFinal) {
-                throw new CustomError({
-                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                    errorType: 'validationError',
-                    field: 'km_final',
-                    customMessage: 'O KM final é obrigatório para concluir a viagem.',
-                });
-            }
+            const viagemParaValidar = {
+                ...(viagemOriginal.toObject ? viagemOriginal.toObject() : viagemOriginal),
+                ...parsedData,
+                km_final: kmFinal
+            };
 
-            // Validar KM Final > Inicial
-            if (kmFinal <= viagemOriginal.km_inicial) {
+            const validacao = ViagemDomainValidator.validar(viagemParaValidar);
+            if (!validacao.valido) {
                 throw new CustomError({
                     statusCode: HttpStatusCodes.BAD_REQUEST.code,
                     errorType: 'businessRuleError',
-                    field: 'km_final',
-                    customMessage: `O KM final (${kmFinal}) deve ser maior que o KM inicial (${viagemOriginal.km_inicial}).`,
+                    field: validacao.campo || 'km_final',
+                    customMessage: validacao.motivo,
                 });
             }
 

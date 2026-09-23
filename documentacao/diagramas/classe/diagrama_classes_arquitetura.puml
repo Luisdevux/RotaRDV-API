@@ -1,0 +1,234 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+
+title **Diagrama de Classes da Arquitetura em Camadas da API (RotaRDV - Express 5.2 / Node.js)**
+
+package "Camada de Middlewares (Filtros & Interceptores)" #EEEEFF {
+  class AuthMiddleware {
+    +autenticar(req, res, next): void
+    +verificarPermissao(rolesPermitidas): Function
+  }
+
+  class RateLimitMiddleware {
+    +limiterGlobal(req, res, next): void
+    +limiterAuth(req, res, next): void
+  }
+
+  class LogRoutesMiddleware {
+    +registrarLog(req, res, next): void
+  }
+}
+
+package "Camada de Controllers (Recepção HTTP & Zod Schemas)" #E6F3FF {
+  class AuthController {
+    -service: AuthService
+    +login(req, res): Promise<void>
+    +loginGoogle(req, res): Promise<void>
+    +registro(req, res): Promise<void>
+    +confirmarEmail(req, res): Promise<void>
+    +solicitarRecuperacaoSenha(req, res): Promise<void>
+    +redefinirSenha(req, res): Promise<void>
+    +refreshToken(req, res): Promise<void>
+    +logout(req, res): Promise<void>
+  }
+
+  class ViagemController {
+    -service: ViagemService
+    +criar(req, res): Promise<void>
+    +listar(req, res): Promise<void>
+    +atualizar(req, res): Promise<void>
+    +deletar(req, res): Promise<void>
+  }
+
+  class DespesaController {
+    -service: DespesaService
+    +criar(req, res): Promise<void>
+    +listar(req, res): Promise<void>
+    +deletar(req, res): Promise<void>
+    +fotoUpload(req, res): Promise<void>
+    +fotoDelete(req, res): Promise<void>
+  }
+
+  class SyncController {
+    -service: SyncService
+    +push(req, res): Promise<void>
+    +pull(req, res): Promise<void>
+  }
+
+  class EmpresaController {
+    -service: EmpresaService
+    +criar(req, res): Promise<void>
+    +listar(req, res): Promise<void>
+    +atualizar(req, res): Promise<void>
+    +atualizarStatus(req, res): Promise<void>
+    +deletar(req, res): Promise<void>
+    +cadastrarMotorista(req, res): Promise<void>
+  }
+
+  class VeiculoController {
+    -service: VeiculoService
+    +criar(req, res): Promise<void>
+    +listar(req, res): Promise<void>
+    +buscarPorID(req, res): Promise<void>
+    +atualizar(req, res): Promise<void>
+    +deletar(req, res): Promise<void>
+  }
+}
+
+package "Camada de Services (Regras de Domínio e Orquestração)" #E8F8F5 {
+  class AuthService {
+    -usuarioRepo: UsuarioRepository
+    -emailHelper: EmailHelper
+    +login(email, senha): Promise<Object>
+    +loginGoogle(idToken): Promise<Object>
+    +registro(dados): Promise<Object>
+    +confirmarEmail(token): Promise<Boolean>
+    +solicitarRecuperacaoSenha(email): Promise<Boolean>
+    +redefinirSenha(token, novaSenha): Promise<Boolean>
+    +refreshToken(token): Promise<Object>
+  }
+
+  class ViagemService {
+    -repository: ViagemRepository
+    -usuarioRepository: UsuarioRepository
+    -veiculoRepository: VeiculoRepository
+    +criar(dados, req): Promise<Object>
+    +listar(req): Promise<Object>
+    +atualizar(id, dados, req): Promise<Object>
+    +deletar(id, req): Promise<Boolean>
+    -_calcularResumoFinanceiro(viagemId): Promise<Object>
+  }
+
+  class DespesaService {
+    -repository: DespesaRepository
+    -viagemRepository: ViagemRepository
+    -uploadService: UploadService
+    +criar(dados, req): Promise<Object>
+    +listar(req): Promise<Object>
+    +deletar(id, req): Promise<Boolean>
+    +fotoUpload(id, file, req): Promise<Object>
+    +fotoDelete(id, req): Promise<Boolean>
+  }
+
+  class SyncService {
+    +pushSync(usuarioRef, viagens, despesas): Promise<Object>
+    +pullSync(usuarioRef, updatedAfter): Promise<Object>
+  }
+
+  class UploadService {
+    -repository: UploadRepository
+    +processarImagem(file, options): Promise<Object>
+    +substituirImagem(file, urlAntiga, options): Promise<Object>
+    +deleteImagemComRetry(url): Promise<Boolean>
+  }
+
+  class EmpresaService {
+    -repository: EmpresaRepository
+    -usuarioRepository: UsuarioRepository
+    -veiculoRepository: VeiculoRepository
+    +criar(dados, req): Promise<Object>
+    +listar(req): Promise<Object>
+    +atualizar(id, dados, req): Promise<Object>
+    +deletar(id, req): Promise<Boolean>
+    +cadastrarMotorista(empresaId, dados, req): Promise<Object>
+  }
+
+  class VeiculoService {
+    -repository: VeiculoRepository
+    +criar(dados, req): Promise<Object>
+    +listar(req): Promise<Object>
+    +atualizar(id, dados, req): Promise<Object>
+    +deletar(id, req): Promise<Boolean>
+  }
+}
+
+package "Camada de Repositories (Data Access Object / Mongoose)" #FFF3E0 {
+  class BaseRepository<T> {
+    #model: Model<T>
+    +criar(dados): Promise<T>
+    +buscarPorID(id): Promise<T>
+    +listar(req, filtrosOverride): Promise<Object>
+    +atualizar(id, dados): Promise<T>
+    +deletar(id): Promise<Boolean>
+  }
+
+  class ViagemRepository extends BaseRepository {
+    +buscarViagemAtivaDoMotorista(usuarioId): Promise<Object>
+    +buscarViagemAtivaDoVeiculo(veiculoId): Promise<Object>
+    +buscarUltimaKmDoVeiculo(veiculoId): Promise<Number>
+  }
+
+  class DespesaRepository extends BaseRepository {
+    +buscarPorViagem(viagemId): Promise<List>
+  }
+
+  class UsuarioRepository extends BaseRepository {
+    +buscarPorEmail(email): Promise<Object>
+    +buscarPorCpf(cpf): Promise<Object>
+  }
+
+  class EmpresaRepository extends BaseRepository {
+    +buscarPorCnpj(cnpj): Promise<Object>
+    +contarMotoristas(empresaId): Promise<Number>
+    +contarVeiculos(empresaId): Promise<Number>
+  }
+
+  class VeiculoRepository extends BaseRepository {
+    +buscarPorPlaca(placa): Promise<Object>
+  }
+
+  class UploadRepository {
+    -garageClient: Minio.Client
+    +uploadFile(buffer, fileName, contentType): Promise<String>
+    +getFile(fileName): Promise<Buffer>
+    +deleteFile(fileName): Promise<Boolean>
+  }
+}
+
+package "Camada Cross-Cutting (Helpers & Tratamento de Erros)" #FDF2E9 {
+  class ValidationHelper {
+    +{static} ensureExists(resource, resourceName): Object
+    +{static} validateCnpj(repository, cnpj, id): Promise<void>
+    +{static} validateEmail(repository, email, id, message): Promise<void>
+  }
+
+  class AuthHelper {
+    +{static} gerarAccessToken(payload): String
+    +{static} gerarRefreshToken(payload): String
+    +{static} verificarToken(token, segredo): Object
+  }
+
+  class CustomError extends Error {
+    +statusCode: Number
+    +errorType: String
+    +field: String
+    +details: Array
+  }
+}
+
+' Relacionamentos entre Camadas
+AuthController --> AuthService
+ViagemController --> ViagemService
+DespesaController --> DespesaService
+SyncController --> SyncService
+EmpresaController --> EmpresaService
+VeiculoController --> VeiculoService
+
+ViagemService --> ViagemRepository
+DespesaService --> DespesaRepository
+DespesaService --> UploadService
+EmpresaService --> EmpresaRepository
+VeiculoService --> VeiculoRepository
+AuthService --> UsuarioRepository
+UploadService --> UploadRepository
+
+DespesaService ..> ValidationHelper : usa
+ViagemService ..> ValidationHelper : usa
+EmpresaService ..> ValidationHelper : usa
+AuthService ..> AuthHelper : usa
+
+@enduml

@@ -1,0 +1,31 @@
+C4Container
+    title Diagrama de Containers (C4 Model - Nível 2) - Plataforma RotaRDV
+
+    Person(motorista, "Motorista Rodoviário", "Condutor em trânsito; opera viagens e despesas offline na cabine.")
+
+    Container_Boundary(c_client, "Ambiente Móvel (Borda)")
+        Container(mobile_app, "App Móvel RotaRDV", "Flutter / Dart", "Interface MVVM e sincronização.")
+        ContainerDb(isar_db, "Banco Embarcado", "Isar Database (NoSQL)", "Persistência offline (latência zero ms).")
+    UpdateBoundaryStyle(c_client, $bgColor="#e8f8f5", $fontColor="#212529", $borderColor="#27ae60")
+
+    System_Ext(cf_edge, "Cloudflare Edge", "WAF / DNS / Proxy Anycast", "Proteção DDoS e terminação SSL/TLS.")
+
+    Container_Boundary(c_k3s, "Cluster Kubernetes (K3s na Oracle Cloud ARM64)")
+        Container(cf_tunnel, "Cloudflare Tunnel", "cloudflared (kube-system)", "Túnel outbound seguro Zero Trust.")
+        Container(traefik, "Traefik Ingress", "Traefik v2 (kube-system)", "Roteador interno do cluster HTTP.")
+        Container(backend_api, "API RESTful RotaRDV", "Node.js 22 / Express 5.2 (rotardv-prod)", "Regras de negócio, Zod, RBAC e SyncEngine.")
+        ContainerDb(mongodb, "Banco de Aplicação", "MongoDB 7.0 (rotardv-prod)", "StatefulSet NoSQL com volume local-path.")
+    UpdateBoundaryStyle(c_k3s, $bgColor="#ebf5fb", $fontColor="#212529", $borderColor="#2980b9")
+
+    System_Ext(garage_s3, "Storage Institucional", "Garage Cloud S3 (s3.fslab.dev)", "Armazenamento de fotos de comprovantes fiscais.")
+    System_Ext(google_auth, "Google Identity", "Google OAuth 2.0", "Validação federada de credenciais de login.")
+
+    Rel(motorista, mobile_app, "Opera rotas e despesas", "App Nativo")
+    Rel(mobile_app, isar_db, "Lê/Grava localmente", "Isar IPC")
+    Rel(mobile_app, cf_edge, "Sincroniza Push/Pull e fotos", "HTTPS")
+    Rel(cf_edge, cf_tunnel, "Túnel Outbound Criptografado", "Cloudflare Tunnel")
+    Rel(cf_tunnel, traefik, "Entrega interna", "HTTP (Porta 80)")
+    Rel(traefik, backend_api, "Roteia rotardv-api", "ClusterIP (Porta 5040)")
+    Rel(backend_api, mongodb, "Persistência NoSQL", "TCP (Porta 27017)")
+    Rel(backend_api, garage_s3, "Upload fotos com TLS", "S3 SigV4 (Porta 443)")
+    Rel(backend_api, google_auth, "Valida idToken", "HTTPS / OAuth 2.0")

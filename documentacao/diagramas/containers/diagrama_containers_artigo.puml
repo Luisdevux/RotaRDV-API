@@ -1,0 +1,53 @@
+@startuml
+!include <C4/C4_Container>
+
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam TitleFontSize 18
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam wrapWidth 160
+
+LAYOUT_WITH_LEGEND()
+
+title **Diagrama de Containers (C4 Model - Nível 2): Arquitetura Cloud Native em K3s e Cloudflare**
+
+Person(motorista, "Motorista Rodoviário", "Condutor em trânsito; opera viagens e despesas.")
+
+System_Boundary(c_client, "Ambiente Móvel (Borda)") {
+    Container(mobile_app, "App Móvel RotaRDV", "Flutter / Dart", "Interface MVVM e sincronização.")
+    ContainerDb(isar_db, "Banco Embarcado", "Isar Database", "Persistência offline (latência zero ms).")
+}
+
+System_Ext(cf_edge, "Cloudflare Edge", "WAF / DNS / Proxy Anycast\nProteção DDoS e terminação SSL/TLS")
+
+System_Boundary(c_k3s, "Cluster Kubernetes (K3s na Oracle Cloud ARM64)") {
+    Container(cf_tunnel, "Cloudflare Tunnel", "cloudflared", "Túnel outbound seguro Zero Trust.")
+    Container(traefik, "Traefik Ingress", "Traefik v2", "Roteador interno do cluster HTTP.")
+    Container(backend_api, "API RESTful RotaRDV", "Node.js 22 / Express 5.2", "Regras de negócio e SyncEngine.")
+    ContainerDb(mongodb, "Banco de Aplicação", "MongoDB 7.0", "StatefulSet NoSQL com PVC local-path.")
+}
+
+System_Boundary(c_externos, "Serviços em Nuvem") {
+    System_Ext(garage_s3, "Storage Institucional", "Garage Cloud S3 (s3.fslab.dev)\nArmazenamento de fotos de cupons fiscais")
+    System_Ext(google_auth, "Google Identity", "Google OAuth 2.0\nValidação federada de credenciais")
+}
+
+' Linha 1: Cliente Móvel e Borda (Horizontal)
+Rel_Right(motorista, mobile_app, "Opera na cabine")
+Rel_Right(mobile_app, isar_db, "Lê/Grava local")
+Rel_Right(mobile_app, cf_edge, "Sincroniza Push/Pull (HTTPS)")
+
+' Transição de Borda para o Cluster K3s (Descida Única)
+Rel_Down(cf_edge, cf_tunnel, "Túnel Outbound Criptografado")
+
+' Linha 2: Cluster K3s e Persistência (Horizontal)
+Rel_Right(cf_tunnel, traefik, "Entrega interna (Porta 80)")
+Rel_Right(traefik, backend_api, "Roteia Service (Porta 5040)")
+Rel_Right(backend_api, mongodb, "Persistência (Porta 27017)")
+
+' Conexões para Serviços Externos
+Rel_Down(backend_api, garage_s3, "Upload fotos (S3 SigV4)")
+Rel_Down(backend_api, google_auth, "Valida idToken (OAuth 2.0)")
+
+@enduml

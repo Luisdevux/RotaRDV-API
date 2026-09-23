@@ -1,0 +1,121 @@
+@startuml
+!theme plain
+skinparam defaultFontName Arial
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title **Diagrama de Sequência UML: Autenticação JWT, Sessão e Renovação Transparente (RotaRDV)**
+
+actor "Usuário / Motorista" as User #LightGreen
+participant "App Móvel RotaRDV\n(Flutter / ApiClient)" as Client #LightBlue
+participant "API Gateway\n(Express / AuthMiddleware)" as Gateway #LightYellow
+participant "AuthService" as Service #LightCyan
+participant "Bcrypt Helper" as Bcrypt #Wheat
+participant "MongoDB\n(Coleção: usuarios)" as DB #PeachPuff
+participant "Google Identity\n(google-auth-library)" as GoogleAuth #LightGray
+
+== Cenário 1: Autenticação Local (E-mail e Senha) ==
+
+User -> Client: Informa e-mail e senha e clica em "Entrar"
+activate Client
+
+Client -> Gateway: POST /login { email, senha }
+activate Gateway
+
+Gateway -> Gateway: Validar Payload via LoginSchema (Zod)
+Gateway -> Service: login(email, senha)
+activate Service
+
+Service -> DB: findOne({ email }).select('+senha +refreshtoken')
+activate DB
+DB --> Service: Documento do Usuário
+deactivate DB
+
+Service -> Service: Validar se status === 'ativo'\ne email_verificado === true
+alt Usuário Inativo ou E-mail Não Verificado
+    Service --> Gateway: throw CustomError(403, "Conta inativa ou e-mail pendente")
+    Gateway --> Client: HTTP 403 Forbidden
+    Client --> User: Exibe alerta de conta inativa/verificação
+else Usuário Ativo e Verificado
+    Service -> Bcrypt: compare(senhaInformada, usuario.senha)
+    activate Bcrypt
+    Bcrypt --> Service: Senha confere (true)
+    deactivate Bcrypt
+
+    Service -> Service: Gerar accessToken (Expira em 2 min)\nGerar refreshToken (Expira em 3 dias)
+    Service -> DB: updateOne({ _id }, { refreshtoken: hash(refreshToken) })
+    activate DB
+    DB --> Service: OK
+    deactivate DB
+
+    Service --> Gateway: { accessToken, refreshToken, usuario }
+    deactivate Service
+    Gateway --> Client: HTTP 200 OK { tokens, usuario }
+    deactivate Gateway
+
+    Client -> Client: Armazenar tokens em SecureStorage\nPersistir perfil localmente
+    Client --> User: Redireciona para Dashboard / Cockpit
+    deactivate Client
+end
+
+== Cenário 2: Renovação Transparente de Token Expirado (Refresh Automático via ApiClient) ==
+
+User -> Client: Toca em "Minhas Viagens" (Ação comum)
+activate Client
+
+Client -> Gateway: GET /viagens (Header: Bearer accessToken_Expirado)
+activate Gateway
+
+Gateway -> Gateway: AuthMiddleware: jwt.verify(accessToken)
+Gateway --> Client: HTTP 401 Unauthorized (Token Expirado)
+deactivate Gateway
+
+note over Client
+  ApiClient intercepta HTTP 401.
+  Pausa a requisição original e
+  inicia renovação sem deslogar o motorista.
+end note
+
+Client -> Gateway: POST /refresh { refreshToken }
+activate Gateway
+
+Gateway -> Service: refreshToken(refreshToken)
+activate Service
+
+Service -> Service: jwt.verify(refreshToken, REFRESH_SECRET)
+Service -> DB: findById(userId).select('+refreshtoken')
+activate DB
+DB --> Service: Usuário com refresh token
+deactivate DB
+
+Service -> Service: Comparar token recebido com hash persistido
+alt Token Válido e Ativo
+    Service -> Service: Gerar novo accessToken (2 min)
+    Service --> Gateway: { accessToken: novoToken }
+    deactivate Service
+
+    Gateway --> Client: HTTP 200 OK { accessToken: novoToken }
+    deactivate Gateway
+
+    Client -> Client: Atualiza SecureStorage com novo accessToken
+    
+    note over Client
+      Reexecuta automaticamente a chamada
+      original que falhou por expiração.
+    end note
+    Client -> Gateway: GET /viagens (Header: Bearer novoAccessToken)
+    activate Gateway
+    Gateway --> Client: HTTP 200 OK { viagens: [...] }
+    deactivate Gateway
+
+    Client --> User: Renderiza tela de viagens normalmente
+    deactivate Client
+else Refresh Token Expirado ou Inválido
+    Service --> Gateway: throw CustomError(401, "Sessão expirada")
+    Gateway --> Client: HTTP 401 Unauthorized
+    Client -> Client: Limpar SecureStorage e Isar cache de sessão
+    Client --> User: Redireciona para Tela de Login ("Sessão Expirada")
+end
+
+@enduml
