@@ -46,7 +46,7 @@ class DespesaRepository {
 
         // Se solicitado todos ou limite 0 (para relatórios em PDF e exportação)
         if (todos || parseInt(limite, 10) === 0) {
-            const docs = await this.modelDespesa.find(filtro).sort({ data: -1 }).lean();
+            const docs = await this.modelDespesa.find(filtro).sort({ data: -1, createdAt: -1 }).lean();
             return {
                 docs,
                 totalDocs: docs.length,
@@ -66,7 +66,7 @@ class DespesaRepository {
         const options = {
             page: parseInt(page, 10),
             limit: limitOptions,
-            sort: { data: -1 }
+            sort: { data: -1, createdAt: -1 }
         };
 
         const resultado = await this.modelDespesa.paginate(filtro, options);

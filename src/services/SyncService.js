@@ -152,6 +152,15 @@ class SyncService {
                     delete d.foto_anexo;
                 }
 
+                // Converte a data enviada pelo app para BSON Date (evita salvar como String no bulkWrite)
+                if (d.data && !(d.data instanceof Date)) {
+                    d.data = new Date(d.data);
+                }
+
+                if (!d.createdAt) {
+                    d.createdAt = d.data || new Date();
+                }
+
                 d.updatedAt = new Date();
 
                 // Despesas são imutáveis após o lançamento (motoristas não possuem permissão de edição).
