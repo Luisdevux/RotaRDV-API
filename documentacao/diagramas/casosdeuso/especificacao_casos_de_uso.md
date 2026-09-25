@@ -30,7 +30,7 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
   - `admin`: Administrador interno da transportadora associada (`empresa_id`).
   - `gestor`: Gerencia veículos, viagens e motoristas do seu `empresa_id`.
   - `motorista`: Opera exclusivamente suas próprias viagens e despesas via Mobile.
-- **RN-02 (Vida Útil de Tokens JWT):** Access Token expira em 2 minutos; Refresh Token expira em 3 dias. Token de verificação de conta tem validade de 24 horas; Token de recuperação de senha tem validade de 1 hora.
+- **RN-02 (Vida Útil de Tokens JWT):** Access Token expira em 30 minutos; Refresh Token expira em 30 dias. Token de verificação de conta tem validade de 24 horas; Token de recuperação de senha tem validade de 1 hora.
 - **RN-03 (Unicidade de Viagem Ativa por Condutor):** Um motorista não pode iniciar uma nova viagem se já possuir uma com status `em_andamento`.
 - **RN-04 (Exclusividade de Veículo em Trânsito):** Um veículo não pode ser alocado em uma nova viagem se já estiver associado a outra viagem com status `em_andamento`.
 - **RN-05 (Integridade do Odômetro Inicial):** O odômetro inicial (`km_inicial`) da nova viagem deve ser estritamente maior ou igual ao último odômetro registrado para o veículo (`ultimaKmDoVeiculo`).
@@ -66,8 +66,8 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
   4. O sistema valida se `usuario.status === 'ativo'` e se `email_verificado === true`.
   5. O `AuthService` compara a senha fornecida com o hash persistido via `bcrypt.compare`.
   6. O sistema gera o par de tokens:
-     - `accessToken`: JWT assinado com chave privada, validade de 2 minutos.
-     - `refreshToken`: JWT assinado com chave secreta distinta, validade de 3 dias.
+     - `accessToken`: JWT assinado com chave privada, validade de 30 minutos.
+     - `refreshToken`: JWT assinado com chave secreta distinta, validade de 30 dias.
   7. O `refreshToken` é persistido com hash no documento do usuário.
   8. A API retorna HTTP 200 com os tokens e os dados cadastrais (role, empresa, veiculo vinculado).
 - **Fluxo Alternativo 1A (Login Social com Google OAuth):**
@@ -78,14 +78,14 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
   5. Se o usuário não existir, é provisionado com role `motorista` e `email_verificado: true`. Prossegue ao passo 6.
 - **Fluxo Alternativo 1B (Renovação Transparente de Token - Refresh):**
   1. O cliente detecta expiração do `accessToken` (HTTP 401).
-  2. O cliente envia requisição para `POST /auth/refresh` contendo o `refreshToken`.
+  2. O cliente envia requisição para `POST /refresh` contendo o `refreshToken`.
   3. O backend decodifica o token, valida se o hash coincide com o persistido e confere a expiração.
-  4. O sistema emite um novo `accessToken` de 2 minutos e retorna HTTP 200.
+  4. O sistema emite um novo `accessToken` de 30 minutos e retorna HTTP 200.
 - **Fluxos de Exceção:**
   - **FE-01.1 (Credenciais Inválidas):** Senha incorreta ou e-mail inexistente. Retorna HTTP 401 (Unauthorized: "Credenciais inválidas").
   - **FE-01.2 (Conta Inativa ou Não Verificada):** `status !== 'ativo'` ou `email_verificado === false`. Retorna HTTP 403 (Forbidden: "Conta inativa ou e-mail pendente de confirmação").
   - **FE-01.3 (Refresh Token Revogado ou Expirado):** Retorna HTTP 401 (Unauthorized: "Sessão expirada. Faça login novamente").
-- **Pós-condições:** Sessão iniciada; tokens armazenados de forma segura (SecureStorage no Flutter).
+- **Pós-condições:** Sessão iniciada; tokens armazenados de forma segura (SharedPreferences no Flutter).
 
 ---
 

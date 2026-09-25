@@ -10,8 +10,8 @@ O **Diagrama de Containers** do modelo **C4 (C4 Model for Software Architecture)
 ## Containers do Sistema RotaRDV
 
 1. **Aplicativo Móvel (`mobile_app`):**
-   - **Tecnologia:** Flutter / Dart / IsarDB.
-   - **Responsabilidade:** Fornecer interface rica e **100% Offline-First** para os motoristas registrarem viagens, odômetros, abastecimentos, refeições e fotografarem cupons fiscais em rodovias sem sinal.
+   - **Tecnologia:** Flutter / Dart / Dio / IsarDB.
+   - **Responsabilidade:** Fornecer interface rica e **100% Offline-First** estruturada sob arquitetura MVVM (Provider), com cliente HTTP resiliente (`DioClient` com `QueuedInterceptor`), para os motoristas registrarem viagens, odômetros, abastecimentos, refeições e fotografarem cupons fiscais em rodovias sem sinal.
    - **Protocolo:** HTTPS / JSON REST (Porta 443 via Cloudflare Edge).
 
 2. **Cloudflare Tunnel (`cf_tunnel`):**

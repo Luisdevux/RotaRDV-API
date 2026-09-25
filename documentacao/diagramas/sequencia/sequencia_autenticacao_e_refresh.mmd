@@ -1,7 +1,7 @@
 sequenceDiagram
     autonumber
     actor User as Usuário / Motorista
-    participant Client as App Móvel (Flutter / ApiClient)
+    participant Client as App Móvel (Flutter / DioClient & AuthInterceptor)
     participant Gateway as API Gateway (Express / AuthMiddleware)
     participant Service as AuthService
     participant Bcrypt as Bcrypt Helper
@@ -17,25 +17,25 @@ sequenceDiagram
     Service->>Service: Validar status ativo e email verificado
     Service->>Bcrypt: compare(senhaInformada, hashSenha)
     Bcrypt-->>Service: Senha confere (true)
-    Service->>Service: Gerar Access Token (2 min) e Refresh Token (3 dias)
+    Service->>Service: Gerar Access Token (30 min) e Refresh Token (30 dias)
     Service->>DB: updateOne(refreshtoken)
     Service-->>Gateway: { accessToken, refreshToken, usuario }
     Gateway-->>Client: HTTP 200 OK { tokens, usuario }
     Client-->>User: Redireciona para o Cockpit / Home
 
-    Note over User, DB: Renovação Automática via ApiClient (Refresh Token)
+    Note over User, DB: Renovação Automática via AuthInterceptor (QueuedInterceptor)
     User->>Client: Acessa tela de viagens
     Client->>Gateway: GET /viagens (Token expirado)
     Gateway-->>Client: HTTP 401 Unauthorized
-    Note over Client: ApiClient pausa requisição e solicita refresh
-    Client->>Gateway: POST /refresh { refreshToken }
+    Note over Client: AuthInterceptor bloqueia fila e solicita refresh com _tokenDio
+    Client->>Gateway: POST /refresh { refresh_token: storedRefreshToken }
     Gateway->>Service: refreshToken(refreshToken)
     Service->>DB: findById(userId).select('+refreshtoken')
     DB-->>Service: Usuário com token
-    Service->>Service: Valida token e emite novo accessToken (2 min)
+    Service->>Service: Valida token e emite novo accessToken (30 min)
     Service-->>Gateway: { accessToken }
     Gateway-->>Client: HTTP 200 OK { accessToken }
-    Note over Client: Reexecuta requisição GET /viagens com novo token
+    Note over Client: dio.fetch() reexecuta requisição GET /viagens com novo token
     Client->>Gateway: GET /viagens (Novo Token)
     Gateway-->>Client: HTTP 200 OK { viagens: [...] }
     Client-->>User: Exibe lista de viagens sem deslogar

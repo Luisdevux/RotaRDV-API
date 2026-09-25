@@ -8,19 +8,19 @@ skinparam shadowing false
 title **Diagrama de Componentes UML: Arquitetura de Software do Ecossistema RotaRDV**
 
 package "Cliente Móvel: tcc-despesas-mobile (Flutter / Dart)" #E8F8F5 {
-  [UI & Cockpit Screens\n(Widgets Flutter)] as Comp_UI
-  [Controllers / ViewModels\n(Gerência de Estado)] as Comp_VM
-  [Sync Engine\n(Listener de Conectividade)] as Comp_Sync
+  [Navigation Shell & Tabs\n(Widgets Flutter / 4 Abas)] as Comp_UI
+  [MVVM ViewModels (Provider)\n(Auth, Home, Despesa, Theme)] as Comp_VM
+  [Sync Engine\n(SyncService & Connectivity)] as Comp_Sync
   [Storage Cleaner Service\n(Exclusão > 15 dias)] as Comp_Cleaner
   [Local Database\n(Isar NoSQL Database)] as Comp_Isar
-  [HTTP Client Resiliente\n(ApiClient / http + JWT)] as Comp_HttpClient
+  [HTTP Client Resiliente\n(DioClient + QueuedInterceptor + TimeLogging)] as Comp_Dio
 
   Comp_UI ..> Comp_VM : interage
   Comp_VM ..> Comp_Isar : lê / escreve
   Comp_VM ..> Comp_Sync : notifica eventos
   Comp_Sync ..> Comp_Isar : consulta pendências
   Comp_Sync ..> Comp_Cleaner : dispara limpeza
-  Comp_Sync ..> Comp_HttpClient : usa para Push/Pull
+  Comp_Sync ..> Comp_Dio : usa para Push/Pull
 }
 
 package "Backend: tcc-despesas-api (Node.js / Express 5.2)" #EBF5FB {
@@ -52,7 +52,7 @@ interface "Wire Protocol\n(MongoDB Driver TCP)" as Inter_Mongo
 interface "Google OAuth 2.0 API\n(google-auth-library)" as Inter_GoogleAuth
 interface "SMTP / TLS\n(Porta 587 / 465)" as Inter_SMTP
 
-Comp_HttpClient --( Inter_REST
+Comp_Dio --( Inter_REST
 Inter_REST -- Comp_Router
 
 Comp_Repo --( Inter_Mongo
