@@ -93,21 +93,31 @@ A API Node.js segue o padrão clássico de **Separation of Concerns (SoC)** com 
 
 ## 4. Detalhamento da Arquitetura Mobile Flutter
 
-O aplicativo móvel foi projetado sob a filosofia **Offline-First**, permitindo que o condutor execute todas as operações essenciais mesmo sem qualquer conexão com a internet:
+O aplicativo móvel foi projetado sob o padrão arquitetural **MVVM (Model-View-ViewModel)** com **Provider** e a filosofia **Offline-First**, permitindo que o condutor execute todas as operações essenciais mesmo sem qualquer sinal de internet:
 
-1. **Isar Database (`LocalDatabase`):**
-   - Banco NoSQL embutido ultra-rápido em C++.
-   - Modelos: `ViagemCollection` e `DespesaCollection`.
-   - Utiliza identificadores autônomos UUID v4 e índices nas propriedades de consulta (`@Index`).
-   - Campo `statusSincronizacao` controla as transições: `'criado'` -> `'sincronizado'` ou `'deletado'`.
+1. **Camada de Dados Local e Modelos (Isar Database):**
+   - **`LocalDatabase`:** Gerencia a instância singleton do banco NoSQL embutido em C++ (`Isar.open([ViagemCollectionSchema, DespesaCollectionSchema])`).
+   - **`ViagemCollection` e `DespesaCollection`:** Modelos de persistência local com UUID v4 autônomos e índices de busca (`@Index`). O campo `statusSincronizacao` controla as transições de estado (`'criado'`, `'sincronizado'`, `'deletado'`).
 
-2. **Motor de Sincronização (`SyncService`):**
-   - Escuta continuamente alterações de conectividade com `Connectivity().onConnectivityChanged`.
-   - Executa sincronização atômica em lote (`pushSync` e `pullSync`).
-   - Realiza upload de mídia desacoplado com auto-recuperação (`resolverOuRecuperarFotoLocal`).
+2. **Camada de Rede Resiliente (`DioClient`):**
+   - **`DioClient`:** Singleton centralizado baseado na biblioteca `dio: ^5.11.1` com `BaseOptions` padronizadas (timeouts de 15s para requisições e 60s para uploads multipart via `FormData.fromMap`). Expõe métodos estáticos (`get`, `post`, `put`, `delete`, `uploadFile`) e o `ValueNotifier<bool> sessionExpiredNotifier`.
+   - **`AuthInterceptor` (`QueuedInterceptor`):** Injeta o token Bearer JWT nas requisições. Ao interceptar respostas `401` ou `498`, bloqueia a fila concorrente de chamadas para evitar deadlocks e aciona a rota `/refresh` por meio de uma instância isolada `_tokenDio`. Caso o refresh expire, preserva os dados locais e notifica a UI via `sessionExpiredNotifier`.
+   - **`TimeLoggingInterceptor`:** Monitora e registra no console o tempo de latência de cada requisição HTTP para auditoria e profiling de performance.
 
-3. **Gerenciador de Armazenamento (`StorageCleanerService`):**
-   - Executa rotina em background após cada sincronização bem-sucedida para excluir comprovantes locais que já possuam mais de 15 dias e já estejam na nuvem.
+3. **Camada de Apresentação e Gerenciamento de Estado (MVVM com Provider):**
+   - **`AuthViewModel` (`ChangeNotifier`):** Orquestra o ciclo de vida de autenticação (login por e-mail/senha e Google OAuth), gerencia o usuário e veículo ativo persistidos em `SharedPreferences`, e realiza o logout com preservação de integridade offline.
+   - **`HomeViewModel` (`ChangeNotifier`):** Injetado via `ChangeNotifierProxyProvider`, atualiza as métricas da tela inicial, responde a eventos de sincronização e monitora o `DioClient.sessionExpiredNotifier` para exibir o componente `HomeSessionExpiredBanner` com opção de reautenticação sem descarte de dados locais.
+   - **`DespesaViewModel` (`ChangeNotifier`):** Encapsula as regras de CRUD e validação de despesas locais no IsarDB, agregação por categorias e cálculo matemático em tempo real da classe auxiliar `MetricasConsumoViagem` (como `kmPercorridoTotal`, `litrosAbastecidosTotal` e `mediaConsumoGeral`).
+   - **`ThemeProvider` (`ChangeNotifier`):** Gerencia dinamicamente a alternância entre os temas Claro, Escuro e do Sistema, persistindo a escolha do motorista.
+
+4. **Camada de Serviços e Background Engines:**
+   - **`SyncService`:** Orquestrador offline-first que monitora a conectividade via `connectivity_plus`, executando as etapas `pushSync` (lote de viagens/despesas criadas/editadas), envio desacoplado de comprovantes (`resolverOuRecuperarFotoLocal`) e `pullSync` delta.
+   - **`StorageCleanerService`:** Rotina pós-sincronização que varre o diretório local de imagens e remove fotos que já foram sincronizadas na nuvem há mais de 15 dias, preservando o espaço em disco do smartphone.
+   - **`AuthService`:** Encapsula integrações de login social (`GoogleSignIn`), login local e renovação de token `/refresh`.
+   - **`EstadoCidadeService`:** Carregador offline de municípios e unidades federativas brasileiras para preenchimento de origens e destinos.
+
+5. **Navegação e Interface do Usuário:**
+   - **`MainNavigationShell`:** Estrutura de navegação inferior (`CustomBottomNavBar`) que gerencia a transição indexada entre as 4 abas mestres: Painel (`HomePage`), Viagem em Andamento (`ViagemTabPage`), Histórico (`ViagensListPage`) e Perfil (`PerfilPage`).
 
 ---
 

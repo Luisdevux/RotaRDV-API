@@ -5,14 +5,14 @@ flowchart TB
         Isar[("Isar Database Local")]
         Sync["Sync Engine (Connectivity Listener)"]
         Cleaner["Storage Cleaner Service"]
-        HttpClient["ApiClient (http.Client + JWT)"]
+        DioClient["DioClient (Dio + QueuedInterceptor)"]
 
         UI --> VM
         VM --> Isar
         VM --> Sync
         Sync --> Isar
         Sync --> Cleaner
-        Sync --> HttpClient
+        Sync --> DioClient
     end
 
     subgraph Backend["Backend API (Node.js / Express 5.2)"]
@@ -37,7 +37,7 @@ flowchart TB
         Hermes["Hermes Mailer (SMTP)"]
     end
 
-    HttpClient -- "HTTPS / JSON (Bearer JWT)" --> Router
+    DioClient -- "HTTPS / JSON (Bearer JWT)" --> Router
     Repos -- "MongoDB Wire Protocol" --> MongoDB
     Sharp -- "AWS SDK v3 (SigV4)" --> GarageS3
     Services -- "OAuth Token Verify" --> GoogleAuth

@@ -2,8 +2,8 @@ classDiagram
     direction TB
 
     class LocalDatabase {
-        +init() Future~Isar~
-        +instance Isar
+        +Isar isar$
+        +init()$ Future~void~
     }
 
     class ViagemCollection {
@@ -19,8 +19,6 @@ classDiagram
         +DateTime dataFim
         +String status
         +String statusSincronizacao
-        +estaSincronizado() bool
-        +estaEmAndamento() bool
     }
 
     class DespesaCollection {
@@ -40,26 +38,48 @@ classDiagram
         +String tipoCombustivel
         +double kmAtual
         +String statusSincronizacao
-        +temFotoPendente() bool
-        +isAbastecimento() bool
     }
 
-    class ApiClient {
-        -Client client
-        +get(path, queryParameters)
-        +post(path, data)
-        +uploadMultipart(path, filePath)
+    class DioClient {
+        -Dio _dio$
+        +ValueNotifier~bool~ sessionExpiredNotifier$
+        +init()$ void
+        +get(path)$ Future~Response~
+        +post(path)$ Future~Response~
+        +uploadFile(path, file)$ Future~Response~
+    }
+
+    class AuthInterceptor {
+        -Dio dio
+        -Dio _tokenDio
+        +onRequest(options, handler)
+        +onResponse(response, handler)
+        +onError(err, handler)
+    }
+
+    class TimeLoggingInterceptor {
+        +onRequest(options, handler)
+        +onResponse(response, handler)
+        +onError(err, handler)
+    }
+
+    class AuthService {
+        -GoogleSignIn _googleSignIn
+        +login(email, senha) Future
+        +signInWithGoogle() Future
+        +logout() Future
     }
 
     class SyncService {
-        -bool isSyncing
+        -SyncService _instance$
+        +bool isSyncing
         +ValueNotifier~int~ syncEventNotifier
-        +initConnectivityListener()
-        +syncAll(maxRetries) Future~bool~
-        -_pushSync() Future~bool~
-        -_pullSync() Future~bool~
-        -_uploadPendingPhotos() Future~void~
-        +obterResumoPendencias() Future~PendingSyncSummary~
+        +initConnectivityListener() void
+        +syncAll(maxRetries) Future~void~
+        +pushSync() Future~void~
+        +pullSync() Future~void~
+        +hasPendingSync() Future~bool~
+        +getPendingSyncSummary() Future~PendingSyncSummary~
     }
 
     class PendingSyncSummary {
@@ -71,36 +91,63 @@ classDiagram
     }
 
     class StorageCleanerService {
-        +limparComprovantesAntigosLocais(dias) Future~int~
+        +limparComprovantesAntigosLocais(dias)$ Future~int~
     }
 
-    class ViagemController {
-        +ValueNotifier viagens
-        +ValueNotifier viagemAtiva
-        +carregarViagens()
-        +iniciarViagem(origem, destino, kmInicial)
-        +encerrarViagem(viagemId, kmFinal)
+    class AuthViewModel {
+        +bool isLoadingLocal
+        +bool isLoadingGoogle
+        +Map currentUser
+        +Map currentVehicle
+        +login(email, senha) Future~bool~
+        +loginWithGoogle() Future~bool~
+        +logout() Future~void~
     }
 
-    class DespesaController {
-        +ValueNotifier despesas
-        +carregarDespesasDaViagem(viagemUuid)
-        +salvarDespesa(despesa, fotoPath)
-        +deletarDespesa(despesaUuid)
+    class HomeViewModel {
+        +AuthViewModel authViewModel
+        +bool isLoading
+        +List~ViagemCollection~ ultimasViagens
+        +bool isSessionExpired
+        +init() Future~void~
+        +carregarDadosBancoLocal() Future~void~
+    }
+
+    class DespesaViewModel {
+        +List~DespesaCollection~ despesas
+        +bool isLoading
+        +String currentViagemId
+        +carregarDespesas(viagemUuid) Future~void~
+        +salvarDespesa(despesa, fotoPath) Future~bool~
+        +calcularMetricasViagem(viagem) MetricasConsumoViagem
+    }
+
+    class MetricasConsumoViagem {
+        +double totalLitros
+        +double kmPercorridoTotal
+        +double mediaConsumoGeral
+        +int totalAbastecimentos
     }
 
     %% Relacionamentos
-    LocalDatabase ..> ViagemCollection : armazena
-    LocalDatabase ..> DespesaCollection : armazena
-
-    ViagemController --> LocalDatabase : gerencia
-    ViagemController --> SyncService : notifica
-    DespesaController --> LocalDatabase : gerencia
-    DespesaController --> SyncService : notifica
-
-    SyncService --> ApiClient : sincroniza
-    SyncService --> LocalDatabase : atualiza_status
-    SyncService --> StorageCleanerService : executa_exclusao
-    SyncService ..> PendingSyncSummary : emite
-
+    LocalDatabase ..> ViagemCollection : gerencia
+    LocalDatabase ..> DespesaCollection : gerencia
     DespesaCollection --> ViagemCollection : viagemId
+
+    DioClient *-- AuthInterceptor : interceptor
+    DioClient *-- TimeLoggingInterceptor : interceptor
+
+    AuthService --> DioClient : http
+    AuthViewModel --> AuthService : autentica
+    HomeViewModel --> AuthViewModel : observa
+    HomeViewModel --> LocalDatabase : le_dados
+    HomeViewModel --> SyncService : escuta
+
+    DespesaViewModel --> LocalDatabase : persiste
+    DespesaViewModel --> SyncService : sincroniza
+    DespesaViewModel ..> MetricasConsumoViagem : calcula
+
+    SyncService --> DioClient : comunica
+    SyncService --> LocalDatabase : atualiza
+    SyncService --> StorageCleanerService : expurgo
+    SyncService ..> PendingSyncSummary : emite

@@ -15,7 +15,7 @@ title **Diagrama de Containers (C4 Model - Nível 2): Arquitetura Cloud Native e
 Person(motorista, "Motorista Rodoviário", "Condutor em trânsito; opera viagens e despesas.")
 
 System_Boundary(c_client, "Ambiente Móvel (Borda)") {
-    Container(mobile_app, "App Móvel RotaRDV", "Flutter / Dart", "Interface MVVM e sincronização.")
+    Container(mobile_app, "App Móvel RotaRDV", "Flutter / Dart / Dio", "Interface MVVM e sincronização.")
     ContainerDb(isar_db, "Banco Embarcado", "Isar Database", "Persistência offline (latência zero ms).")
 }
 

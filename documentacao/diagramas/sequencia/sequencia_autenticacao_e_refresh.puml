@@ -8,7 +8,7 @@ skinparam sequenceMessageAlign center
 title **Diagrama de Sequência UML: Autenticação JWT, Sessão e Renovação Transparente (RotaRDV)**
 
 actor "Usuário / Motorista" as User #LightGreen
-participant "App Móvel RotaRDV\n(Flutter / ApiClient)" as Client #LightBlue
+participant "App Móvel RotaRDV\n(Flutter / DioClient & AuthInterceptor)" as Client #LightBlue
 participant "API Gateway\n(Express / AuthMiddleware)" as Gateway #LightYellow
 participant "AuthService" as Service #LightCyan
 participant "Bcrypt Helper" as Bcrypt #Wheat
@@ -43,7 +43,7 @@ else Usuário Ativo e Verificado
     Bcrypt --> Service: Senha confere (true)
     deactivate Bcrypt
 
-    Service -> Service: Gerar accessToken (Expira em 2 min)\nGerar refreshToken (Expira em 3 dias)
+    Service -> Service: Gerar accessToken (Expira em 30 min)\nGerar refreshToken (Expira em 30 dias)
     Service -> DB: updateOne({ _id }, { refreshtoken: hash(refreshToken) })
     activate DB
     DB --> Service: OK
@@ -54,12 +54,12 @@ else Usuário Ativo e Verificado
     Gateway --> Client: HTTP 200 OK { tokens, usuario }
     deactivate Gateway
 
-    Client -> Client: Armazenar tokens em SecureStorage\nPersistir perfil localmente
+    Client -> Client: Armazenar tokens em SharedPreferences\nPersistir perfil localmente
     Client --> User: Redireciona para Dashboard / Cockpit
     deactivate Client
 end
 
-== Cenário 2: Renovação Transparente de Token Expirado (Refresh Automático via ApiClient) ==
+== Cenário 2: Renovação Transparente de Token Expirado (Refresh Automático via AuthInterceptor) ==
 
 User -> Client: Toca em "Minhas Viagens" (Ação comum)
 activate Client
@@ -72,12 +72,12 @@ Gateway --> Client: HTTP 401 Unauthorized (Token Expirado)
 deactivate Gateway
 
 note over Client
-  ApiClient intercepta HTTP 401.
-  Pausa a requisição original e
-  inicia renovação sem deslogar o motorista.
+  AuthInterceptor (QueuedInterceptor) intercepta HTTP 401/498.
+  Enfileira chamadas concorrentes para evitar loops e deadlocks.
+  Dispara renovação via instância isolada _tokenDio.
 end note
 
-Client -> Gateway: POST /refresh { refreshToken }
+Client -> Gateway: POST /refresh { refresh_token: storedRefreshToken }
 activate Gateway
 
 Gateway -> Service: refreshToken(refreshToken)
@@ -91,18 +91,18 @@ deactivate DB
 
 Service -> Service: Comparar token recebido com hash persistido
 alt Token Válido e Ativo
-    Service -> Service: Gerar novo accessToken (2 min)
+    Service -> Service: Gerar novo accessToken (30 min)
     Service --> Gateway: { accessToken: novoToken }
     deactivate Service
 
     Gateway --> Client: HTTP 200 OK { accessToken: novoToken }
     deactivate Gateway
 
-    Client -> Client: Atualiza SecureStorage com novo accessToken
-    
+    Client -> Client: Atualiza SharedPreferences com novo accessToken
+
     note over Client
-      Reexecuta automaticamente a chamada
-      original que falhou por expiração.
+      Reexecuta automaticamente a requisição
+      original enfileirada via dio.fetch() com novo token.
     end note
     Client -> Gateway: GET /viagens (Header: Bearer novoAccessToken)
     activate Gateway
@@ -114,8 +114,13 @@ alt Token Válido e Ativo
 else Refresh Token Expirado ou Inválido
     Service --> Gateway: throw CustomError(401, "Sessão expirada")
     Gateway --> Client: HTTP 401 Unauthorized
-    Client -> Client: Limpar SecureStorage e Isar cache de sessão
-    Client --> User: Redireciona para Tela de Login ("Sessão Expirada")
+    note over Client
+      sessionExpiredNotifier.value = true
+      Dados offline locais (Isar) são 100% preservados!
+      HomeViewModel exibe HomeSessionExpiredBanner
+      com ação de reautenticação sem perda de dados.
+    end note
+    Client --> User: Exibe banner "Sessão expirada na nuvem" (HomeSessionExpiredBanner)
 end
 
 @enduml

@@ -36,7 +36,7 @@ tcc-despesas-api/documentacao/diagramas/
     │   └── especificacao_casos_de_uso.md             # Especificação formal completa (UC-01 a UC-12 + 20 RNs)
     │
     ├── sequencia/
-    │   ├── sequencia_autenticacao_e_refresh.puml / .mmd  # Autenticação JWT, Bcrypt e ApiClient (Refresh)
+    │   ├── sequencia_autenticacao_e_refresh.puml / .mmd  # Autenticação JWT, Bcrypt e AuthInterceptor (Dio Refresh)
     │   ├── sequencia_ciclo_vida_viagem.puml / .mmd       # Abertura com Snapshots e Encerramento $aggregate
     │   ├── sequencia_lancamento_despesa_e_upload.puml / .mmd # Discriminators Mongoose, Sharp mozjpeg e S3
     │   └── sequencia_sincronizacao_offline_first.puml / .mmd # Push bulkWrite, Auto-Recovery e Delta Pull
@@ -56,7 +56,7 @@ tcc-despesas-api/documentacao/diagramas/
 1. **Diagrama de Classes (`classe/`):**
    - **Domínio:** Modela os esquemas Mongoose, herança polimórfica com discriminators na coleção `despesas` (`ABASTECIMENTO`, `ALIMENTACAO`, `MANUTENCAO`, `PEDAGIO`, `OUTROS`), snapshots imutáveis (`usuario_snapshot` e `veiculo_snapshot`), e controle de múltiplos reboques e placas.
    - **Arquitetura API:** Modela a divisão de responsabilidades da API Express 5.2 (`Routes` -> `Middlewares` -> `Controllers` -> `Services` -> `Repositories` -> `Helpers`).
-   - **Mobile Flutter:** Modela a arquitetura reativa offline-first do app móvel com coleções Isar (`ViagemCollection`, `DespesaCollection`), `SyncService`, `StorageCleanerService` e `ApiClient` (`package:http`).
+   - **Mobile Flutter:** Modela a arquitetura reativa offline-first do app móvel com coleções Isar (`ViagemCollection`, `DespesaCollection`), `SyncService`, `StorageCleanerService` `DioClient` (`package:dio` com `QueuedInterceptor`) e ViewModels MVVM via `Provider`.
 
 2. **Diagrama de Componentes (`componentes/`):**
    - Modela os módulos de software e suas interfaces (`tcc-despesas-mobile`, `tcc-despesas-api`, `MongoDB Database`, `Garage S3 Storage`, `Google Identity Platform` e `Hermes SMTP Mailer`).
@@ -72,7 +72,7 @@ tcc-despesas-api/documentacao/diagramas/
 
 4. **Diagrama de Containers (`containers/`):**
    - Modela a arquitetura de software no padrão **C4 Model (Nível 2)**:
-     - Containers de Software: `App Móvel RotaRDV` (Flutter / IsarDB), `Cloudflare Edge Anycast`, `Cloudflare Tunnel (cloudflared)`, `Traefik Ingress`, `API RESTful RotaRDV` (Node.js 22 / Express 5.2), `MongoDB 7.0 StatefulSet` e `Garage Cloud S3`.
+     - Containers de Software: `App Móvel RotaRDV` (Flutter / Dart / Dio / IsarDB), `Cloudflare Edge Anycast`, `Cloudflare Tunnel (cloudflared)`, `Traefik Ingress`, `API RESTful RotaRDV` (Node.js 22 / Express 5.2), `MongoDB 7.0 StatefulSet` e `Garage Cloud S3`.
      - Protocolos e portas mapeados: HTTPS Anycast (443), Tunnel Protocol seguro, HTTP interno (80), ClusterIP REST (5040), MongoDB Wire Protocol (27017) e S3 SigV4 TLS (443).
    - Disponível em [**`diagrama_containers.puml`**](file:///C:/Users/Pichau/Documents/TCCDespesas/tcc-despesas-api/documentacao/diagramas/containers/diagrama_containers.puml) e [**`.mmd`**](file:///C:/Users/Pichau/Documents/TCCDespesas/tcc-despesas-api/documentacao/diagramas/containers/diagrama_containers.mmd).
 
@@ -85,7 +85,7 @@ tcc-despesas-api/documentacao/diagramas/
    - Detalha as relações de inclusão (`<<include>>`) e extensão (`<<extend>>`) para os casos de uso essenciais (UC-01 a UC-12), acompanhado do documento formal de especificações e catálogo de 20 Regras de Negócio normativas.
 
 6. **Diagramas de Sequência (`sequencia/`):**
-   - **Autenticação e Refresh:** Interceptor Dio pausando requisições ao receber HTTP 401, renovando via `POST /auth/refresh` e reexecutando a chamada original de forma imperceptível para o motorista.
+   - **Autenticação e Refresh:** Interceptor Dio pausando requisições ao receber HTTP 401, renovando via `POST /refresh` com `_tokenDio` isolado e reexecutando a chamada original de forma imperceptível para o motorista.
    - **Ciclo de Vida da Viagem:** Validação de odômetro mínimo contra retrocesso, bloqueio de condutor/veículo ocupado, geração de snapshots imutáveis, encerramento com `km_final > km_inicial` e cálculo dinâmico via pipeline `$aggregate`.
    - **Lançamento de Despesa e Upload:** Persistência dos campos polimórficos de Discriminator, validação temporal (`data >= data_inicio`), compressão via Sharp mozjpeg 80%, sanitização SVG anti-XSS via DOMPurify e envio ao Garage S3.
    - **Sincronização Offline-First:** Push em lote com `bulkWrite({ ordered: false })`, tratamento de `is_deleted`, upload individual de comprovantes físicos com auto-recovery (`resolverOuRecuperarFotoLocal`), Pull delta via `updatedAfter` e exclusão periódica de fotos locais > 15 dias.

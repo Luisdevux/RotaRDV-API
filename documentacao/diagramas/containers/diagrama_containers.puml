@@ -16,7 +16,7 @@ Person(motorista, "Motorista Rodoviário", "Opera viagens, registra despesas e c
 Person(superadmin, "Administrador DevOps", "Opera a infraestrutura de nuvem, monitora pods e gerencia pipelines de CI/CD.")
 
 System_Boundary(c_clients, "Camada de Apresentação (Cliente Móvel)") {
-    Container(mobile_app, "Aplicativo Móvel RotaRDV", "Flutter / Dart", "Interface com arquitetura MVVM, monitoramento de conectividade e sincronização assíncrona.")
+    Container(mobile_app, "Aplicativo Móvel RotaRDV", "Flutter / Dart / Dio", "Interface com arquitetura MVVM, monitoramento de conectividade e sincronização assíncrona.")
     ContainerDb(isar_db, "Banco Embarcado", "Isar Database (NoSQL)", "Fonte da verdade local com latência zero ms. Persiste despesas offline.")
 }
 

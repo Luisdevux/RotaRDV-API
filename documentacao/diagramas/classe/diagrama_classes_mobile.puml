@@ -5,19 +5,20 @@ skinparam defaultFontName Arial
 skinparam roundCorner 8
 skinparam shadowing false
 
-title **Diagrama de Classes da Arquitetura Mobile (Flutter / IsarDB / ApiClient - RotaRDV)**
+title **Diagrama de Classes da Arquitetura Mobile (Flutter / IsarDB / Dio / Provider - RotaRDV)**
 
 package "Camada de Persistência Local (Isar Database)" #E8F8F5 {
   class LocalDatabase {
-    +{static} Future<Isar> init()
-    +{static} Isar get instance
+    +{static} Isar isar
+    +{static} Future<void> init()
   }
 
-  enum SyncStatus {
-    criado
-    editado
-    sincronizado
-    deletado
+  enum CategoriaDespesa {
+    ABASTECIMENTO
+    ALIMENTACAO
+    MANUTENCAO
+    PEDAGIO
+    OUTROS
   }
 
   class ViagemCollection <<(C,#A9DFBF) Isar Collection>> {
@@ -33,9 +34,6 @@ package "Camada de Persistência Local (Isar Database)" #E8F8F5 {
     +dataFim: DateTime?
     +status: String
     +statusSincronizacao: String <<@Index>>
-    --
-    +bool get estaSincronizado()
-    +bool get estaEmAndamento()
   }
 
   class DespesaCollection <<(C,#A9DFBF) Isar Collection>> {
@@ -55,34 +53,62 @@ package "Camada de Persistência Local (Isar Database)" #E8F8F5 {
     +tipoCombustivel: String?
     +kmAtual: double?
     +statusSincronizacao: String <<@Index>>
-    --
-    +bool get temFotoPendente()
-    +bool get isAbastecimento()
   }
 }
 
-package "Camada de Rede & Sincronização Offline-First" #EBF5FB {
-  class ApiClient {
-    -client: http.Client
-    +get(path, queryParameters): Future<Response>
-    +post(path, data): Future<Response>
-    +put(path, data): Future<Response>
-    +delete(path): Future<Response>
-    +uploadMultipart(path, filePath): Future<Response>
+package "Camada de Rede & Comunicação HTTP (Dio Client)" #EBF5FB {
+  class DioClient {
+    -{static} _dio: Dio
+    -{static} _initialized: bool
+    +{static} sessionExpiredNotifier: ValueNotifier<bool>
+    +{static} Dio get instance
+    +{static} String get baseUrl
+    +{static} void init()
+    +{static} void resetSessionExpired()
+    +{static} Future<Response<T>> get<T>(path, ...)
+    +{static} Future<Response<T>> post<T>(path, ...)
+    +{static} Future<Response<T>> put<T>(path, ...)
+    +{static} Future<Response<T>> patch<T>(path, ...)
+    +{static} Future<Response<T>> delete<T>(path, ...)
+    +{static} Future<Response<T>> uploadFile<T>(path, file, fieldName, ...)
+  }
+
+  class AuthInterceptor extends QueuedInterceptor {
+    -dio: Dio
+    -sessionExpiredNotifier: ValueNotifier<bool>
+    -_tokenDio: Dio
+    +onRequest(options, handler): void
+    +onResponse(response, handler): void
+    +onError(err, handler): void
+    -_handleUnauthorized(...): Future<void>
+  }
+
+  class TimeLoggingInterceptor extends Interceptor {
+    +onRequest(options, handler): void
+    +onResponse(response, handler): void
+    +onError(err, handler): void
+  }
+}
+
+package "Camada de Serviços de Negócio & Sincronização" #F0F4C3 {
+  class AuthService {
+    -_googleSignIn: GoogleSignIn
+    +login(email, senha): Future<Map?>
+    +signInWithGoogle(): Future<Map?>
+    +logout(): Future<void>
   }
 
   class SyncService <<(S,#AED6F1) Singleton>> {
     -{static} _instance: SyncService
-    -isSyncing: bool
+    +isSyncing: bool
     +syncEventNotifier: ValueNotifier<int>
-    --
     +initConnectivityListener(): void
-    +dispose(): void
-    +syncAll(maxRetries): Future<bool>
-    -_pushSync(): Future<bool>
-    -_pullSync(): Future<bool>
-    -_uploadPendingPhotos(): Future<void>
-    +obterResumoPendencias(): Future<PendingSyncSummary>
+    +syncAll(maxRetries): Future<void>
+    +pushSync(): Future<void>
+    +pullSync(): Future<void>
+    +hasPendingSync(): Future<bool>
+    +getPendingSyncSummary(): Future<PendingSyncSummary>
+    +resolverOuRecuperarFotoLocal(despesaUuid, caminhoAtual): Future<String?>
   }
 
   class PendingSyncSummary {
@@ -96,47 +122,95 @@ package "Camada de Rede & Sincronização Offline-First" #EBF5FB {
   class StorageCleanerService {
     +{static} limparComprovantesAntigosLocais(dias): Future<int>
   }
+
+  class EstadoCidadeService {
+    +loadEstadosECidades(): Future<void>
+    +getEstados(): List<String>
+    +getCidadesPorEstado(uf): List<String>
+  }
 }
 
-package "Camada de Apresentação & Gerência de Estado" #FEF9E7 {
-  class AuthController {
-    +usuarioAtual: ValueNotifier<UsuarioModel?>
-    +estaAutenticado: bool
+package "Camada de Apresentação & Gerência de Estado (MVVM / Provider)" #FEF9E7 {
+  class AuthViewModel extends ChangeNotifier {
+    -_authService: AuthService
+    +isLoadingLocal: bool
+    +isLoadingGoogle: bool
+    +errorMessage: String?
+    +currentUser: Map<String, dynamic>?
+    +currentVehicle: Map<String, dynamic>?
+    +isAuthenticated: bool
+    +checkAuth(): Future<bool>
     +login(email, senha): Future<bool>
-    +loginGoogle(): Future<bool>
+    +loginWithGoogle(): Future<bool>
     +logout(): Future<void>
+    +fetchProfile(): Future<void>
+    +reloadUserFromStorage(): Future<void>
   }
 
-  class ViagemController {
-    +viagens: ValueNotifier<List<ViagemCollection>>
-    +viagemAtiva: ValueNotifier<ViagemCollection?>
-    +carregarViagens(): Future<void>
-    +iniciarViagem(origem, destino, kmInicial): Future<void>
-    +encerrarViagem(viagemId, kmFinal): Future<void>
+  class HomeViewModel extends ChangeNotifier {
+    -_syncService: SyncService
+    +authViewModel: AuthViewModel
+    +isLoading: bool
+    +ultimasViagens: List<ViagemCollection>
+    +isSessionExpired: bool
+    +veiculo: Map<String, dynamic>?
+    +init(): Future<void>
+    +carregarDadosBancoLocal(): Future<void>
   }
 
-  class DespesaController {
-    +despesas: ValueNotifier<List<DespesaCollection>>
-    +carregarDespesasDaViagem(viagemUuid): Future<void>
-    +salvarDespesa(despesa, fotoPath): Future<void>
-    +deletarDespesa(despesaUuid): Future<void>
+  class DespesaViewModel extends ChangeNotifier {
+    -_isar: Isar
+    -_syncService: SyncService
+    +despesas: List<DespesaCollection>
+    +isLoading: bool
+    +currentViagemId: String?
+    +errorMessage: String?
+    +carregarDespesas(viagemUuid): Future<void>
+    +salvarDespesa(despesa, fotoPath): Future<bool>
+    +deletarDespesa(uuid): Future<bool>
+    +calcularMetricasViagem(viagem): MetricasConsumoViagem
+  }
+
+  class MetricasConsumoViagem {
+    +totalLitros: double
+    +kmPercorridoTotal: double
+    +mediaConsumoGeral: double?
+    +totalAbastecimentos: int
+    +mediaUltimoAbastecimento: double?
+    +temDadosAbastecimento: bool
+  }
+
+  class ThemeProvider extends ChangeNotifier {
+    +themeMode: ThemeMode
+    +isDark: bool
+    +toggleTheme(): void
   }
 }
 
 ' Relacionamentos
 LocalDatabase ..> ViagemCollection : gerencia
 LocalDatabase ..> DespesaCollection : gerencia
+DespesaCollection "0..*" --> "1" ViagemCollection : viagemId
 
-ViagemController --> LocalDatabase : lê/escreve
-ViagemController --> SyncService : notifica_sync
-DespesaController --> LocalDatabase : lê/escreve
-DespesaController --> SyncService : notifica_sync
+DioClient *-- AuthInterceptor : intercepta_auth
+DioClient *-- TimeLoggingInterceptor : mede_latencia
 
-SyncService --> ApiClient : envia_dados_nuvem
-SyncService --> LocalDatabase : atualiza_status
-SyncService --> StorageCleanerService : executa_exclusao_pos_sync
-SyncService ..> PendingSyncSummary : gera
+AuthService --> DioClient : requisições_api
+AuthViewModel --> AuthService : autentica
+AuthViewModel --> LocalDatabase : limpa_troca_usuario
 
-DespesaCollection "0..*" --> "1" ViagemCollection : vinculada_por_viagemId
+HomeViewModel --> AuthViewModel : observa_perfil
+HomeViewModel --> LocalDatabase : lê_viagens
+HomeViewModel --> SyncService : escuta_syncEventNotifier
+HomeViewModel ..> DioClient : escuta_sessionExpiredNotifier
+
+DespesaViewModel --> LocalDatabase : persiste_despesa
+DespesaViewModel --> SyncService : aciona_sync
+DespesaViewModel ..> MetricasConsumoViagem : gera
+
+SyncService --> DioClient : push_pull_upload
+SyncService --> LocalDatabase : atualiza_registros
+SyncService --> StorageCleanerService : expurgo_fotos_antigas
+SyncService ..> PendingSyncSummary : emite
 
 @enduml
