@@ -30,6 +30,10 @@ class Veiculo {
                 type: Number,
                 default: 400
             },
+            capacidade_arla: {
+                type: Number,
+                default: null
+            },
             ano_fabricacao: {
                 type: Number,
                 default: 2024

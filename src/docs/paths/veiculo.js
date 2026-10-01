@@ -65,7 +65,8 @@ const veiculoRoutes = {
                     - **placa**: Placa do cavalo mecânico (obrigatório, padrão Mercosul ou Nacional).
                     - **modelo**: Modelo do veículo (obrigatório).
                     - **combustivel_preferencial**: Tipo de combustível principal (obrigatório).
-                    - **capacidade_tanque**: Capacidade em litros (obrigatório).
+                    - **capacidade_tanque**: Capacidade em litros do tanque de combustível (obrigatório).
+                    - **capacidade_arla**: Capacidade em litros do reservatório de Arla 32 (opcional).
                     - **ano_fabricacao**: Ano de fabricação do veículo (obrigatório).
                     - **reboque**: Objeto contendo modelo e placas das carretas/implementos (opcional).
                     - **empresa_id**: ID da transportadora proprietária (opcional; vinculado automaticamente para gestores).

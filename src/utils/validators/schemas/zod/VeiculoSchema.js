@@ -19,6 +19,7 @@ const VeiculoSchema = z.object({
     ]).optional().default('DIESEL_S10'),
     status: z.enum(['ativo', 'inativo']).optional().default('ativo'),
     capacidade_tanque: z.number().optional(),
+    capacidade_arla: z.number().nullable().optional(),
     ano_fabricacao: z.number().optional(),
     empresa_id: z.string().optional(),
     reboque: z.object({
