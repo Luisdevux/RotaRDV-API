@@ -28,7 +28,9 @@ class SyncService {
 
         // Mapa de viagens do motorista para validação contextual de despesas e integridade relacional
         const mapaViagens = new Map();
-        const viagensDoMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }).lean();
+        const viagensDoMotorista = await Viagem.find({ usuario_id: usuarioLogado._id })
+            .populate('veiculo_id', 'modelo placa capacidade_tanque capacidade_arla combustivel_preferencial')
+            .lean();
         for (const v of viagensDoMotorista) {
             mapaViagens.set(String(v._id), v);
         }
@@ -95,7 +97,12 @@ class SyncService {
                     });
 
                     // Disponibiliza a viagem atualizada para as despesas do lote atual
-                    mapaViagens.set(String(v._id), v);
+                    mapaViagens.set(String(v._id), {
+                        ...v,
+                        veiculo_id: (typeof v.veiculo_id === 'object' && v.veiculo_id !== null)
+                            ? v.veiculo_id
+                            : (veiculoDoc || v.veiculo_id)
+                    });
                 }
             }
 

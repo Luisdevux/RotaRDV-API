@@ -27,6 +27,7 @@ const veiculoSchemas = {
             },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             capacidade_tanque: { type: "number", example: 400 },
+            capacidade_arla: { type: "number", example: 60 },
             ano_fabricacao: { type: "number", example: 2024 },
             reboque: {
                 type: "object",
@@ -59,6 +60,7 @@ const veiculoSchemas = {
             },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             capacidade_tanque: { type: "number", example: 400 },
+            capacidade_arla: { type: "number", example: 60 },
             ano_fabricacao: { type: "number", example: 2024 },
             reboque: {
                 type: "object",
@@ -88,6 +90,7 @@ const veiculoSchemas = {
             },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             capacidade_tanque: { type: "number", example: 400 },
+            capacidade_arla: { type: "number", example: 60 },
             ano_fabricacao: { type: "number", example: 2024 },
             reboque: {
                 type: "object",

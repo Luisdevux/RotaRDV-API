@@ -15,7 +15,7 @@ class ViagemRepository {
     async buscarPorID(id) {
         const viagem = await this.modelViagem.findById(id)
             .populate('usuario_id', 'nome email')
-            .populate('veiculo_id', 'modelo placa');
+            .populate('veiculo_id', 'modelo placa capacidade_tanque capacidade_arla combustivel_preferencial');
 
         if (!viagem) {
             throw new CustomError({
@@ -63,7 +63,7 @@ class ViagemRepository {
             const docs = await this.modelViagem.find(filtros)
                 .populate([
                     { path: 'usuario_id', select: 'nome email' },
-                    { path: 'veiculo_id', select: 'modelo placa' }
+                    { path: 'veiculo_id', select: 'modelo placa capacidade_tanque capacidade_arla combustivel_preferencial' }
                 ])
                 .sort({ data_inicio: -1 })
                 .lean();
@@ -90,7 +90,7 @@ class ViagemRepository {
             sort: { data_inicio: -1 },
             populate: [
                 { path: 'usuario_id', select: 'nome email' },
-                { path: 'veiculo_id', select: 'modelo placa' }
+                { path: 'veiculo_id', select: 'modelo placa capacidade_tanque capacidade_arla combustivel_preferencial' }
             ]
         };
 
