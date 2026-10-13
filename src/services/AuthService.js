@@ -62,7 +62,7 @@ class AuthService {
             });
         }
 
-        // Verificar se op email foi confirmado
+        // Verificar se o email foi verificado (garante que apenas contas ativadas/criadas pelo painel possam logar)
         if (!userEncontrado.email_verificado) {
             throw new CustomError({
                 statusCode: 403,
@@ -70,7 +70,7 @@ class AuthService {
                 field: 'Email',
                 details: [],
                 customMessage: 'Por favor, verifique seu email antes de fazer o login. Confira sua caixa de entrada.'
-            })
+            });
         }
 
         const senhaValida = await bcrypt.compare(body.senha, userEncontrado.senha);

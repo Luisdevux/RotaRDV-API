@@ -10,12 +10,14 @@ import {
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
+import EmpresaRepository from '../repositories/EmpresaRepository.js';
 import UploadService from './UploadService.js';
 
 class UsuarioService {
     constructor() {
         this.repository = new UsuarioRepository();
         this.veiculoRepository = new VeiculoRepository();
+        this.empresaRepository = new EmpresaRepository();
         this.uploadService = new UploadService();
     }
 
@@ -113,21 +115,39 @@ class UsuarioService {
             parsedData.senha = await AuthHelper.hashPassword(parsedData.senha);
         }
 
-        // Configuração de verificação de email
-        const tokenVerificacao = await AuthHelper.generateRandomToken();
-        parsedData.token_verificacao_email = tokenVerificacao;
-        parsedData.exp_token_verificacao_email = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-        parsedData.email_verificada = false;
+        // Usuários cadastrados no sistema já nascem com email verificado
+        parsedData.email_verificado = true;
 
         const data = await this.repository.criar(parsedData);
 
-        // Envia email de verificação em background via EmailHelper
-        EmailHelper.enviarEmailVerificacao({
-            usuarioId: data._id,
-            email: data.email,
-            nome: data.nome,
-            token: tokenVerificacao
-        });
+        // Busca o nome da empresa caso o usuário possua empresa_id vinculado
+        let nomeEmpresa = data.empresa?.nome || '';
+        if (!nomeEmpresa && data.empresa_id) {
+            try {
+                const emp = await this.empresaRepository.buscarPorID(data.empresa_id);
+                if (emp) nomeEmpresa = emp.nome_empresa;
+            } catch (_) {}
+        }
+
+        // Roteamento de e-mails de boas-vindas com base no perfil
+        if (data.role === 'motorista') {
+            EmailHelper.enviarEmailBoasVindasMotorista({
+                usuarioId: data._id,
+                email: data.email,
+                nome: data.nome,
+                nomeEmpresa: nomeEmpresa || 'RotaRDV'
+            });
+        } else {
+            const cargoFinal = data.empresa?.cargo || parsedData.cargo || (data.role === 'admin' ? 'Administrador da Empresa' : 'Gestor de Frota');
+            EmailHelper.enviarEmailBoasVindasEquipeAdministrativa({
+                usuarioId: data._id,
+                email: data.email,
+                nome: data.nome,
+                nomeEmpresa: nomeEmpresa || 'sua empresa',
+                cargo: cargoFinal,
+                role: data.role
+            });
+        }
 
         return data;
     }

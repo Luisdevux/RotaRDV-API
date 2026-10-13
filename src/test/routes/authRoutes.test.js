@@ -117,7 +117,7 @@ describe('Rotas de Autenticação (authRoutes)', () => {
             expect(res.body.message).toContain('desativada');
         });
 
-        it('deve bloquear com 403 usuário com email não confirmado', async () => {
+        it('deve bloquear com 403 usuário com email não confirmado (não originado ou ativado pelo painel)', async () => {
             const senhaPlana = 'SenhaForte@2026';
             const usuario = await criarUsuario({
                 senha: await bcrypt.hash(senhaPlana, 10),
@@ -258,6 +258,30 @@ describe('Rotas de Autenticação (authRoutes)', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.data.message).toContain('link de recuperação');
+        });
+    });
+
+    describe('GET /verificar-email', () => {
+        it('deve retornar HTML de sucesso ao receber token de verificação válido', async () => {
+            const token = 'token-valido-rota-teste-456';
+            await criarUsuario({
+                token_verificacao_email: token,
+                exp_token_verificacao_email: new Date(Date.now() + 60 * 60 * 1000),
+                email_verificado: false,
+            });
+
+            const res = await request(app)
+                .get(`/verificar-email?token=${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.text).toContain('Sucesso');
+        });
+
+        it('deve retornar 400 quando o token não for enviado', async () => {
+            const res = await request(app)
+                .get('/verificar-email');
+
+            expect(res.status).toBe(400);
         });
     });
 });

@@ -114,7 +114,7 @@ describe('Unitário: AuthService (Regras de Negócio de Autenticação)', () => 
             expect(erro.field).toBe('Status');
         });
 
-        it('deve lançar CustomError 403 quando o email do usuário não tiver sido verificado', async () => {
+        it('deve lançar CustomError 403 quando o email do usuário não tiver sido verificado (ex: vindo de fora do painel)', async () => {
             const senhaPlana = 'SenhaForte@123';
             const usuario = await criarUsuario({
                 senha: await bcrypt.hash(senhaPlana, 10),
@@ -216,6 +216,38 @@ describe('Unitário: AuthService (Regras de Negócio de Autenticação)', () => 
 
             const usuarioAtualizado = await Usuario.findById(usuario._id).select('+refreshtoken');
             expect(usuarioAtualizado.refreshtoken).toBeNull();
+        });
+    });
+
+    describe('Método verificarEmail', () => {
+        it('deve confirmar email com sucesso ao fornecer token de verificação válido', async () => {
+            const token = 'token-valido-teste-123';
+            const usuario = await criarUsuario({
+                token_verificacao_email: token,
+                exp_token_verificacao_email: new Date(Date.now() + 60 * 60 * 1000),
+                email_verificado: false,
+            });
+
+            const resultado = await service.verificarEmail(token);
+            expect(resultado).toBeDefined();
+            expect(resultado.message).toContain('Email verificado');
+            expect(resultado.email).toBe(usuario.email);
+
+            const usuarioNoBanco = await Usuario.findById(usuario._id);
+            expect(usuarioNoBanco.email_verificado).toBe(true);
+        });
+
+        it('deve lançar CustomError 404 para token de verificação inexistente', async () => {
+            let erro;
+            try {
+                await service.verificarEmail('token-inexistente-xyz');
+            } catch (err) {
+                erro = err;
+            }
+
+            expect(erro).toBeInstanceOf(CustomError);
+            expect(erro.statusCode).toBe(404);
+            expect(erro.errorType).toBe('notFound');
         });
     });
 });
