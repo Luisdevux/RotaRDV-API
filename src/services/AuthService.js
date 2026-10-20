@@ -430,7 +430,7 @@ class AuthService {
      */
     async signupEmpresa(body) {
         const validated = SignupEmpresaSchema.parse(body);
-        const adminData = validated.admin || validated.gestor;
+        const adminData = validated.admin;
 
         // 1. Validar unicidade do CNPJ e email da empresa
         await ValidationHelper.validateCnpj(this.empresaRepository, validated.cnpj);
