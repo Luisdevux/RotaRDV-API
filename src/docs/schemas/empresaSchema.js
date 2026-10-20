@@ -76,6 +76,31 @@ const empresaSchemas = {
         description: "Schema para criação de uma nova empresa"
     },
 
+    CadastrarFilialInput: {
+        type: "object",
+        required: ["nome_empresa", "cnpj"],
+        properties: {
+            nome_empresa: { type: "string", example: "Transportadora Rota Brasil - Filial Porto Velho" },
+            cnpj: { type: "string", description: "CNPJ numérico ou alfanumérico IN RFB 2.229/2024", example: "12.ABC.345/0001-88" },
+            email: { type: "string", example: "filial.pvh@rotabrasil.com.br" },
+            email_empresa: { type: "string", example: "filial.pvh@rotabrasil.com.br" },
+            telefone: { type: "string", example: "(69) 3222-1100" },
+            endereco: {
+                type: "object",
+                properties: {
+                    cep: { type: "string", example: "76801-000" },
+                    logradouro: { type: "string", example: "Av. Sete de Setembro" },
+                    numero: { type: "string", example: "500" },
+                    bairro: { type: "string", example: "Centro" },
+                    cidade: { type: "string", example: "Porto Velho" },
+                    estado: { type: "string", example: "RO" }
+                }
+            },
+            foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" }
+        },
+        description: "Schema para cadastro de filial coligada vinculada ao Administrador autenticado"
+    },
+
     EmpresaAtualizacao: {
         type: "object",
         properties: {

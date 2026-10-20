@@ -101,6 +101,53 @@ const empresaRoutes = {
             }
         }
     },
+    "/empresas/filial": {
+        post: {
+            tags: ["Empresas"],
+            summary: "Cadastra nova filial coligada vinculada ao Administrador da transportadora",
+            description: `
+            + Caso de uso: O Administrador Master cadastra uma nova unidade operacional / filial da sua empresa.
+
+            + Função de Negócio:
+                - Criar uma nova empresa filial com CNPJ e e-mail próprios, vinculando-a diretamente ao \`admin_id\` do administrador autenticado.
+                + Recebe no corpo da requisição:
+                    - **nome_empresa**: Razão Social ou Nome Fantasia da filial (obrigatório).
+                    - **cnpj**: CNPJ válido da filial (numérico ou alfanumérico IN RFB 2.229/2024).
+                    - **email**: E-mail institucional de contato da filial (obrigatório).
+                    - **telefone**: Telefone de contato (opcional).
+                    - **endereco**: Objeto estruturado de endereço (opcional).
+                    - **foto_logo**: URL pública do logotipo da filial (opcional).
+
+            + Regras de Negócio:
+                - Apenas usuários com role \`admin\` ou \`superAdmin\` podem cadastrar filiais.
+                - CNPJ e Email institucional devem ser únicos no sistema.
+                - O sistema vincula automaticamente o \`admin_id\` do administrador autenticado.
+
+            + Resultado Esperado:
+                - HTTP 201 Created com os dados da filial criada conforme schema **EmpresaListagem**.
+            `,
+            security: [{ bearerAuth: [] }],
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            $ref: "#/components/schemas/CadastrarFilialInput"
+                        }
+                    }
+                }
+            },
+            responses: {
+                201: commonResponses[201]("#/components/schemas/EmpresaListagem"),
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                409: commonResponses[409](null, "CNPJ ou email já cadastrado."),
+                498: commonResponses[498](),
+                500: commonResponses[500]()
+            }
+        }
+    },
     "/empresas/{id}": {
         get: {
             tags: ["Empresas"],

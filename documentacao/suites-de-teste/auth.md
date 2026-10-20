@@ -46,3 +46,12 @@ Arquivos correspondentes:
 | Cenário / Funcionalidade | Comportamento Esperado | Verificações (Execução) | Critérios de Aceite |
 | :--- | :--- | :--- | :--- |
 | **Prevenção contra Enumeração de Contas** | Responde com mensagem de sucesso neutra independentemente do e-mail existir na base, impedindo enumeração de usuários por atacantes. | Requisição `POST /recover` com e-mail qualquer não cadastrado. | Retorna HTTP `200` com mensagem padrão sobre instruções de recuperação enviadas por e-mail. |
+
+---
+
+### POST /signup (Onboarding Corporativo)
+
+| Cenário / Funcionalidade | Comportamento Esperado | Verificações (Execução) | Critérios de Aceite |
+| :--- | :--- | :--- | :--- |
+| **Criação Atômica de Empresa e Admin Master** | Realiza o cadastro corporativo criando a entidade Empresa e o usuário Administrador Master com vínculo mútuo. | Requisição `POST /signup` enviando dados da transportadora e do administrador responsável. | Retorna HTTP `201` com `empresa` e `usuario` (role `admin`, `isAdmin: true`, `email_verificado: true`). `empresa.admin_id` aponta para o usuário e `usuario.empresa_id` aponta para a empresa. |
+| **Bloqueio por CNPJ Duplicado** | Impede o onboarding se o CNPJ já estiver cadastrado no sistema. | Tentativa de `POST /signup` com CNPJ já existente na base. | Retorna HTTP `400` com mensagem informando duplicidade de CNPJ. |

@@ -52,7 +52,7 @@ O backend do RotaRDV foi estruturado para suportar escalabilidade, garantindo qu
 
 O banco de dados do projeto de domínio foi fragmentado em 6 grandes coleções principais no MongoDB:
 
-- 🏢 **`empresas`**: Gestão corporativa multi-tenant da transportadora. Modela CNPJ (numérico tradicional e novo padrão alfanumérico da Receita Federal), razão social, contato, endereço estruturado, vínculo com Gestor de Frota (`gestor_id`), logotipo S3 e status operacional.
+- 🏢 **`empresas`**: Gestão corporativa multi-tenant da transportadora. Modela CNPJ (numérico tradicional e novo padrão alfanumérico da Receita Federal), razão social, contato, endereço estruturado, vínculo com Administrador Master (`admin_id`), logotipo S3 e status operacional.
 - 👥 **`usuarios`**: Gestão dos motoristas (Mobile), gestores de frota e retaguarda administrativa (Dashboards). Modela hash de segredos, telefone de contato, CPF validado, vínculos com transportadora, JWT Sessions e recuperação de permissões.
 - 🚛 **`veiculos`**: Gestão unificada da frota da transportadora. Regula a "cabeça" (cavalo mecânico) e sua array de chassis tracionados (Reboques).
 - 🛣️ **`viagens`**: O coração relacional. Associa 1 Motorista <> 1 Snapshot de Veículo. Congela cronometragens, odometria inicial/final e status cíclico.
@@ -66,8 +66,9 @@ O banco de dados do projeto de domínio foi fragmentado em 6 grandes coleções 
 Acompanhamento do que o projeto já atende de regra de arquitetura real pronta para consumir via endpoints.
 
 ### 🏢 Gestão de Empresas e Transportadoras *(Status: ✅ Implementado)*
-- [x] `POST /empresas`: Cadastro corporativo com validação matemática de CNPJ (padrão numérico e alfanumérico IN RFB 2.229/2024), e-mail único, endereço estruturado e associação de Gestor de Frota (`gestor_id`).
-- [x] `PATCH /empresas/:id`: Atualização cadastral parcial (dados cadastrais, contatos, endereço) permitida a Gestores e Administradores (alteração de gestor restrita a Admin).
+- [x] `POST /empresas`: Cadastro corporativo com validação matemática de CNPJ (padrão numérico e alfanumérico IN RFB 2.229/2024), e-mail único, endereço estruturado e associação de Administrador Master (`admin_id`).
+- [x] `POST /empresas/filial`: Cadastro de filiais coligadas pelo Administrador Master da empresa.
+- [x] `PATCH /empresas/:id`: Atualização cadastral parcial (dados cadastrais, contatos, endereço) permitida a Administradores (alteração de admin restrita a Admin).
 - [x] `PATCH /empresas/:id/status`: Ativação e inativação de transportadoras com governança estrita de Admin.
 - [x] `DELETE /empresas/:id`: Exclusão com **trava de integridade referencial** rígida contra empresas com motoristas vinculados ou veículos na frota.
 - [x] `POST/GET /empresas/:id/motoristas` e `POST /empresas/:id/motoristas/vincular`: Gestão completa de cadastro, vínculo e desvinculação de motoristas corporativos com suporte a CPF e telefone.

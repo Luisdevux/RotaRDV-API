@@ -50,7 +50,7 @@ classDiagram
         +Endereco endereco
         +String status
         +String foto_logo
-        +ObjectId gestor_id
+        +ObjectId admin_id
         +Date createdAt
         +Date updatedAt
     }
@@ -180,7 +180,7 @@ classDiagram
 
     %% Relacionamentos
     Empresa *-- Endereco : possui
-    Empresa o-- Usuario : gestor_id
+    Empresa o-- Usuario : admin_id
     Empresa <-- Usuario : empresa_id
     Empresa <-- Veiculo : empresa_id
     Empresa <-- Viagem : empresa_id
