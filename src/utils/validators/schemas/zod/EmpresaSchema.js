@@ -161,11 +161,7 @@ const SignupEmpresaSchema = z.object({
         .nonempty('Email corporativo é obrigatório.'),
     telefone_empresa: z.string().optional(),
     endereco: EnderecoSchema,
-    admin: AdminResponsavelSchema.optional(),
-    gestor: AdminResponsavelSchema.optional(),
-}).refine((data) => data.admin || data.gestor, {
-    message: 'Os dados do administrador da transportadora são obrigatórios.',
-    path: ['admin'],
+    admin: AdminResponsavelSchema,
 });
 
 const CadastrarFilialSchema = z.object({
