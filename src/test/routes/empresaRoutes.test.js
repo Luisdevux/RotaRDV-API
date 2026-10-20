@@ -174,4 +174,115 @@ describe('Rotas de Empresas (empresaRoutes)', () => {
             expect(await Empresa.findById(empresa._id)).toBeNull();
         });
     });
+
+    describe('POST /empresas/filial (Matriz e Filiais Coligadas)', () => {
+        it('deve permitir criação de filial para usuário com role admin vinculando admin_id ao admin', async () => {
+            const adminMaster = await criarUsuario({ role: 'admin' });
+            const matriz = await criarEmpresa({ admin_id: adminMaster._id });
+            adminMaster.empresa_id = matriz._id;
+            await adminMaster.save();
+
+            autenticarComo(adminMaster);
+
+            const cnpjFilial = cnpjUtil.format(cnpjUtil.generate(false));
+            const emailFilial = `filial_${Date.now()}@transporte.com`;
+
+            const res = await request(app)
+                .post('/empresas/filial')
+                .send({
+                    nome_empresa: 'Transportadora Batista - Filial Porto Velho',
+                    cnpj: cnpjFilial,
+                    email: emailFilial,
+                    telefone: '6932221100',
+                    endereco: {
+                        cidade: 'Porto Velho',
+                        estado: 'RO'
+                    }
+                });
+
+            expect(res.status).toBe(201);
+            expect(res.body.data.nome_empresa).toBe('Transportadora Batista - Filial Porto Velho');
+            expect(String(res.body.data.admin_id)).toBe(String(adminMaster._id));
+
+            // Testar se o Admin Master enxerga Matriz e Filial no GET /empresas
+            const listRes = await request(app)
+                .get('/empresas');
+
+            expect(listRes.status).toBe(200);
+            const empresasEncontradas = listRes.body.data.docs || listRes.body.data;
+            expect(empresasEncontradas.length).toBe(2);
+            const ids = empresasEncontradas.map((e) => String(e._id));
+            expect(ids).toContain(String(matriz._id));
+            expect(ids).toContain(String(res.body.data._id));
+        });
+
+        it('deve bloquear criação de filial para motorista com status 403', async () => {
+            const motorista = await criarUsuario({ role: 'motorista' });
+            autenticarComo(motorista);
+
+            const res = await request(app)
+                .post('/empresas/filial')
+                .send({
+                    nome_empresa: 'Tentativa Inválida Filial',
+                    cnpj: cnpjUtil.format(cnpjUtil.generate(false)),
+                    email: 'filial_bloqueada@teste.com'
+                });
+
+            expect(res.status).toBe(403);
+            expect(res.body.message).toContain('Administradores');
+        });
+    });
+
+    describe('Filtros e Validação de CNPJ Alfanumérico (IN RFB 2.229/2024)', () => {
+        it('deve cadastrar empresa com CNPJ alfanumérico e encontrá-la tanto com filtro formatado quanto limpo ou parcial', async () => {
+            const superAdmin = await criarUsuario({ role: 'superAdmin' });
+            autenticarComo(superAdmin);
+
+            const cnpjAlfanumerico = '12.ABC.345/0001-88';
+            const cadRes = await request(app)
+                .post('/empresas')
+                .send({
+                    nome_empresa: 'Transportes Alfanumérico Express',
+                    cnpj: cnpjAlfanumerico,
+                    email: 'contato@alfaexpress.com.br',
+                });
+
+            expect(cadRes.status).toBe(201);
+            expect(cadRes.body.data.cnpj).toBe('12ABC345000188');
+
+            // 1. Buscar filtrando pelo CNPJ formatado
+            const buscaFormatada = await request(app)
+                .get('/empresas')
+                .query({ cnpj: '12.ABC.345/0001-88' });
+            expect(buscaFormatada.status).toBe(200);
+            expect(buscaFormatada.body.data.docs.length).toBe(1);
+            expect(buscaFormatada.body.data.docs[0].nome_empresa).toBe('Transportes Alfanumérico Express');
+
+            // 2. Buscar filtrando pelo CNPJ sem pontuação
+            const buscaLimpa = await request(app)
+                .get('/empresas')
+                .query({ cnpj: '12ABC345000188' });
+            expect(buscaLimpa.status).toBe(200);
+            expect(buscaLimpa.body.data.docs.length).toBe(1);
+
+            // 3. Buscar filtrando por trecho com letras (case-insensitive)
+            const buscaParcial = await request(app)
+                .get('/empresas')
+                .query({ cnpj: '12abc' });
+            expect(buscaParcial.status).toBe(200);
+            expect(buscaParcial.body.data.docs.length).toBe(1);
+
+            // 4. Tentativa de cadastrar duplicata com CNPJ alfanumérico deve retornar 400 (Validation Error)
+            const dupRes = await request(app)
+                .post('/empresas')
+                .send({
+                    nome_empresa: 'Outra Empresa Mesmo CNPJ',
+                    cnpj: '12ABC345000188',
+                    email: 'outro@alfaexpress.com.br',
+                });
+            expect(dupRes.status).toBe(400);
+            expect(dupRes.body.message).toContain('CNPJ já');
+        });
+    });
 });
+

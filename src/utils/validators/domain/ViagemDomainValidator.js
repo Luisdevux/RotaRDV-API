@@ -1,5 +1,7 @@
 // src/utils/validators/domain/ViagemDomainValidator.js
 
+import DateHelper from '../../helpers/DateHelper.js';
+
 /**
  * Validador unificado de regras e invariantes de domínio para viagens.
  * Assegura que tanto o fluxo REST quanto a sincronização em lote respeitem
@@ -64,14 +66,14 @@ class ViagemDomainValidator {
             return { valido: false, motivo: 'A data de início da viagem é obrigatória.', campo: 'data_inicio' };
         }
 
-        const dataInicio = new Date(viagem.data_inicio);
-        if (isNaN(dataInicio.getTime())) {
+        const dataInicio = DateHelper.parseFlexibleDate(viagem.data_inicio);
+        if (!dataInicio) {
             return { valido: false, motivo: 'Formato de data de início inválido.', campo: 'data_inicio' };
         }
 
         if (viagem.data_fim) {
-            const dataFim = new Date(viagem.data_fim);
-            if (isNaN(dataFim.getTime()) || dataFim < dataInicio) {
+            const dataFim = DateHelper.parseFlexibleDate(viagem.data_fim);
+            if (!dataFim || dataFim < dataInicio) {
                 return {
                     valido: false,
                     motivo: 'A data de encerramento não pode ser anterior à data de início da viagem.',

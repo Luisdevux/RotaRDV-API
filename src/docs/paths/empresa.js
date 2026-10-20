@@ -68,13 +68,13 @@ const empresaRoutes = {
                     - **email**: Email corporativo de contato (obrigatório).
                     - **telefone**: Telefone de contato (opcional).
                     - **endereco**: Objeto com logradouro, número, complemento, bairro, cidade, estado e cep (opcional).
-                    - **gestor_id**: ID do usuário gestor inicial (opcional).
+                    - **admin_id**: ID do usuário administrador master (opcional).
                     - **foto_logo**: URL pública do logotipo (opcional).
 
             + Regras de Negócio:
                 - Apenas administradores do sistema podem cadastrar novas empresas.
                 - CNPJ e Email corporativo devem ser únicos e válidos no sistema.
-                - Se informado um gestor_id, o usuário deve existir e não ser administrador.
+                - Se informado um admin_id, o usuário deve existir.
 
             + Resultado Esperado:
                 - HTTP 201 Created com os dados da empresa criada conforme schema **EmpresaListagem**.
@@ -157,7 +157,7 @@ const empresaRoutes = {
                     - **email**: Novo email corporativo.
                     - **telefone**: Novo telefone.
                     - **endereco**: Objeto atualizado de endereço.
-                    - **gestor_id**: Novo gestor responsável.
+                    - **admin_id**: Novo administrador responsável.
                     - **foto_logo**: Nova URL do logotipo.
 
             + Regras de Negócio:

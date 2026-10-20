@@ -30,9 +30,18 @@ class UsuarioService {
         if (req.params?.id) {
             // Se está buscando um usuário específico, verifica permissão (Admin, Dono do Perfil, ou Gestor da mesma empresa)
             const targetUser = await this.repository.buscarPorID(req.params.id);
+            let isAdminDestaEmpresa = false;
+            if (usuarioLogado?.role === 'admin' && !isSuperAdmin && targetUser?.empresa_id) {
+                try {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, targetUser.empresa_id);
+                    isAdminDestaEmpresa = true;
+                } catch (_) {}
+            }
+
             ensurePermission({
                 usuarioLogado,
                 targetId: req.params.id,
+                isOwner: isAdminDestaEmpresa,
                 empresaId: targetUser?.empresa_id,
                 field: 'Consulta de Usuário',
                 customMessage: 'Você não tem permissões para acessar os dados deste usuário.',
@@ -51,8 +60,17 @@ class UsuarioService {
 
         const filtrosOverride = {};
         if (!isSuperAdmin) {
-            // Admin interno e gestor: só enxergam usuários vinculados à sua própria empresa
-            filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+            if (usuarioLogado?.role === 'admin') {
+                const targetEmpresaId = req.query?.empresa_id || req.validatedQuery?.empresa_id;
+                if (targetEmpresaId) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, targetEmpresaId);
+                    filtrosOverride.empresa_id = targetEmpresaId;
+                } else {
+                    filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+                }
+            } else {
+                filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+            }
         }
 
         const data = await this.repository.listar(req, filtrosOverride);
@@ -85,9 +103,13 @@ class UsuarioService {
                 });
             }
 
-            // Admin interno só pode criar usuários vinculados à sua empresa
-            if (!isSuperAdmin && usuarioLogado.empresa_id) {
-                parsedData.empresa_id = usuarioLogado.empresa_id;
+            // Admin interno só pode criar usuários vinculados à sua empresa ou à filial autorizada
+            if (!isSuperAdmin) {
+                if (usuarioLogado?.role === 'admin' && parsedData.empresa_id) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, parsedData.empresa_id);
+                } else if (usuarioLogado.empresa_id) {
+                    parsedData.empresa_id = usuarioLogado.empresa_id;
+                }
             }
         }
 

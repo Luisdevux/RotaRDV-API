@@ -36,7 +36,7 @@ const empresaSchemas = {
             },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" },
-            gestor_id: {
+            admin_id: {
                 type: "object",
                 properties: {
                     _id: { type: "string", example: "674fa21d79969d2172e78788" },
@@ -70,7 +70,7 @@ const empresaSchemas = {
                     estado: { type: "string", example: "SP" }
                 }
             },
-            gestor_id: { type: "string", example: "674fa21d79969d2172e78788", description: "ID do usuário gestor (opcional)" },
+            admin_id: { type: "string", example: "674fa21d79969d2172e78788", description: "ID do usuário administrador master (opcional)" },
             foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" }
         },
         description: "Schema para criação de uma nova empresa"
@@ -95,7 +95,7 @@ const empresaSchemas = {
                     estado: { type: "string", example: "SP" }
                 }
             },
-            gestor_id: { type: "string", example: "674fa21d79969d2172e78788" },
+            admin_id: { type: "string", example: "674fa21d79969d2172e78788" },
             foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" }
         },
         description: "Schema para atualização de dados da empresa"

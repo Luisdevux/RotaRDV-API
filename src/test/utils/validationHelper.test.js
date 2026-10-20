@@ -24,8 +24,17 @@ describe('Validation and Permission Helpers (src/test/utils/validationHelper)', 
         });
 
         it('deve validar CNPJ alfanumérico no padrão IN RFB 2.229/2024', () => {
-            // Exemplos gerados sob a regra de cálculo oficial
-            // DV1 e DV2 calculados com letras (ASCII - 48)
+            // Exemplo válido com letras e DVs calculados pela regra oficial (ASCII - 48 e pesos Módulo 11)
+            const cnpjValidoAlfanumerico = '12ABC345000188';
+            expect(ValidationHelper.isValidCnpj(cnpjValidoAlfanumerico)).toBe(true);
+
+            // Suporta versão formatada com pontuação
+            expect(ValidationHelper.isValidCnpj('12.ABC.345/0001-88')).toBe(true);
+
+            // Suporta minúsculas
+            expect(ValidationHelper.isValidCnpj('12abc345000188')).toBe(true);
+
+            // Rejeita quando DVs estão incorretos
             const cnpjInvalido = '12ABC345000100'; // DVs incorretos
             expect(ValidationHelper.isValidCnpj(cnpjInvalido)).toBe(false);
         });

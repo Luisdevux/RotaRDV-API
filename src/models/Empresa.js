@@ -82,7 +82,7 @@ class Empresa {
                 type: String,
                 default: ""
             },
-            gestor_id: {
+            admin_id: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "usuarios",
                 required: false

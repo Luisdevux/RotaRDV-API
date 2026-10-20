@@ -6,7 +6,7 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { cpf as cpfUtil } from 'cpf-cnpj-validator';
+import { cpf as cpfUtil, cnpj as cnpjUtil } from 'cpf-cnpj-validator';
 
 vi.mock('../../middlewares/RateLimitMiddleware.js', () => ({
     strictRateLimit: (req, res, next) => next(),
@@ -16,6 +16,7 @@ vi.mock('../../middlewares/RateLimitMiddleware.js', () => ({
 
 import authRoutes from '../../routes/authRoutes.js';
 import Usuario from '../../models/Usuario.js';
+import Empresa from '../../models/Empresa.js';
 import errorHandler from '../../utils/helpers/errorHandler.js';
 
 let app;
@@ -64,7 +65,10 @@ beforeAll(async () => {
 
 afterEach(async () => {
     if (mongoose.connection.readyState === 1) {
-        await Usuario.deleteMany({});
+        await Promise.all([
+            Usuario.deleteMany({}),
+            Empresa.deleteMany({})
+        ]);
     }
 });
 
@@ -284,4 +288,76 @@ describe('Rotas de Autenticação (authRoutes)', () => {
             expect(res.status).toBe(400);
         });
     });
+
+    describe('POST /signup (Onboarding Corporativo)', () => {
+        it('deve realizar onboarding corporativo criando Empresa e Admin Master simultaneamente com status 201', async () => {
+            const cnpjValido = cnpjUtil.format(cnpjUtil.generate(false));
+            const emailEmpresa = `empresa_${Date.now()}@transporte.com`;
+            const emailGestor = `admin_${Date.now()}@transporte.com`;
+
+            const res = await request(app)
+                .post('/signup')
+                .send({
+                    nome_empresa: 'TransLog Brasil Express',
+                    cnpj: cnpjValido,
+                    email_empresa: emailEmpresa,
+                    telefone_empresa: '1133334444',
+                    endereco: {
+                        cidade: 'Vilhena',
+                        estado: 'RO'
+                    },
+                    admin: {
+                        nome: 'Carlos Eduardo Diretor',
+                        email: emailGestor,
+                        senha: 'Senha@Forte2026',
+                        cpf: cpfUtil.generate(false),
+                        telefone: '69999998888'
+                    }
+                });
+
+            expect(res.status).toBe(201);
+            expect(res.body.data.empresa).toBeDefined();
+            expect(res.body.data.empresa.nome_empresa).toBe('TransLog Brasil Express');
+            expect(res.body.data.usuario).toBeDefined();
+            expect(res.body.data.usuario.role).toBe('admin');
+            expect(res.body.data.usuario.isAdmin).toBe(true);
+            expect(res.body.data.usuario.email_verificado).toBe(true);
+            expect(res.body.data.usuario.senha).toBeUndefined();
+
+            // Verificar integridade e amarração mútua no banco
+            const empresaSalva = await Empresa.findById(res.body.data.empresa._id);
+            const usuarioSalvo = await Usuario.findById(res.body.data.usuario._id);
+
+            expect(empresaSalva).not.toBeNull();
+            expect(usuarioSalvo).not.toBeNull();
+            expect(String(empresaSalva.admin_id)).toBe(String(usuarioSalvo._id));
+            expect(String(usuarioSalvo.empresa_id)).toBe(String(empresaSalva._id));
+        });
+
+        it('deve bloquear onboarding com CNPJ duplicado com erro de validação', async () => {
+            const cnpjValido = cnpjUtil.format(cnpjUtil.generate(false));
+            await Empresa.create({
+                nome_empresa: 'Empresa Existente Ltda',
+                cnpj: cnpjValido,
+                email: `contato_${Date.now()}@existente.com`,
+            });
+
+            const res = await request(app)
+                .post('/signup')
+                .send({
+                    nome_empresa: 'Outra Empresa Ltda',
+                    cnpj: cnpjValido,
+                    email_empresa: `novo_${Date.now()}@teste.com`,
+                    admin: {
+                        nome: 'Admin Teste',
+                        email: `admin_${Date.now()}@teste.com`,
+                        senha: 'Senha@Forte2026',
+                    }
+                });
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toContain('CNPJ');
+        });
+    });
 });
+

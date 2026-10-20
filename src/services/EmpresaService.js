@@ -31,7 +31,8 @@ class EmpresaService {
         if (id) {
             const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
 
-            const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
+            const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+            const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || isAdminDestaEmpresa;
 
             ensurePermission({
                 usuarioLogado,
@@ -45,7 +46,12 @@ class EmpresaService {
 
         const filtrosOverride = {};
         if (!isSuperAdmin) {
-            if (usuarioLogado.empresa_id) {
+            if (usuarioLogado.role === 'admin') {
+                filtrosOverride.$or = [
+                    { _id: usuarioLogado.empresa_id },
+                    { admin_id: usuarioLogado._id }
+                ];
+            } else if (usuarioLogado.empresa_id) {
                 filtrosOverride._id = String(usuarioLogado.empresa_id);
             } else {
                 throw new CustomError({
@@ -76,23 +82,62 @@ class EmpresaService {
         await ValidationHelper.validateCnpj(this.repository, parsedData.cnpj);
         await ValidationHelper.validateEmail(this.repository, parsedData.email, null, 'Email institucional já cadastrado.');
 
-        if (parsedData.gestor_id) {
-            await ValidationHelper.ensureExists(await this.usuarioRepository.buscarPorID(parsedData.gestor_id), 'Gestor');
+        if (parsedData.cnpj) {
+            parsedData.cnpj = parsedData.cnpj.replace(/[.\-/]/g, '').trim().toUpperCase();
+        }
+
+        if (parsedData.admin_id) {
+            await ValidationHelper.ensureExists(await this.usuarioRepository.buscarPorID(parsedData.admin_id), 'Administrador');
         }
 
         const empresa = await this.repository.criar(parsedData);
 
-        // Se informou gestor, atualiza o usuário com role gestor e empresa_id
-        if (parsedData.gestor_id) {
-            await this.usuarioRepository.atualizar(parsedData.gestor_id, {
-                role: 'gestor',
+        // Se informou administrador, atualiza o usuário com empresa_id
+        if (parsedData.admin_id) {
+            await this.usuarioRepository.atualizar(parsedData.admin_id, {
                 empresa_id: empresa._id,
                 'empresa.nome': empresa.nome_empresa,
-                'empresa.cargo': 'Gestor de Frota'
+                'empresa.cargo': 'Administrador'
             });
         }
 
         return empresa;
+    }
+
+    async cadastrarFilial(dadosFilial, req) {
+        const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+        const isSuperAdmin = usuarioLogado.role === 'superAdmin';
+        const isAdmin = usuarioLogado.role === 'admin';
+
+        if (!isSuperAdmin && !isAdmin) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'permissionError',
+                field: 'Criação de Filial',
+                customMessage: 'Apenas Administradores podem cadastrar novas unidades e filiais coligadas.',
+            });
+        }
+
+        const { CadastrarFilialSchema } = await import('../utils/validators/schemas/zod/EmpresaSchema.js');
+        const validated = CadastrarFilialSchema.parse(dadosFilial);
+
+        await ValidationHelper.validateCnpj(this.repository, validated.cnpj);
+        const emailFilial = (validated.email || validated.email_empresa).toLowerCase().trim();
+        await ValidationHelper.validateEmail(this.repository, emailFilial, null, 'Email institucional já cadastrado.');
+
+        const filialData = {
+            nome_empresa: validated.nome_empresa,
+            cnpj: validated.cnpj.replace(/[.\-/]/g, '').trim().toUpperCase(),
+            email: emailFilial,
+            telefone: validated.telefone || validated.telefone_empresa || '',
+            endereco: validated.endereco || {},
+            foto_logo: validated.foto_logo || '',
+            status: 'ativo',
+            admin_id: usuarioLogado._id
+        };
+
+        const novaFilial = await this.repository.criar(filialData);
+        return novaFilial;
     }
 
     async atualizar(id, parsedData, req) {
@@ -100,7 +145,8 @@ class EmpresaService {
         const empresaExistente = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
 
         const isSuperAdmin = usuarioLogado.role === 'superAdmin';
-        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresaExistente.gestor_id?._id || empresaExistente.gestor_id) === String(usuarioLogado._id);
+        const isAdminDestaEmpresa = String(empresaExistente.admin_id?._id || empresaExistente.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
@@ -111,26 +157,26 @@ class EmpresaService {
 
         if (parsedData.cnpj) {
             await ValidationHelper.validateCnpj(this.repository, parsedData.cnpj, id);
+            parsedData.cnpj = parsedData.cnpj.replace(/[.\-/]/g, '').trim().toUpperCase();
         }
 
         if (parsedData.email) {
             await ValidationHelper.validateEmail(this.repository, parsedData.email, id, 'Email institucional já cadastrado.');
         }
 
-        // Apenas Super Admin ou Admin interno da empresa pode transferir a gestão ou alterar gestor_id
-        if (parsedData.gestor_id && !isSuperAdmin && usuarioLogado.role !== 'admin') {
-            delete parsedData.gestor_id;
+        // Apenas Super Admin ou Admin interno da empresa pode transferir a administração ou alterar admin_id
+        if (parsedData.admin_id && !isSuperAdmin && usuarioLogado.role !== 'admin') {
+            delete parsedData.admin_id;
         }
 
         const empresaAtualizada = await this.repository.atualizar(id, parsedData);
 
-        // Se atualizou o gestor_id, atualiza o usuário correspondente
-        if (parsedData.gestor_id) {
-            await this.usuarioRepository.atualizar(parsedData.gestor_id, {
-                role: 'gestor',
+        // Se atualizou o admin_id, atualiza o usuário correspondente
+        if (parsedData.admin_id) {
+            await this.usuarioRepository.atualizar(parsedData.admin_id, {
                 empresa_id: empresaAtualizada._id,
                 'empresa.nome': empresaAtualizada.nome_empresa,
-                'empresa.cargo': 'Gestor de Frota'
+                'empresa.cargo': 'Administrador'
             });
         }
 
@@ -200,11 +246,12 @@ class EmpresaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Cadastro de Motorista',
             customMessage: 'Você não tem permissão para cadastrar motoristas nesta empresa.',
         });
@@ -311,11 +358,12 @@ class EmpresaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Vínculo de Motorista',
             customMessage: 'Você não tem permissão para vincular motoristas a esta empresa.',
         });
@@ -371,13 +419,14 @@ class EmpresaService {
      */
     async desvincularMotorista(empresaId, motoristaId, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
+        const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Desvínculo de Motorista',
             customMessage: 'Você não tem permissão para desvincular motoristas desta empresa.',
         });
@@ -409,13 +458,14 @@ class EmpresaService {
      */
     async listarMotoristas(empresaId, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
+        const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Listagem de Motoristas',
             customMessage: 'Você não tem permissão para listar motoristas desta empresa.',
         });
@@ -471,13 +521,14 @@ class EmpresaService {
      */
     async listarVeiculos(empresaId, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
+        const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Listagem de Veículos',
             customMessage: 'Você não tem permissão para listar veículos desta empresa.',
         });
@@ -526,13 +577,14 @@ class EmpresaService {
      */
     async listarViagens(empresaId, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
+        const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Listagem de Viagens',
             customMessage: 'Você não tem permissão para listar viagens desta empresa.',
         });
@@ -617,11 +669,12 @@ class EmpresaService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(empresaId), 'Empresa');
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(empresaId) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Dashboard da Empresa',
             customMessage: 'Você não tem permissão para acessar o dashboard desta empresa.',
         });
@@ -731,11 +784,12 @@ class EmpresaService {
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Empresa',
             customMessage: 'Você não tem permissão para alterar a foto desta empresa.',
         });
@@ -757,11 +811,12 @@ class EmpresaService {
         const empresa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Empresa');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const isGestorDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || String(empresa.gestor_id?._id || empresa.gestor_id) === String(usuarioLogado._id);
+        const isAdminDestaEmpresa = String(empresa.admin_id?._id || empresa.admin_id) === String(usuarioLogado._id);
+        const isStaffDestaEmpresa = String(usuarioLogado.empresa_id) === String(id) || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner: isGestorDestaEmpresa,
+            isOwner: isStaffDestaEmpresa,
             field: 'Empresa',
             customMessage: 'Você não tem permissão para excluir a foto desta empresa.',
         });

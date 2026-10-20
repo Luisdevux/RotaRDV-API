@@ -1,8 +1,7 @@
-// src/services/DespesaService.js
-
 import DespesaRepository from '../repositories/DespesaRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
+import EmpresaRepository from '../repositories/EmpresaRepository.js';
 import UploadService from './UploadService.js';
 import { CustomError, HttpStatusCodes, ValidationHelper } from '../utils/helpers/index.js';
 
@@ -13,6 +12,7 @@ class DespesaService {
         this.repository = new DespesaRepository();
         this.viagemRepository = new ViagemRepository();
         this.usuarioRepository = new UsuarioRepository();
+        this.empresaRepository = new EmpresaRepository();
         this.uploadService = new UploadService();
     }
 
@@ -70,12 +70,12 @@ class DespesaService {
                 filtrosOverride.viagem_id = { $in: viagensIds };
             }
         } else if (isAdmin || isGestor) {
-            // Já o usuário com papel de Admin ou Gestor visualiza despesas das viagens pertencentes à sua empresa
-            const { viagem_id } = req.validatedQuery || req.query;
+            // Usuário com papel de Admin ou Gestor visualiza despesas das viagens pertencentes à sua empresa (ou filial selecionada)
+            const { viagem_id, empresa_id } = req.validatedQuery || req.query || {};
 
             if (viagem_id) {
                 const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(viagem_id), 'Viagem');
-                if (String(viagem.empresa_id) !== String(usuarioLogado.empresa_id)) {
+                if (isGestor && String(viagem.empresa_id) !== String(usuarioLogado.empresa_id)) {
                     throw new CustomError({
                         statusCode: HttpStatusCodes.FORBIDDEN.code,
                         errorType: 'forbidden',
@@ -83,8 +83,16 @@ class DespesaService {
                         customMessage: 'Você não tem permissão para visualizar as despesas de uma viagem de outra empresa.'
                     });
                 }
+                if (isAdmin && !isSuperAdmin) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, viagem.empresa_id);
+                }
             } else {
-                const viagens = await this.viagemRepository.modelViagem.find({ empresa_id: usuarioLogado.empresa_id }).select('_id');
+                let targetEmpresaId = usuarioLogado.empresa_id;
+                if (isAdmin && empresa_id) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, empresa_id);
+                    targetEmpresaId = empresa_id;
+                }
+                const viagens = await this.viagemRepository.modelViagem.find({ empresa_id: targetEmpresaId }).select('_id');
                 const viagensIds = viagens.map(v => v._id);
                 filtrosOverride.viagem_id = { $in: viagensIds };
             }

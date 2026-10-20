@@ -10,6 +10,7 @@ import {
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
+import EmpresaRepository from '../repositories/EmpresaRepository.js';
 import ViagemDomainValidator from '../utils/validators/domain/ViagemDomainValidator.js';
 
 class ViagemService {
@@ -17,6 +18,7 @@ class ViagemService {
         this.repository = new ViagemRepository();
         this.usuarioRepository = new UsuarioRepository();
         this.veiculoRepository = new VeiculoRepository();
+        this.empresaRepository = new EmpresaRepository();
     }
 
     async _calcularResumoFinanceiro(viagemId, viagemDoc = null) {
@@ -103,16 +105,27 @@ class ViagemService {
 
     async listar(req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
+        const isGestor = usuarioLogado?.role === 'gestor';
         const { id } = req.params;
 
         if (id) {
             const viagem = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
 
-            const isOwner = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
+            const isMotoristaDestaViagem = String(viagem.usuario_id._id || viagem.usuario_id) === String(usuarioLogado._id);
+            let isAdminDestaEmpresa = false;
+            if (isAdmin && !isSuperAdmin && viagem.empresa_id) {
+                try {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, viagem.empresa_id);
+                    isAdminDestaEmpresa = true;
+                } catch (_) {}
+            }
+            const temAcessoAViagem = isMotoristaDestaViagem || isAdminDestaEmpresa;
 
             ensurePermission({
                 usuarioLogado,
-                isOwner,
+                isOwner: temAcessoAViagem,
                 empresaId: viagem.empresa_id,
                 field: 'Consulta de Viagem',
                 customMessage: 'Você não tem permissão para acessar os dados desta viagem.',
@@ -126,12 +139,17 @@ class ViagemService {
         }
 
         const filtrosOverride = {};
-        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
-        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
-        const isGestor = usuarioLogado?.role === 'gestor';
 
         if (!isSuperAdmin) {
-            if (isAdmin || isGestor) {
+            if (isAdmin) {
+                const targetEmpresaId = req.query?.empresa_id || req.validatedQuery?.empresa_id;
+                if (targetEmpresaId) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, targetEmpresaId);
+                    filtrosOverride.empresa_id = String(targetEmpresaId);
+                } else {
+                    filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
+                }
+            } else if (isGestor) {
                 filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
             } else {
                 filtrosOverride.usuario_id = String(usuarioLogado._id);
@@ -235,11 +253,21 @@ class ViagemService {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
         const viagemOriginal = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
 
-        const isOwner = String(viagemOriginal.usuario_id._id || viagemOriginal.usuario_id) === String(usuarioLogado._id);
+        const isMotoristaDestaViagem = String(viagemOriginal.usuario_id._id || viagemOriginal.usuario_id) === String(usuarioLogado._id);
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || usuarioLogado?.role === 'superAdmin');
+
+        let isAdminDestaEmpresa = false;
+        if (isAdmin && usuarioLogado?.role !== 'superAdmin' && viagemOriginal.empresa_id) {
+            try {
+                await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, viagemOriginal.empresa_id);
+                isAdminDestaEmpresa = true;
+            } catch (_) {}
+        }
+        const podeAtualizarViagem = isMotoristaDestaViagem || isAdminDestaEmpresa;
 
         ensurePermission({
             usuarioLogado,
-            isOwner,
+            isOwner: podeAtualizarViagem,
             empresaId: viagemOriginal.empresa_id,
             field: 'Atualização de Viagem',
             customMessage: 'Você não tem permissão para atualizar esta viagem.',
@@ -259,7 +287,7 @@ class ViagemService {
         if (parsedData.status === 'concluída') {
             const kmFinal = parsedData.km_final || viagemOriginal.km_final;
             const viagemParaValidar = {
-                ...(viagemOriginal.toObject ? viagemOriginal.toObject() : viagemOriginal),
+                ...(viagemOriginal.toObject ? viagemOriginal.toObject({ getters: false }) : viagemOriginal),
                 ...parsedData,
                 km_final: kmFinal
             };

@@ -9,7 +9,6 @@ import {
     messages
 } from '../utils/helpers/index.js';
 import { LoginSchema } from '../utils/validators/schemas/zod/LoginSchema.js';
-import { UsuarioSchema } from '../utils/validators/schemas/zod/UsuarioSchema.js';
 import { GoogleLoginSchema } from '../utils/validators/schemas/zod/GoogleLoginSchema.js';
 import { UsuarioIdSchema } from '../utils/validators/schemas/zod/querys/UsuarioQuerySchema.js';
 import AuthService from '../services/AuthService.js';
@@ -170,19 +169,8 @@ class AuthController {
     }
 
     signup = async (req, res) => {
-        const parsedData = UsuarioSchema.parse(req.body);
-
-        // Ao cadastrar via signup, nunca é admin
-        parsedData.isAdmin = false;
-
-        const UsuarioService = (await import('../services/UsuarioService.js')).default;
-        const usuarioService = new UsuarioService();
-        const data = await usuarioService.criar(parsedData, req);
-
-        const usuarioLimpo = data.toObject();
-        delete usuarioLimpo.senha;
-
-        return CommonResponse.created(res, usuarioLimpo);
+        const data = await this.service.signupEmpresa(req.body);
+        return CommonResponse.created(res, data, 'Empresa e Administrador cadastrados com sucesso.');
     }
 
     /**
