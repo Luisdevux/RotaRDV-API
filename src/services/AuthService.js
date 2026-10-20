@@ -6,12 +6,15 @@ import {
     CustomError,
     HttpStatusCodes,
     messages,
-    EmailHelper
+    EmailHelper,
+    ValidationHelper
 } from '../utils/helpers/index.js';
 import tokenUtil from '../utils/TokenUtil.js';
 import bcrypt from 'bcryptjs';
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from "../repositories/UsuarioRepository.js";
+import EmpresaRepository from "../repositories/EmpresaRepository.js";
+import { SignupEmpresaSchema } from '../utils/validators/schemas/zod/EmpresaSchema.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -20,6 +23,7 @@ class AuthService {
         const { tokenUtil: injectedToken } = params;
         this.TokenUtil = injectedToken || tokenUtil;
         this.repository = new UsuarioRepository();
+        this.empresaRepository = new EmpresaRepository();
     }
 
     async carregatokens(id) {
@@ -62,7 +66,7 @@ class AuthService {
             });
         }
 
-        // Verificar se op email foi confirmado
+        // Verificar se o email foi verificado (garante que apenas contas ativadas/criadas pelo painel possam logar)
         if (!userEncontrado.email_verificado) {
             throw new CustomError({
                 statusCode: 403,
@@ -70,7 +74,7 @@ class AuthService {
                 field: 'Email',
                 details: [],
                 customMessage: 'Por favor, verifique seu email antes de fazer o login. Confira sua caixa de entrada.'
-            })
+            });
         }
 
         const senhaValida = await bcrypt.compare(body.senha, userEncontrado.senha);
@@ -420,6 +424,88 @@ class AuthService {
             email: usuarioAtualizado.email
         };
     }
+
+    /**
+     * Criação simultânea da empresa e do administrador responsável pela empresa.
+     */
+    async signupEmpresa(body) {
+        const validated = SignupEmpresaSchema.parse(body);
+        const adminData = validated.admin || validated.gestor;
+
+        // 1. Validar unicidade do CNPJ e email da empresa
+        await ValidationHelper.validateCnpj(this.empresaRepository, validated.cnpj);
+        await ValidationHelper.validateEmail(this.empresaRepository, validated.email_empresa, null, 'Email institucional da empresa já cadastrado.');
+
+        // 2. Validar unicidade do email do administrador e CPF (se fornecido)
+        await ValidationHelper.validateEmail(this.repository, adminData.email, null, 'Email do administrador já cadastrado.');
+        if (adminData.cpf) {
+            await ValidationHelper.validateCpf(this.repository, adminData.cpf);
+        }
+
+        // 3. Criar a Empresa
+        const dadosEmpresa = {
+            nome_empresa: validated.nome_empresa,
+            cnpj: validated.cnpj.replace(/[.\-/]/g, '').trim().toUpperCase(),
+            email: validated.email_empresa.toLowerCase().trim(),
+            telefone: validated.telefone_empresa || '',
+            endereco: validated.endereco || {},
+            status: 'ativo'
+        };
+        const novaEmpresa = await this.empresaRepository.criar(dadosEmpresa);
+
+        // 4. Criar o Usuário Administrador Master
+        const senhaHash = await AuthHelper.hashPassword(adminData.senha);
+        const dadosAdmin = {
+            nome: adminData.nome,
+            email: adminData.email.toLowerCase().trim(),
+            senha: senhaHash,
+            cpf: adminData.cpf ? adminData.cpf.replace(/\D/g, '') : undefined,
+            telefone: adminData.telefone || '',
+            role: 'admin',
+            isAdmin: true,
+            email_verificado: true,
+            status: 'ativo',
+            authProvider: 'local',
+            empresa_id: novaEmpresa._id,
+            empresa: {
+                nome: novaEmpresa.nome_empresa,
+                cargo: 'Administrador Master'
+            }
+        };
+
+        let novoAdmin;
+        try {
+            novoAdmin = await this.repository.criar(dadosAdmin);
+        } catch (err) {
+            // Rollback da empresa criada em caso de falha na criação do usuário
+            await this.empresaRepository.deletar(novaEmpresa._id);
+            throw err;
+        }
+
+        // 5. Vincular admin_id na Empresa
+        await this.empresaRepository.atualizar(novaEmpresa._id, { admin_id: novoAdmin._id });
+        novaEmpresa.admin_id = novoAdmin._id;
+
+        // 6. Enviar email de boas-vindas ao Admin Master (não bloqueante)
+        try {
+            EmailHelper.enviarEmailBoasVindasEquipeAdministrativa({
+                email: novoAdmin.email,
+                nome: novoAdmin.nome,
+                nomeEmpresa: novaEmpresa.nome_empresa,
+                cargo: 'Administrador Master',
+                role: 'admin'
+            });
+        } catch (_) {}
+
+        const adminLimpo = novoAdmin.toObject ? novoAdmin.toObject() : novoAdmin;
+        delete adminLimpo.senha;
+
+        return {
+            empresa: novaEmpresa.toObject ? novaEmpresa.toObject() : novaEmpresa,
+            usuario: adminLimpo
+        };
+    }
 }
 
 export default AuthService;
+

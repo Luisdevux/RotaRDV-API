@@ -8,11 +8,13 @@ import {
 } from '../utils/helpers/index.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
+import EmpresaRepository from '../repositories/EmpresaRepository.js';
 
 class VeiculoService {
     constructor() {
         this.repository = new VeiculoRepository();
         this.usuarioRepository = new UsuarioRepository();
+        this.empresaRepository = new EmpresaRepository();
     }
 
     async listar(req) {
@@ -26,11 +28,19 @@ class VeiculoService {
         if (id) {
             // Se está buscando um veículo específico, verifica permissão (Admin, Gestor da empresa do veículo, ou Motorista vinculado)
             const veiculo = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Veículo');
-            const isVinculadoAoVeiculo = usuarioLogado.veiculo_id && String(usuarioLogado.veiculo_id) === String(id);
+            const isMotoristaDesteVeiculo = usuarioLogado.veiculo_id && String(usuarioLogado.veiculo_id) === String(id);
+            let isAdminDestaEmpresa = false;
+            if (isAdmin && !isSuperAdmin && veiculo.empresa_id) {
+                try {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, veiculo.empresa_id);
+                    isAdminDestaEmpresa = true;
+                } catch (_) {}
+            }
+            const temAcessoAoVeiculo = isMotoristaDesteVeiculo || isAdminDestaEmpresa;
 
             ensurePermission({
                 usuarioLogado,
-                isOwner: isVinculadoAoVeiculo,
+                isOwner: temAcessoAoVeiculo,
                 empresaId: veiculo.empresa_id,
                 field: 'Consulta de Veículo',
                 customMessage: 'Você não tem permissões para acessar os dados deste veículo.',
@@ -42,7 +52,18 @@ class VeiculoService {
         if (!id) {
             if (isSuperAdmin) {
                 // Super Admin visualiza veículos de qualquer empresa ou filtra por empresa_id na query
-            } else if (isAdmin || isGestor) {
+                if (req.query?.empresa_id) {
+                    filtrosOverride.empresa_id = String(req.query.empresa_id);
+                }
+            } else if (isAdmin) {
+                const targetEmpresaId = req.query?.empresa_id || req.validatedQuery?.empresa_id;
+                if (targetEmpresaId) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, targetEmpresaId);
+                    filtrosOverride.empresa_id = String(targetEmpresaId);
+                } else {
+                    filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
+                }
+            } else if (isGestor) {
                 // Admin interno ou Gestor: restrito à frota da sua empresa
                 filtrosOverride.empresa_id = String(usuarioLogado.empresa_id);
             } else {
@@ -80,9 +101,13 @@ class VeiculoService {
             });
         }
 
-        // Se for admin interno ou gestor, vincula automaticamente à sua empresa
-        if (!isSuperAdmin && usuarioLogado.empresa_id) {
-            parsedData.empresa_id = usuarioLogado.empresa_id;
+        // Se for admin interno ou gestor, vincula à filial informada ou à sua empresa
+        if (!isSuperAdmin) {
+            if (usuarioLogado?.role === 'admin' && parsedData.empresa_id) {
+                await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, parsedData.empresa_id);
+            } else if (usuarioLogado.empresa_id) {
+                parsedData.empresa_id = usuarioLogado.empresa_id;
+            }
         }
 
         await ValidationHelper.validatePlaca(this.repository, parsedData.placa);
@@ -94,10 +119,19 @@ class VeiculoService {
     async atualizar(id, parsedData, req) {
         const veiculo = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Veículo');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || usuarioLogado?.role === 'superAdmin');
+
+        let isOwnerAdmin = false;
+        if (isAdmin && usuarioLogado?.role !== 'superAdmin' && veiculo.empresa_id) {
+            try {
+                await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, veiculo.empresa_id);
+                isOwnerAdmin = true;
+            } catch (_) {}
+        }
 
         ensurePermission({
             usuarioLogado,
-            isOwner: false,
+            isOwner: isOwnerAdmin,
             empresaId: veiculo.empresa_id,
             field: 'Atualização de Veículo',
             customMessage: 'Você não tem permissão para atualizar dados deste veículo.',
@@ -114,10 +148,19 @@ class VeiculoService {
     async deletar(id, req) {
         const veiculo = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Veículo');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || usuarioLogado?.role === 'superAdmin');
+
+        let isOwnerAdmin = false;
+        if (isAdmin && usuarioLogado?.role !== 'superAdmin' && veiculo.empresa_id) {
+            try {
+                await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, veiculo.empresa_id);
+                isOwnerAdmin = true;
+            } catch (_) {}
+        }
 
         ensurePermission({
             usuarioLogado,
-            isOwner: false,
+            isOwner: isOwnerAdmin,
             empresaId: veiculo.empresa_id,
             field: 'Exclusão de Veículo',
             customMessage: 'Você não tem permissão para deletar este veículo.',

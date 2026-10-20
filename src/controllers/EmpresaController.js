@@ -80,6 +80,20 @@ class EmpresaController {
         return CommonResponse.created(res, data, 'Empresa cadastrada com sucesso.');
     }
 
+    async cadastrarFilial(req, res) {
+        if (!req.body || Object.keys(req.body).length === 0) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'body',
+                customMessage: 'O corpo da requisição é obrigatório para cadastrar uma filial.',
+            });
+        }
+
+        const data = await this.service.cadastrarFilial(req.body, req);
+        return CommonResponse.created(res, data, 'Filial cadastrada com sucesso.');
+    }
+
     async atualizar(req, res) {
         const { id } = req.params;
         EmpresaIdSchema.parse(id);

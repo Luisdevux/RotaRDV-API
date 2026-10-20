@@ -10,12 +10,14 @@ import {
 import AuthHelper from '../utils/AuthHelper.js';
 import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
+import EmpresaRepository from '../repositories/EmpresaRepository.js';
 import UploadService from './UploadService.js';
 
 class UsuarioService {
     constructor() {
         this.repository = new UsuarioRepository();
         this.veiculoRepository = new VeiculoRepository();
+        this.empresaRepository = new EmpresaRepository();
         this.uploadService = new UploadService();
     }
 
@@ -28,9 +30,18 @@ class UsuarioService {
         if (req.params?.id) {
             // Se está buscando um usuário específico, verifica permissão (Admin, Dono do Perfil, ou Gestor da mesma empresa)
             const targetUser = await this.repository.buscarPorID(req.params.id);
+            let isAdminDestaEmpresa = false;
+            if (usuarioLogado?.role === 'admin' && !isSuperAdmin && targetUser?.empresa_id) {
+                try {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, targetUser.empresa_id);
+                    isAdminDestaEmpresa = true;
+                } catch (_) {}
+            }
+
             ensurePermission({
                 usuarioLogado,
                 targetId: req.params.id,
+                isOwner: isAdminDestaEmpresa,
                 empresaId: targetUser?.empresa_id,
                 field: 'Consulta de Usuário',
                 customMessage: 'Você não tem permissões para acessar os dados deste usuário.',
@@ -49,8 +60,17 @@ class UsuarioService {
 
         const filtrosOverride = {};
         if (!isSuperAdmin) {
-            // Admin interno e gestor: só enxergam usuários vinculados à sua própria empresa
-            filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+            if (usuarioLogado?.role === 'admin') {
+                const targetEmpresaId = req.query?.empresa_id || req.validatedQuery?.empresa_id;
+                if (targetEmpresaId) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, targetEmpresaId);
+                    filtrosOverride.empresa_id = targetEmpresaId;
+                } else {
+                    filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+                }
+            } else {
+                filtrosOverride.empresa_id = usuarioLogado.empresa_id;
+            }
         }
 
         const data = await this.repository.listar(req, filtrosOverride);
@@ -83,9 +103,13 @@ class UsuarioService {
                 });
             }
 
-            // Admin interno só pode criar usuários vinculados à sua empresa
-            if (!isSuperAdmin && usuarioLogado.empresa_id) {
-                parsedData.empresa_id = usuarioLogado.empresa_id;
+            // Admin interno só pode criar usuários vinculados à sua empresa ou à filial autorizada
+            if (!isSuperAdmin) {
+                if (usuarioLogado?.role === 'admin' && parsedData.empresa_id) {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, parsedData.empresa_id);
+                } else if (usuarioLogado.empresa_id) {
+                    parsedData.empresa_id = usuarioLogado.empresa_id;
+                }
             }
         }
 
@@ -113,21 +137,39 @@ class UsuarioService {
             parsedData.senha = await AuthHelper.hashPassword(parsedData.senha);
         }
 
-        // Configuração de verificação de email
-        const tokenVerificacao = await AuthHelper.generateRandomToken();
-        parsedData.token_verificacao_email = tokenVerificacao;
-        parsedData.exp_token_verificacao_email = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-        parsedData.email_verificada = false;
+        // Usuários cadastrados no sistema já nascem com email verificado
+        parsedData.email_verificado = true;
 
         const data = await this.repository.criar(parsedData);
 
-        // Envia email de verificação em background via EmailHelper
-        EmailHelper.enviarEmailVerificacao({
-            usuarioId: data._id,
-            email: data.email,
-            nome: data.nome,
-            token: tokenVerificacao
-        });
+        // Busca o nome da empresa caso o usuário possua empresa_id vinculado
+        let nomeEmpresa = data.empresa?.nome || '';
+        if (!nomeEmpresa && data.empresa_id) {
+            try {
+                const emp = await this.empresaRepository.buscarPorID(data.empresa_id);
+                if (emp) nomeEmpresa = emp.nome_empresa;
+            } catch (_) {}
+        }
+
+        // Roteamento de e-mails de boas-vindas com base no perfil
+        if (data.role === 'motorista') {
+            EmailHelper.enviarEmailBoasVindasMotorista({
+                usuarioId: data._id,
+                email: data.email,
+                nome: data.nome,
+                nomeEmpresa: nomeEmpresa || 'RotaRDV'
+            });
+        } else {
+            const cargoFinal = data.empresa?.cargo || parsedData.cargo || (data.role === 'admin' ? 'Administrador da Empresa' : 'Gestor de Frota');
+            EmailHelper.enviarEmailBoasVindasEquipeAdministrativa({
+                usuarioId: data._id,
+                email: data.email,
+                nome: data.nome,
+                nomeEmpresa: nomeEmpresa || 'sua empresa',
+                cargo: cargoFinal,
+                role: data.role
+            });
+        }
 
         return data;
     }

@@ -36,7 +36,7 @@ const empresaSchemas = {
             },
             status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
             foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" },
-            gestor_id: {
+            admin_id: {
                 type: "object",
                 properties: {
                     _id: { type: "string", example: "674fa21d79969d2172e78788" },
@@ -70,10 +70,35 @@ const empresaSchemas = {
                     estado: { type: "string", example: "SP" }
                 }
             },
-            gestor_id: { type: "string", example: "674fa21d79969d2172e78788", description: "ID do usuário gestor (opcional)" },
+            admin_id: { type: "string", example: "674fa21d79969d2172e78788", description: "ID do usuário administrador master (opcional)" },
             foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" }
         },
         description: "Schema para criação de uma nova empresa"
+    },
+
+    CadastrarFilialInput: {
+        type: "object",
+        required: ["nome_empresa", "cnpj"],
+        properties: {
+            nome_empresa: { type: "string", example: "Transportadora Rota Brasil - Filial Porto Velho" },
+            cnpj: { type: "string", description: "CNPJ numérico ou alfanumérico IN RFB 2.229/2024", example: "12.ABC.345/0001-88" },
+            email: { type: "string", example: "filial.pvh@rotabrasil.com.br" },
+            email_empresa: { type: "string", example: "filial.pvh@rotabrasil.com.br" },
+            telefone: { type: "string", example: "(69) 3222-1100" },
+            endereco: {
+                type: "object",
+                properties: {
+                    cep: { type: "string", example: "76801-000" },
+                    logradouro: { type: "string", example: "Av. Sete de Setembro" },
+                    numero: { type: "string", example: "500" },
+                    bairro: { type: "string", example: "Centro" },
+                    cidade: { type: "string", example: "Porto Velho" },
+                    estado: { type: "string", example: "RO" }
+                }
+            },
+            foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" }
+        },
+        description: "Schema para cadastro de filial coligada vinculada ao Administrador autenticado"
     },
 
     EmpresaAtualizacao: {
@@ -95,7 +120,7 @@ const empresaSchemas = {
                     estado: { type: "string", example: "SP" }
                 }
             },
-            gestor_id: { type: "string", example: "674fa21d79969d2172e78788" },
+            admin_id: { type: "string", example: "674fa21d79969d2172e78788" },
             foto_logo: { type: "string", example: "https://rota-rdv.web.fslab.dev/logos/rotabrasil.png" }
         },
         description: "Schema para atualização de dados da empresa"

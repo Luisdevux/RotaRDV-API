@@ -15,7 +15,16 @@
     "dev:local": "npx nodemon server.js",
     "seed": "docker exec -it api-despesas node src/seeds/seeds.js",
     "seed:local": "node src/seeds/seeds.js",
-    "test": "jest --coverage --detectOpenHandles",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:services": "vitest run src/test/services",
+    "test:routes": "vitest run src/test/routes",
+    "test:utils": "vitest run src/test/utils",
+    "test:auth": "vitest run src/test/services/AuthService.test.js src/test/routes/authRoutes.test.js",
+    "test:viagens": "vitest run src/test/services/ViagemService.test.js src/test/routes/viagemRoutes.test.js",
+    "test:despesas": "vitest run src/test/services/DespesaService.test.js src/test/routes/despesaRoutes.test.js",
+    "test:sync": "vitest run src/test/services/SyncService.test.js src/test/routes/syncRoutes.test.js",
+    "test:empresas": "vitest run src/test/services/EmpresaService.test.js src/test/routes/empresaRoutes.test.js",
     "start:local": "node server.js",
     "start": "docker compose -f docker-compose.yml up --build",
     "lint": "eslint .",
@@ -53,72 +62,17 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
-    "@babel/preset-env": "^7.29.7",
     "@eslint/js": "^10.0.1",
-    "babel-jest": "^30.4.1",
-    "babel-plugin-transform-import-meta": "^2.3.3",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
-    "jest": "^30.4.2",
     "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.4",
-    "supertest": "^7.2.2"
-  },
-  "babel": {
-    "presets": [
-      [
-        "@babel/preset-env",
-        {
-          "targets": {
-            "node": "current"
-          }
-        }
-      ]
-    ],
-    "plugins": [
-      "babel-plugin-transform-import-meta"
-    ]
-  },
-  "jest": {
-    "transform": {
-      "^.+\\.js$": "babel-jest"
-    },
-    "testEnvironment": "node",
-    "verbose": true,
-    "transformIgnorePatterns": [
-      "/node_modules/(?!uuid)"
-    ],
-    "roots": [
-      "<rootDir>"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/jest.setup.js"
-    ],
-    "coveragePathIgnorePatterns": [
-      "/node_modules/",
-      "/src/config/dbConnect.js",
-      "/src/controllers/AuthController.js",
-      "/src/service/AuthService.js",
-      "/utils/logger.js",
-      "/utils/errors",
-      "/middlewares/",
-      "/utils/AuthHelper.js",
-      "/utils/TokenUtil.js",
-      "/utils/helpers/errorHandler.js",
-      "/utils/helpers/StatusService.js",
-      "/utils/helpers/messages.js",
-      "/utils/helpers/CommonResponse.js",
-      "/middlewares/asyncWrapper.js",
-      "utils/helpers/HttpStatusCodes.js"
-    ]
+    "supertest": "^7.2.2",
+    "vitest": "^5.0.3"
   },
   "overrides": {
-    "babel-plugin-transform-import-meta": {
-      "@babel/core": "$@babel/core"
-    },
     "js-yaml": "^4.3.2",
     "fast-uri": "^3.1.8",
     "qs": "^6.16.0"

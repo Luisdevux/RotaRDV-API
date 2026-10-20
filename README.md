@@ -14,7 +14,7 @@ Permite registrar viagens, gerenciar frotas e motoristas, lançar despesas polim
 
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 ![Zod](https://img.shields.io/badge/Zod-4-3E67B1?style=flat-square&logo=zod&logoColor=white)
-![Jest](https://img.shields.io/badge/Jest-30-C21325?style=flat-square&logo=jest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-5-6E9F18?style=flat-square&logo=vitest&logoColor=white)
 ![ESLint](https://img.shields.io/badge/ESLint-9-4B32C3?style=flat-square&logo=eslint&logoColor=white)
 ![Prettier](https://img.shields.io/badge/Prettier-3-F7B93E?style=flat-square&logo=prettier&logoColor=black)
 ![Swagger](https://img.shields.io/badge/Swagger-OpenAPI_3.0-85EA2D?style=flat-square&logo=swagger&logoColor=black)
@@ -326,7 +326,7 @@ Com o servidor rodando, acesse no navegador:
 | `npm run start:local` | `node server.js` | Inicia a API diretamente com Node.js |
 | `npm run seed` | `docker exec -it api-despesas node src/seeds/seeds.js` | Executa a população de dados de teste dentro do container Docker |
 | `npm run seed:local` | `node src/seeds/seeds.js` | Executa o seed diretamente no banco local configurado |
-| `npm test` | `jest --coverage --detectOpenHandles` | Executa a suíte de testes com relatório de cobertura |
+| `npm test` | `vitest run` | Executa a suíte de testes unitários e de integração |
 | `npm run lint` | `eslint .` | Analisa a conformidade do código com as regras de Linting |
 | `npm run lint:fix` | `eslint . --fix` | Corrige automaticamente inconsistências de estilo e sintaxe |
 | `npm run format` | `prettier --write .` | Formata todos os arquivos do projeto segundo o `.prettierrc` |

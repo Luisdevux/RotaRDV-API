@@ -84,7 +84,7 @@ class Empresa {
   +endereco: Endereco
   +status: String
   +foto_logo: String
-  +gestor_id: ObjectId
+  +admin_id: ObjectId
   +createdAt: Date
   +updatedAt: Date
   --
@@ -201,7 +201,7 @@ class DespesaOutros {
 
 ' Relacionamentos Estruturais
 Empresa "1" *-- "1" Endereco : possui
-Empresa "1" o-- "0..1" Usuario : gestor_responsavel
+Empresa "1" o-- "0..1" Usuario : admin_responsavel
 Empresa "1" <-- "0..*" Usuario : vinculada_a
 Empresa "1" <-- "0..*" Veiculo : pertence_a
 Empresa "1" <-- "0..*" Viagem : tenant_viagem
