@@ -27,90 +27,66 @@ const authSchemas = {
     signupPost: {
         type: "object",
         properties: {
-            nome: {
+            nome_empresa: {
                 type: "string",
-                description: "Nome completo do motorista",
-                example: "João da Silva"
+                description: "Razão Social ou Nome Fantasia da Transportadora",
+                example: "Transportadora Rota Express Ltda"
             },
-            email: {
+            cnpj: {
+                type: "string",
+                description: "CNPJ da transportadora (numérico tradicional ou novo padrão alfanumérico IN RFB 2.229/2024)",
+                example: "12.ABC.345/0001-88"
+            },
+            email_empresa: {
                 type: "string",
                 format: "email",
-                description: "Email do usuário",
-                example: "joao.silva@rotardv.com.br"
+                description: "Email corporativo institucional da transportadora",
+                example: "contato@rotaexpress.com.br"
             },
-            senha: {
+            telefone_empresa: {
                 type: "string",
-                description: "Senha (mín. 8 chars, 1 maiúscula, 1 minúscula e 1 número)",
-                example: "Senha@123"
+                description: "Telefone institucional de contato da transportadora",
+                example: "(11) 3333-4444"
             },
-            cpf: {
-                type: "string",
-                description: "CPF do usuário (11 dígitos ou formatado)",
-                example: "08573215099"
+            endereco: {
+                $ref: "#/components/schemas/Endereco"
             },
-            telefone: {
-                type: "string",
-                description: "Telefone ou celular do usuário",
-                example: "(69) 99999-8888"
-            },
-            empresa: {
+            admin: {
                 type: "object",
                 properties: {
-                    nome: {
-                        type: "string",
-                        example: "Logística Rápida BR"
-                    },
-                    cargo: {
-                        type: "string",
-                        example: "Motorista Bi-trem"
-                    }
-                }
-            },
-            veiculo_id: {
-                type: "string",
-                description: "ID do veículo ao qual o motorista está atrelado (ObjectId)",
-                example: "674fa21d79969d2172e78711"
+                    nome: { type: "string", example: "Carlos Eduardo" },
+                    email: { type: "string", format: "email", example: "admin@rotaexpress.com.br" },
+                    senha: { type: "string", example: "Senha@Forte2026" },
+                    cpf: { type: "string", example: "08573215099" },
+                    telefone: { type: "string", example: "(11) 98888-7777" }
+                },
+                required: ["nome", "email", "senha"]
             }
         },
-        required: ["nome", "email", "senha"],
-        description: "Schema para cadastro de novo usuário (SignUp)",
-        example: {
-            nome: "João da Silva",
-            email: "joao.silva@rotardv.com.br",
-            senha: "Senha@123",
-            cpf: "08573215099",
-            telefone: "(69) 99999-8888",
-            empresa: {
-                nome: "Logística Rápida BR",
-                cargo: "Motorista Bi-trem"
-            },
-            veiculo_id: "674fa21d79969d2172e78711"
-        }
+        required: ["nome_empresa", "cnpj", "email_empresa"],
+        description: "Schema para Onboarding Corporativo (cadastro simultâneo da Transportadora e do Administrador Master)"
     },
 
     signupPostDetalhes: {
         type: "object",
         properties: {
-            _id: { type: "string", example: "674fa21d79969d2172e78710" },
-            nome: { type: "string", example: "João da Silva" },
-            email: { type: "string", example: "joao.silva@rotardv.com.br" },
-            cpf: { type: "string", example: "08573215099" },
-            telefone: { type: "string", example: "(69) 99999-8888" },
-            status: { type: "string", enum: ["ativo", "inativo"], example: "ativo" },
-            isAdmin: { type: "boolean", example: false },
-            foto_perfil: { type: "string", example: "" },
             empresa: {
+                $ref: "#/components/schemas/EmpresaListagem"
+            },
+            usuario: {
                 type: "object",
                 properties: {
-                    nome: { type: "string", example: "Logística Rápida BR" },
-                    cargo: { type: "string", example: "Motorista Bi-trem" }
+                    _id: { type: "string", example: "674fa21d79969d2172e78710" },
+                    nome: { type: "string", example: "Carlos Eduardo" },
+                    email: { type: "string", example: "admin@rotaexpress.com.br" },
+                    role: { type: "string", example: "admin" },
+                    isAdmin: { type: "boolean", example: true },
+                    email_verificado: { type: "boolean", example: true },
+                    empresa_id: { type: "string", example: "674fa21d79969d2172e78788" }
                 }
-            },
-            veiculo_id: { type: "string", example: "674fa21d79969d2172e78711" },
-            createdAt: { type: "string", format: "date-time", example: "2026-03-31T12:00:00.000Z" },
-            updatedAt: { type: "string", format: "date-time", example: "2026-03-31T12:00:00.000Z" }
+            }
         },
-        description: "Schema para detalhes do cadastro de usuário"
+        description: "Schema para detalhes do Onboarding Corporativo (Empresa e Administrador Master criados)"
     },
 
     RespostaLogin: {

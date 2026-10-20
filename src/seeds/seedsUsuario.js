@@ -237,10 +237,10 @@ async function seedUsuarios() {
 
     const usuariosCriados = await Usuario.insertMany(usuarios);
 
-    // Vincula o gestor criado à empresa principal
-    const gestorCriado = usuariosCriados.find(u => u.role === 'gestor');
-    if (gestorCriado && empresaPrincipal) {
-        await Empresa.findByIdAndUpdate(empresaPrincipal._id, { gestor_id: gestorCriado._id });
+    // Vincula o admin criado à empresa principal
+    const adminCriado = usuariosCriados.find(u => u.role === 'admin' && u.empresa_id);
+    if (adminCriado && empresaPrincipal) {
+        await Empresa.findByIdAndUpdate(empresaPrincipal._id, { admin_id: adminCriado._id });
     }
 
     console.log(`[SEED] ${usuariosCriados.length} usuários criados.`);

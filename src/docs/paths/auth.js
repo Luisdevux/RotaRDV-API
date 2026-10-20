@@ -46,24 +46,25 @@ const authRoutes = {
     "/signup": {
         post: {
             tags: ["Auth"],
-            summary: "Registra novo usuário no sistema",
+            summary: "Registra Transportadora e Administrador Master",
             description: `
-            + Caso de uso: Criação de conta própria no aplicativo de despesas rodoviárias.
+            + Caso de uso: Cadastro autônomo de transportadoras pelo painel web RotaRDV.
 
             + Função de Negócio:
-                - Permitir que novos usuários se registrem, criando uma conta com dados básicos.
+                - Cria simultaneamente a entidade Empresa e a conta do Administrador Master com governança inicial.
                 + Recebe no corpo da requisição:
-                    - Objeto conforme schema **signupPost**, contendo campos como nome, email, senha, etc.
+                    - Objeto conforme schema **signupPost**, contendo dados institucionais da transportadora e dados do administrador responsável.
 
             + Regras de Negócio:
-                - Validação de campos obrigatórios (nome, email e senha).
-                - Verificação de unicidade para email e cpf.
-                - Definição de status inicial como "ativo".
-                - Senha deve atender requisitos de segurança (mín. 8 chars, maiúscula, minúscula, número, especial).
-                - Em caso de duplicidade ou erro de validação, retorna erro apropriado.
+                - Validação de campos obrigatórios da empresa (nome_empresa, cnpj e email_empresa).
+                - Validação de unicidade e algoritmo oficial de CNPJ (suporte a numérico clássico e alfanumérico IN RFB 2.229/2024).
+                - Validação de campos do administrador responsável (nome, email e senha forte).
+                - Criação atômica com rollback transacional em caso de erro na geração de credenciais.
+                - Vínculo mútuo: empresa.admin_id aponta para o usuário e usuario.empresa_id aponta para a empresa.
+                - Disparo assíncrono de e-mail de boas-vindas para o Administrador Master.
 
             + Resultado Esperado:
-                - HTTP 201 Created com corpo conforme **signupPostDetalhes**, contendo todos os dados do usuário criado.
+                - HTTP 201 Created com corpo conforme **signupPostDetalhes**, contendo os dados da empresa e do administrador criados.
         `,
             requestBody: {
                 content: {

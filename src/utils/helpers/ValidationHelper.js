@@ -189,6 +189,33 @@ class ValidationHelper {
         }
         return document;
     }
+
+    /**
+     * Valida se um usuário admin possui acesso de gestão sobre uma determinada empresa (matriz ou filial)
+     */
+    static async validarAcessoEmpresaAdmin(empresaRepository, usuarioLogado, targetEmpresaId) {
+        if (!targetEmpresaId) return;
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        if (isSuperAdmin) return;
+
+        const isMatriz = String(usuarioLogado?.empresa_id) === String(targetEmpresaId);
+        if (isMatriz) return;
+
+        // Se for admin, verifica se a empresa alvo possui admin_id igual ao _id do admin
+        if (usuarioLogado?.role === 'admin') {
+            const empresa = await empresaRepository.buscarPorID(targetEmpresaId);
+            const isAdminDestaFilial = String(empresa?.admin_id?._id || empresa?.admin_id) === String(usuarioLogado?._id);
+            if (isAdminDestaFilial) return;
+        }
+
+        throw new CustomError({
+            statusCode: HttpStatusCodes.FORBIDDEN.code,
+            errorType: 'permissionError',
+            field: 'empresa_id',
+            details: [],
+            customMessage: 'Você não tem permissão para acessar os dados desta unidade/empresa.'
+        });
+    }
 }
 
 export default ValidationHelper;

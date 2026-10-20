@@ -37,7 +37,7 @@ export const fakeMappings = {
     }),
     status: () => faker.helpers.arrayElement(['ativo', 'inativo']),
     foto_logo: () => faker.image.url(),
-    gestor_id: () => new mongoose.Types.ObjectId(),
+    admin_id: () => new mongoose.Types.ObjectId(),
   },
 
   Usuario: {

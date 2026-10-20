@@ -13,6 +13,7 @@ router
     .get('/empresas', AuthMiddleware, asyncWrapper(empresaController.listar.bind(empresaController)))
     .get('/empresas/:id', AuthMiddleware, asyncWrapper(empresaController.listar.bind(empresaController)))
     .post('/empresas', AuthMiddleware, asyncWrapper(empresaController.criar.bind(empresaController)))
+    .post('/empresas/filial', AuthMiddleware, asyncWrapper(empresaController.cadastrarFilial.bind(empresaController)))
     .patch('/empresas/:id', AuthMiddleware, asyncWrapper(empresaController.atualizar.bind(empresaController)))
     .patch('/empresas/:id/status', AuthMiddleware, asyncWrapper(empresaController.atualizarStatus.bind(empresaController)))
     .delete('/empresas/:id', AuthMiddleware, asyncWrapper(empresaController.deletar.bind(empresaController)))

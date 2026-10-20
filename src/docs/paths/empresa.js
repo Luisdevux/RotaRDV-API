@@ -68,13 +68,13 @@ const empresaRoutes = {
                     - **email**: Email corporativo de contato (obrigatório).
                     - **telefone**: Telefone de contato (opcional).
                     - **endereco**: Objeto com logradouro, número, complemento, bairro, cidade, estado e cep (opcional).
-                    - **gestor_id**: ID do usuário gestor inicial (opcional).
+                    - **admin_id**: ID do usuário administrador master (opcional).
                     - **foto_logo**: URL pública do logotipo (opcional).
 
             + Regras de Negócio:
                 - Apenas administradores do sistema podem cadastrar novas empresas.
                 - CNPJ e Email corporativo devem ser únicos e válidos no sistema.
-                - Se informado um gestor_id, o usuário deve existir e não ser administrador.
+                - Se informado um admin_id, o usuário deve existir.
 
             + Resultado Esperado:
                 - HTTP 201 Created com os dados da empresa criada conforme schema **EmpresaListagem**.
@@ -86,6 +86,53 @@ const empresaRoutes = {
                     "application/json": {
                         schema: {
                             $ref: "#/components/schemas/EmpresaCriacao"
+                        }
+                    }
+                }
+            },
+            responses: {
+                201: commonResponses[201]("#/components/schemas/EmpresaListagem"),
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                409: commonResponses[409](null, "CNPJ ou email já cadastrado."),
+                498: commonResponses[498](),
+                500: commonResponses[500]()
+            }
+        }
+    },
+    "/empresas/filial": {
+        post: {
+            tags: ["Empresas"],
+            summary: "Cadastra nova filial coligada vinculada ao Administrador da transportadora",
+            description: `
+            + Caso de uso: O Administrador Master cadastra uma nova unidade operacional / filial da sua empresa.
+
+            + Função de Negócio:
+                - Criar uma nova empresa filial com CNPJ e e-mail próprios, vinculando-a diretamente ao \`admin_id\` do administrador autenticado.
+                + Recebe no corpo da requisição:
+                    - **nome_empresa**: Razão Social ou Nome Fantasia da filial (obrigatório).
+                    - **cnpj**: CNPJ válido da filial (numérico ou alfanumérico IN RFB 2.229/2024).
+                    - **email**: E-mail institucional de contato da filial (obrigatório).
+                    - **telefone**: Telefone de contato (opcional).
+                    - **endereco**: Objeto estruturado de endereço (opcional).
+                    - **foto_logo**: URL pública do logotipo da filial (opcional).
+
+            + Regras de Negócio:
+                - Apenas usuários com role \`admin\` ou \`superAdmin\` podem cadastrar filiais.
+                - CNPJ e Email institucional devem ser únicos no sistema.
+                - O sistema vincula automaticamente o \`admin_id\` do administrador autenticado.
+
+            + Resultado Esperado:
+                - HTTP 201 Created com os dados da filial criada conforme schema **EmpresaListagem**.
+            `,
+            security: [{ bearerAuth: [] }],
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            $ref: "#/components/schemas/CadastrarFilialInput"
                         }
                     }
                 }
@@ -157,7 +204,7 @@ const empresaRoutes = {
                     - **email**: Novo email corporativo.
                     - **telefone**: Novo telefone.
                     - **endereco**: Objeto atualizado de endereço.
-                    - **gestor_id**: Novo gestor responsável.
+                    - **admin_id**: Novo administrador responsável.
                     - **foto_logo**: Nova URL do logotipo.
 
             + Regras de Negócio:

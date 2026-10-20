@@ -24,11 +24,20 @@ class EmpresaFilterBuild {
 
     comCnpj(cnpj) {
         if (cnpj) {
-            const cleanCnpj = cnpj.replace(/\D/g, '');
-            this.filtros.cnpj = {
-                $regex: cleanCnpj.length ? cleanCnpj : cnpj,
-                $options: "i"
-            };
+            const trimmed = cnpj.trim();
+            const cleanCnpj = trimmed.replace(/[.\-/]/g, '').toUpperCase();
+            if (cleanCnpj && cleanCnpj !== trimmed.toUpperCase()) {
+                const escapedTrimmed = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                this.filtros.cnpj = {
+                    $regex: `${cleanCnpj}|${escapedTrimmed}`,
+                    $options: "i"
+                };
+            } else {
+                this.filtros.cnpj = {
+                    $regex: cleanCnpj || trimmed,
+                    $options: "i"
+                };
+            }
         }
         return this;
     }
@@ -67,9 +76,9 @@ class EmpresaFilterBuild {
         return this;
     }
 
-    comGestorId(gestor_id) {
-        if (gestor_id) {
-            this.filtros.gestor_id = gestor_id;
+    comAdminId(admin_id) {
+        if (admin_id) {
+            this.filtros.admin_id = admin_id;
         }
         return this;
     }

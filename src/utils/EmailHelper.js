@@ -16,7 +16,8 @@ class EmailHelper {
         return {
             VERIFICACAO_EMAIL: process.env.HERMES_TEMPLATE_VERIFICACAO_EMAIL || 'a718e877-a25d-49f7-ada6-203a154b2d6b',
             RECUPERACAO_SENHA: process.env.HERMES_TEMPLATE_RECUPERACAO_SENHA || '8755ec5b-6d73-49f6-a6f7-2ecc2d2c5a79',
-            BOAS_VINDAS_MOTORISTA: process.env.HERMES_TEMPLATE_BOAS_VINDAS_MOTORISTA || '15081568-c3da-4935-985c-e8670ce5eb8b'
+            BOAS_VINDAS_MOTORISTA: process.env.HERMES_TEMPLATE_BOAS_VINDAS_MOTORISTA || '15081568-c3da-4935-985c-e8670ce5eb8b',
+            BOAS_VINDAS_EQUIPE: process.env.HERMES_TEMPLATE_BOAS_VINDAS_EQUIPE || "00375296-2595-4120-8ef1-c47e1edf82c7"
         };
     }
 
@@ -113,6 +114,35 @@ class EmailHelper {
             return resposta;
         } catch (error) {
             this._handleHermesError(error, `Boas-vindas Motorista - ${email}`);
+            return null;
+        }
+    }
+
+    /**
+     * Envia email de boas-vindas com link do painel web para membros da equipe administrativa
+     */
+    static async enviarEmailBoasVindasEquipeAdministrativa({ email, nome, nomeEmpresa, cargo, role, linkPainel }) {
+        try {
+            const painelUrl = linkPainel || process.env.PAINEL_WEB_URL || 'https://rotardv-painel.luisfelipe.dpdns.org';
+            const cargoFormatado = cargo || (role === 'admin' ? 'Administrador da Empresa' : 'Gestor de Frota');
+
+            const resposta = await hermesClient.email()
+                .to(email)
+                .subject(`Bem-Vindo ao RotaRDV!`)
+                .useTemplate(this.TEMPLATES.BOAS_VINDAS_EQUIPE, {
+                    nomeUsuario: nome,
+                    nomeEmpresa: nomeEmpresa || 'RotaRDV',
+                    cargo: cargoFormatado,
+                    email,
+                    linkApp: painelUrl
+                })
+                .priority('high')
+                .send();
+
+            logger.info(`[EmailHelper] Email de boas-vindas enviado à equipe administrativa: ${email}`);
+            return resposta;
+        } catch (error) {
+            this._handleHermesError(error, `Boas-vindas Equipe Administrativa - ${email}`);
             return null;
         }
     }

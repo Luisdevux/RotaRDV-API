@@ -20,7 +20,7 @@ class EmpresaRepository {
     }
 
     async buscarPorID(id) {
-        const empresa = await this.modelEmpresa.findById(id).populate('gestor_id', 'nome email cpf foto_perfil');
+        const empresa = await this.modelEmpresa.findById(id).populate('admin_id', 'nome email cpf foto_perfil');
 
         if (!empresa) {
             throw new CustomError({
@@ -36,13 +36,21 @@ class EmpresaRepository {
     }
 
     async buscarPorCNPJ(cnpj, idIgnorado = null) {
-        const cleaned = cnpj.replace(/\D/g, '');
-        const filtro = {
-            $or: [
-                { cnpj: cnpj },
-                { cnpj: cleaned }
-            ]
-        };
+        const raw = cnpj.trim();
+        const cleaned = raw.replace(/[.\-/]/g, '').toUpperCase();
+        const conditions = [
+            { cnpj: raw },
+            { cnpj: cleaned },
+            { cnpj: new RegExp(`^${cleaned}$`, 'i') }
+        ];
+
+        if (cleaned.length === 14) {
+            const formatted = `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(8, 12)}-${cleaned.slice(12, 14)}`;
+            conditions.push({ cnpj: formatted });
+            conditions.push({ cnpj: new RegExp(`^${formatted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+        }
+
+        const filtro = { $or: conditions };
         if (idIgnorado) {
             filtro._id = { $ne: idIgnorado };
         }
@@ -72,7 +80,7 @@ class EmpresaRepository {
             status,
             cidade,
             estado,
-            gestor_id,
+            admin_id,
             page = 1,
             todos = false
         } = query;
@@ -87,13 +95,17 @@ class EmpresaRepository {
             .comStatus(status)
             .comCidade(cidade)
             .comEstado(estado)
-            .comGestorId(gestor_id);
+            .comAdminId(admin_id);
 
         const filtros = filterBuilder.build();
 
+        if (filtrosOverride.$or) {
+            filtros.$or = filtrosOverride.$or;
+        }
+
         if (todos || parseInt(query.limite, 10) === 0) {
             const docs = await this.modelEmpresa.find(filtros)
-                .populate({ path: 'gestor_id', select: 'nome email foto_perfil' })
+                .populate({ path: 'admin_id', select: 'nome email foto_perfil' })
                 .sort({ nome_empresa: 1 })
                 .lean();
 
@@ -117,7 +129,7 @@ class EmpresaRepository {
             page: parseInt(page, 10),
             limit: parseInt(limite, 10),
             sort: { nome_empresa: 1 },
-            populate: { path: 'gestor_id', select: 'nome email foto_perfil' }
+            populate: { path: 'admin_id', select: 'nome email foto_perfil' }
         };
 
         const resultado = await this.modelEmpresa.paginate(filtros, options);
@@ -138,7 +150,7 @@ class EmpresaRepository {
             id,
             parsedData,
             { returnDocument: 'after' }
-        ).populate('gestor_id', 'nome email foto_perfil');
+        ).populate('admin_id', 'nome email foto_perfil');
 
         if (!empresa) {
             throw new CustomError({

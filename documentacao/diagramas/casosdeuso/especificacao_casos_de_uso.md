@@ -219,24 +219,32 @@ Documento formal de Engenharia de Software para o ecossistema **RotaRDV** (`tcc-
 ---
 
 ### UC-09: Gerenciar Transportadoras e Multi-Tenancy
-- **Atores:** Super Administrador.
-- **Pré-condições:** Usuário logado com permissão `role === 'superAdmin'`.
-- **Fluxo Principal (Cadastro de Tenant):**
-  1. O SuperAdmin preenche dados da empresa: Razão Social, Nome Fantasia, CNPJ, Inscrição Estadual, Email Institucional, Telefone, Endereço e indica o Gestor Responsável (`gestor_id`).
+- **Atores:** Super Administrador, Administrador Master da Empresa.
+- **Pré-condições:** Usuário logado com permissão `role === 'superAdmin'` (para gestão global) ou `role === 'admin'` (para gestão de suas filiais).
+- **Fluxo Principal (Cadastro de Tenant pelo SuperAdmin):**
+  1. O SuperAdmin preenche dados da empresa: Razão Social, CNPJ, Email Institucional, Telefone, Endereço e indica o Administrador Responsável (`admin_id`).
   2. O endpoint `POST /empresas` é acionado.
-  3. O `EmpresaService` valida o CNPJ (numérico ou alfanumérico conforme IN RFB 2.229/2024).
+  3. O `EmpresaService` valida o CNPJ (numérico clássico ou alfanumérico conforme IN RFB 2.229/2024).
   4. Valida a unicidade do e-mail institucional e do CNPJ.
   5. Persiste a empresa no MongoDB com `status: 'ativo'`.
-  6. Localiza o usuário indicado em `gestor_id` e atualiza seus campos: `role: 'gestor'`, `empresa_id: empresa._id` e cargo.
+  6. Se informado `admin_id`, atualiza o usuário com `empresa_id: empresa._id` e cargo de Administrador.
   7. Retorna HTTP 201 Created.
-- **Fluxo Alternativo 9A (Exclusão Segura com Trava Referencial):**
+- **Fluxo Alternativo 9A (Onboarding Corporativo no Signup):**
+  1. A transportadora realiza cadastro autônomo via `POST /signup`.
+  2. O `AuthService.signupEmpresa` cria simultaneamente a Empresa e o usuário Administrador Master com vínculo mútuo atômico.
+  3. Dispara email de boas-vindas assíncrono para o Administrador.
+- **Fluxo Alternativo 9B (Cadastro de Filial pelo Administrador):**
+  1. O Administrador Master autenticado envia os dados da nova filial via `POST /empresas/filial`.
+  2. O sistema vincula automaticamente a filial ao `admin_id` do Administrador.
+  3. O Administrador passa a ter gestão integrada da matriz e de suas filiais coligadas.
+- **Fluxo Alternativo 9C (Exclusão Segura com Trava Referencial):**
   1. SuperAdmin solicita `DELETE /empresas/:id`.
   2. O serviço consulta se existem motoristas vinculados (`contarMotoristas`).
   3. Se houver condutores, retorna HTTP 409 Conflict impedindo a exclusão.
   4. O serviço consulta se existem veículos vinculados (`contarVeiculos`).
   5. Se houver veículos, retorna HTTP 409 Conflict impedindo a exclusão.
   6. Se contadores forem zero, a empresa é excluída e retorna HTTP 200.
-- **Pós-condições:** Nova transportadora criada e isolada ou removida em conformidade com as regras de integridade.
+- **Pós-condições:** Nova transportadora ou filial criada e isolada ou removida em conformidade com as regras de integridade.
 
 ---
 
