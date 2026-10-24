@@ -73,12 +73,16 @@ class EmailHelper {
      */
     static async enviarEmailRecuperacaoSenha({ email, nome, token }) {
         try {
+            const painelUrl = process.env.PAINEL_WEB_URL || 'https://rotardv.luisfelipe.dpdns.org';
+            const linkRecuperacao = `${painelUrl}/redefinir-senha?token=${token}`;
+
             const resposta = await hermesClient.email()
                 .to(email)
                 .subject('Recuperação de Senha - RotaRDV')
                 .useTemplate(this.TEMPLATES.RECUPERACAO_SENHA, {
                     nomeUsuario: nome,
-                    token
+                    token,
+                    linkRecuperacao
                 })
                 .priority('high')
                 .send();
