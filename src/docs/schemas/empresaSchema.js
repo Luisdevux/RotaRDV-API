@@ -41,8 +41,19 @@ const empresaSchemas = {
                 properties: {
                     _id: { type: "string", example: "674fa21d79969d2172e78788" },
                     nome: { type: "string", example: "Carlos Silva" },
-                    email: { type: "string", example: "carlos@rotabrasil.com.br" }
+                    email: { type: "string", example: "carlos@rotabrasil.com.br" },
+                    empresa_id: { type: "string", example: "674fa21d79969d2172e78799", description: "ID da matriz vinculada ao administrador" }
                 }
+            },
+            matriz_id: {
+                type: "object",
+                properties: {
+                    _id: { type: "string", example: "674fa21d79969d2172e78799" },
+                    nome_empresa: { type: "string", example: "Transportadora Rota Brasil Matriz" },
+                    cnpj: { type: "string", example: "12.345.678/0001-90" }
+                },
+                description: "Dados da matriz vinculada (null caso a empresa seja a própria matriz)",
+                nullable: true
             },
             createdAt: { type: "string", format: "date-time", example: "2026-08-13T12:00:00.000Z" },
             updatedAt: { type: "string", format: "date-time", example: "2026-08-13T12:00:00.000Z" }
@@ -80,6 +91,11 @@ const empresaSchemas = {
         type: "object",
         required: ["nome_empresa", "cnpj"],
         properties: {
+            matriz_id: {
+                type: "string",
+                example: "674fa21d79969d2172e78799",
+                description: "ID da matriz coligada (opcional para admin logado, que vincula sua matriz automaticamente; preenchido por superAdmin)"
+            },
             nome_empresa: { type: "string", example: "Transportadora Rota Brasil - Filial Porto Velho" },
             cnpj: { type: "string", description: "CNPJ numérico ou alfanumérico IN RFB 2.229/2024", example: "12.ABC.345/0001-88" },
             email: { type: "string", example: "filial.pvh@rotabrasil.com.br" },

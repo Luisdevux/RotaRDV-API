@@ -1,4 +1,4 @@
-// src/test/services/UsuarioService.test.js
+// src/test/services/VeiculoService.test.js
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import mongoose from 'mongoose';
@@ -122,6 +122,30 @@ describe('Unitário: VeiculoService (Regras de Negócio de Veículos)', () => {
             expect(novoVeiculo).toBeDefined();
             expect(String(novoVeiculo.empresa_id)).toBe(String(empresa._id));
             expect(novoVeiculo.placa).toBe('BRA2E19');
+        });
+
+        it('deve cadastrar veículo com odômetro inicial (km_atual) e persistir o valor', async () => {
+            const empresa = await criarEmpresa();
+            const gestor = await criarUsuario({ role: 'gestor', empresa_id: empresa._id });
+
+            const payload = {
+                placa: 'BRA2E22',
+                modelo: 'Volvo FH 540 6x4',
+                ano_fabricacao: 2024,
+                combustivel_preferencial: 'DIESEL_S10',
+                km_atual: 125000,
+            };
+
+            const novoVeiculo = await service.criar(payload, { user_id: gestor._id });
+            expect(novoVeiculo).toBeDefined();
+            expect(novoVeiculo.km_atual).toBe(125000);
+
+            const atualizado = await service.atualizar(
+                novoVeiculo._id,
+                { km_atual: 130000 },
+                { user_id: gestor._id }
+            );
+            expect(atualizado.km_atual).toBe(130000);
         });
 
         it('deve lançar CustomError 409 se tentar cadastrar veículo com placa duplicada', async () => {

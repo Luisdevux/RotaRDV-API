@@ -165,6 +165,7 @@ const SignupEmpresaSchema = z.object({
 });
 
 const CadastrarFilialSchema = z.object({
+    matriz_id: objectIdSchema.optional().nullable(),
     nome_empresa: z
         .string()
         .nonempty('Nome da filial é obrigatório.')

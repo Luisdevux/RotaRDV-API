@@ -49,7 +49,8 @@ class EmpresaService {
             if (usuarioLogado.role === 'admin') {
                 filtrosOverride.$or = [
                     { _id: usuarioLogado.empresa_id },
-                    { admin_id: usuarioLogado._id }
+                    { admin_id: usuarioLogado._id },
+                    { matriz_id: usuarioLogado.empresa_id }
                 ];
             } else if (usuarioLogado.empresa_id) {
                 filtrosOverride._id = String(usuarioLogado.empresa_id);
@@ -125,6 +126,16 @@ class EmpresaService {
         const emailFilial = (validated.email || validated.email_empresa).toLowerCase().trim();
         await ValidationHelper.validateEmail(this.repository, emailFilial, null, 'Email institucional já cadastrado.');
 
+        const matrizId = validated.matriz_id || (isAdmin ? usuarioLogado.empresa_id : null);
+
+        let adminId = usuarioLogado._id;
+        if (isSuperAdmin && matrizId) {
+            const matriz = await this.repository.buscarPorID(matrizId);
+            if (matriz && matriz.admin_id) {
+                adminId = matriz.admin_id._id || matriz.admin_id;
+            }
+        }
+
         const filialData = {
             nome_empresa: validated.nome_empresa,
             cnpj: validated.cnpj.replace(/[.\-/]/g, '').trim().toUpperCase(),
@@ -133,7 +144,8 @@ class EmpresaService {
             endereco: validated.endereco || {},
             foto_logo: validated.foto_logo || '',
             status: 'ativo',
-            admin_id: usuarioLogado._id
+            admin_id: adminId,
+            matriz_id: matrizId
         };
 
         const novaFilial = await this.repository.criar(filialData);

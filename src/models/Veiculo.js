@@ -38,6 +38,11 @@ class Veiculo {
                 type: Number,
                 default: 2024
             },
+            km_atual: {
+                type: Number,
+                default: 0,
+                min: [0, "O KM atual não pode ser negativo!"]
+            },
             reboque: {
                 modelo: {
                     type: String,

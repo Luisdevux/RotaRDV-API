@@ -29,6 +29,7 @@ const veiculoSchemas = {
             capacidade_tanque: { type: "number", example: 400 },
             capacidade_arla: { type: "number", example: 60 },
             ano_fabricacao: { type: "number", example: 2024 },
+            km_atual: { type: "number", example: 125000, description: "Odômetro/KM atual registrado do veículo" },
             reboque: {
                 type: "object",
                 properties: {
@@ -62,6 +63,7 @@ const veiculoSchemas = {
             capacidade_tanque: { type: "number", example: 400 },
             capacidade_arla: { type: "number", example: 60 },
             ano_fabricacao: { type: "number", example: 2024 },
+            km_atual: { type: "number", example: 125000, description: "Odômetro/KM atual registrado do veículo" },
             reboque: {
                 type: "object",
                 properties: {
@@ -92,6 +94,7 @@ const veiculoSchemas = {
             capacidade_tanque: { type: "number", example: 400 },
             capacidade_arla: { type: "number", example: 60 },
             ano_fabricacao: { type: "number", example: 2024 },
+            km_atual: { type: "number", example: 125000, description: "Odômetro/KM atual registrado do veículo" },
             reboque: {
                 type: "object",
                 properties: {

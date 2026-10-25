@@ -28,13 +28,14 @@ Arquivos correspondentes:
 
 ---
 
-### POST /empresas/filial (Cadastro de Filiais Coligadas)
+### POST /empresas/filial (Cadastro de Filiais Coligadas e Hierarquia Matriz-Filial)
 
 | Cenário / Funcionalidade | Comportamento Esperado | Verificações (Execução) | Critérios de Aceite |
 | :--- | :--- | :--- | :--- |
-| **Criação de Filial por Administrador** | Permite que Administradores criem novas filiais associadas ao seu `admin_id`. | Requisição `POST /empresas/filial` autenticado como `admin` enviando CNPJ, email e endereço da filial. | Retorna HTTP `201` com `admin_id` vinculado ao usuário administrador autenticado. |
+| **Criação de Filial por Administrador** | Permite que Administradores criem novas filiais associadas ao seu `admin_id` e associa automaticamente `matriz_id` à sua empresa matriz. | Requisição `POST /empresas/filial` autenticado como `admin` enviando CNPJ, email e endereço da filial. | Retorna HTTP `201` com `admin_id` vinculado ao administrador e `matriz_id` correspondente à sua matriz. |
+| **Criação de Filial por SuperAdmin com `matriz_id`** | Permite que Super Administradores criem filiais vinculando-as a uma matriz específica informada no body, herdando o `admin_id` responsável da matriz. | Requisição `POST /empresas/filial` autenticado como `superAdmin` informando `matriz_id` no payload. | Retorna HTTP `201` com `matriz_id` e `admin_id` da matriz. |
 | **Bloqueio de Criação por Motorista** | Impede que motoristas cadastrem filiais. | Requisição `POST /empresas/filial` autenticado como `motorista`. | Retorna HTTP `403` informando restrição a Administradores. |
-| **Visibilidade Multi-Tenant Consolidada** | O Administrador Master visualiza tanto a matriz quanto suas filiais coligadas na listagem. | Requisição `GET /empresas` com token do Administrador Master. | Retorna HTTP `200` contendo matriz e filiais sob sua gestão. |
+| **Visibilidade Multi-Tenant Consolidada** | O Administrador visualiza a matriz e filiais; o SuperAdmin visualiza todas com dados de `matriz_id` populados para agrupamento hierárquico. | Requisições `GET /empresas` e `GET /empresas/:id`. | Retorna HTTP `200` populando `matriz_id` (`nome_empresa`, `cnpj`) e `admin_id.empresa_id`. |
 
 ---
 

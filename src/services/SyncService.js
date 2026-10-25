@@ -1,8 +1,10 @@
 // src/services/SyncService.js
 
+import mongoose from 'mongoose';
 import Viagem from '../models/Viagem.js';
 import Despesa from '../models/Despesa.js';
 import Usuario from '../models/Usuario.js';
+import Veiculo from '../models/Veiculo.js';
 import { DateHelper } from '../utils/helpers/index.js';
 import ViagemDomainValidator from '../utils/validators/domain/ViagemDomainValidator.js';
 import DespesaDomainValidator from '../utils/validators/domain/DespesaDomainValidator.js';
@@ -103,6 +105,19 @@ class SyncService {
                             ? v.veiculo_id
                             : (veiculoDoc || v.veiculo_id)
                     });
+
+                    // Se a viagem sincronizada estiver concluída, atualiza o KM do veículo
+                    if (v.status === 'concluída' && v.km_final) {
+                        const targetVeiculoId = (typeof v.veiculo_id === 'object' && v.veiculo_id?._id)
+                            ? v.veiculo_id._id
+                            : (v.veiculo_id || veiculoDoc?._id);
+                        if (targetVeiculoId) {
+                            try {
+                                const VeiculoModel = mongoose.models.veiculos || Veiculo;
+                                await VeiculoModel.findByIdAndUpdate(targetVeiculoId, { km_atual: v.km_final });
+                            } catch (_) {}
+                        }
+                    }
                 }
             }
 
