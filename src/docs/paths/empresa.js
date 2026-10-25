@@ -111,6 +111,7 @@ const empresaRoutes = {
             + Função de Negócio:
                 - Criar uma nova empresa filial com CNPJ e e-mail próprios, vinculando-a diretamente ao \`admin_id\` do administrador autenticado.
                 + Recebe no corpo da requisição:
+                    - **matriz_id**: ID da matriz coligada (opcional para Admin, obrigatório para SuperAdmin vincular a filial à transportadora correta).
                     - **nome_empresa**: Razão Social ou Nome Fantasia da filial (obrigatório).
                     - **cnpj**: CNPJ válido da filial (numérico ou alfanumérico IN RFB 2.229/2024).
                     - **email**: E-mail institucional de contato da filial (obrigatório).

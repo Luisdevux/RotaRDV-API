@@ -150,6 +150,24 @@ describe('Unitário: SyncService (Motor de Sincronização Offline-First)', () =
             expect(viagemSalva.usuario_snapshot.nome).toBe(motorista.nome);
         });
 
+        it('deve atualizar o km_atual do veículo no pushSync quando uma viagem concluída for sincronizada', async () => {
+            const veiculo = await criarVeiculo({ km_atual: 10000 });
+            const motorista = await criarUsuario({ veiculo_id: veiculo._id });
+
+            const vConcluida = viagemPayload(motorista._id, veiculo._id, {
+                km_inicial: 10000,
+                km_final: 12500,
+                status: 'concluída',
+                data_fim: new Date(),
+            });
+
+            const resultado = await service.pushSync(motorista, [vConcluida], []);
+            expect(resultado.viagensUpserted).toBe(1);
+
+            const veiculoAtualizado = await Veiculo.findById(veiculo._id);
+            expect(veiculoAtualizado.km_atual).toBe(12500);
+        });
+
         it('deve rejeitar despesa de viagem inexistente sem abortar o restante do lote', async () => {
             const veiculo = await criarVeiculo();
             const motorista = await criarUsuario({ veiculo_id: veiculo._id });

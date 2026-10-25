@@ -14,6 +14,7 @@ Arquivos correspondentes:
 | **Bloqueio de Criação por Motorista** | Impede que usuários com perfil de motorista criem ou cadastrem novos veículos na frota da empresa. | Chamada a `VeiculoService.criar()` com credenciais de usuário com `role: 'motorista'`. | Lança `CustomError` (403, `permissionError`). O veículo não é registrado no banco. |
 | **Vinculação Automática ao Tenant** | Associa compulsoriamente o `empresa_id` do gestor autenticado ao registro do novo veículo, garantindo a governança do tenant. | Chamada a `VeiculoService.criar()` autenticado como `gestor` da transportadora. | Retorna o documento do veículo criado contendo exatamente o `empresa_id` correspondente ao gestor. |
 | **Unicidade de Placa Veicular** | Impede o cadastramento de dois veículos com a mesma placa identificadora na base de dados. | Tentativa de cadastro de veículo com placa já existente no sistema. | Lança `CustomError` (409) com indicação do campo `placa`. Não permite duplicidade cadastral. |
+| **Odômetro Inicial / KM Base** | Permite registrar o KM inicial de controle do veículo, servindo como piso para a primeira viagem e sendo atualizado a cada conclusão de viagem. | Chamada a `VeiculoService.criar()` informando `km_atual: 50000`. | O veículo é registrado com `km_atual: 50000`. Primeira viagem com KM menor é rejeitada. Ao concluir viagem, o KM é atualizado automaticamente. |
 
 ---
 

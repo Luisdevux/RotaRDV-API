@@ -1,6 +1,8 @@
 // src/repositories/ViagemRepository.js
 
+import mongoose from "mongoose";
 import Viagem from "../models/Viagem.js";
+import Veiculo from "../models/Veiculo.js";
 import ViagemFilterBuild from "./filters/ViagemFilterBuild.js";
 import {
     CustomError,
@@ -8,8 +10,9 @@ import {
 } from "../utils/helpers/index.js";
 
 class ViagemRepository {
-    constructor({ viagemModel = Viagem } = {}) {
+    constructor({ viagemModel = Viagem, veiculoModel = Veiculo } = {}) {
         this.modelViagem = viagemModel;
+        this.modelVeiculo = veiculoModel;
     }
 
     async buscarPorID(id) {
@@ -36,7 +39,13 @@ class ViagemRepository {
             status: "concluída"
         }).sort({ data_fim: -1 });
 
-        return ultimaViagem ? (ultimaViagem.km_final || 0) : 0;
+        if (ultimaViagem && typeof ultimaViagem.km_final === 'number' && ultimaViagem.km_final > 0) {
+            return ultimaViagem.km_final;
+        }
+
+        const VeiculoModel = this.modelVeiculo || mongoose.models.veiculos || Veiculo;
+        const veiculo = await VeiculoModel.findById(veiculoId).select("km_atual");
+        return veiculo && typeof veiculo.km_atual === 'number' ? veiculo.km_atual : 0;
     }
 
     async listar(req = {}, filtrosOverride = {}) {

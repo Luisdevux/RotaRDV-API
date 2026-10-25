@@ -252,6 +252,34 @@ describe('Unitário: ViagemService (Regras de Negócio de Viagens)', () => {
             expect(erro.field).toBe('km_inicial');
         });
 
+        it('deve lançar CustomError 400 se o odômetro inicial da primeira viagem for menor que o km_atual registrado no veículo', async () => {
+            const empresaId = new mongoose.Types.ObjectId();
+            const veiculo = await criarVeiculo({ empresa_id: empresaId, km_atual: 50000 });
+            const motorista = await criarUsuario({ empresa_id: empresaId, veiculo_id: veiculo._id });
+
+            // Primeira viagem do veículo: piso deve ser os 50.000 km registrados no cadastro do veículo
+            const payloadInvalido = {
+                usuario_id: motorista._id,
+                veiculo_id: veiculo._id,
+                origem: { cidade: 'São Paulo', estado: 'SP' },
+                destino: { cidade: 'Campinas', estado: 'SP' },
+                data_inicio: new Date(),
+                km_inicial: 48000, // Menor que km_atual (50000)
+            };
+
+            let erro;
+            try {
+                await service.criar(payloadInvalido, { user_id: motorista._id });
+            } catch (err) {
+                erro = err;
+            }
+
+            expect(erro).toBeInstanceOf(CustomError);
+            expect(erro.statusCode).toBe(400);
+            expect(erro.errorType).toBe('businessRuleError');
+            expect(erro.field).toBe('km_inicial');
+        });
+
         it('deve lançar CustomError 403 se o motorista tentar criar viagem para outro usuário', async () => {
             const motorista1 = await criarUsuario();
             const motorista2 = await criarUsuario();
@@ -330,6 +358,29 @@ describe('Unitário: ViagemService (Regras de Negócio de Viagens)', () => {
             expect(viagemComResumo.resumo_financeiro.metricas.km_percorrido).toBe(600);
             expect(viagemComResumo.resumo_financeiro.metricas.total_litros).toBe(200);
             expect(viagemComResumo.resumo_financeiro.metricas.media_consumo).toBe(3);
+        });
+
+        it('deve atualizar automaticamente o km_atual do veículo no encerramento da viagem', async () => {
+            const empresaId = new mongoose.Types.ObjectId();
+            const veiculo = await criarVeiculo({ empresa_id: empresaId, km_atual: 50000 });
+            const motorista = await criarUsuario({ empresa_id: empresaId, veiculo_id: veiculo._id });
+
+            const viagem = await criarViagem({
+                usuario_id: motorista._id,
+                veiculo_id: veiculo._id,
+                empresa_id: empresaId,
+                km_inicial: 50000,
+                status: 'em_andamento',
+            });
+
+            await service.atualizar(
+                viagem._id,
+                { status: 'concluída', km_final: 52400 },
+                { user_id: motorista._id }
+            );
+
+            const veiculoAtualizado = await Veiculo.findById(veiculo._id);
+            expect(veiculoAtualizado.km_atual).toBe(52400);
         });
 
         it('deve lançar CustomError 403 quando um motorista tentar deletar uma viagem', async () => {

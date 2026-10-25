@@ -86,6 +86,12 @@ class Empresa {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "usuarios",
                 required: false
+            },
+            matriz_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "empresas",
+                required: false,
+                default: null
             }
         }, {
             timestamps: true,
