@@ -124,7 +124,8 @@ class AuthController {
 
     recuperaSenha = async (req, res) => {
         const body = req.body || {};
-        const email = body.email || body.email.trim().toLowerCase();
+        const email = body.email ? body.email.trim().toLowerCase() : null;
+        const origem = body.origem || req.query.origem || req.headers['x-client-origin'] || 'web';
 
         if (!email || typeof email !== 'string' || !email.includes('@')) {
             throw new CustomError({
@@ -136,7 +137,7 @@ class AuthController {
             });
         }
 
-        const data = await this.service.recuperaSenha({ email });
+        const data = await this.service.recuperaSenha({ email, origem });
         return CommonResponse.success(res, data);
     }
 

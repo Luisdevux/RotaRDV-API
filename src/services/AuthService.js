@@ -329,7 +329,8 @@ class AuthService {
             usuarioId: userEncontrado._id,
             email: body.email,
             nome: userEncontrado.nome,
-            token: tokenUnico
+            token: tokenUnico,
+            origem: body.origem || 'web'
         });
 
         return {

@@ -71,10 +71,12 @@ class EmailHelper {
     /**
      * Envia email com código / token para redefinição de senha
      */
-    static async enviarEmailRecuperacaoSenha({ email, nome, token }) {
+    static async enviarEmailRecuperacaoSenha({ email, nome, token, origem = 'web' }) {
         try {
             const painelUrl = process.env.PAINEL_WEB_URL || 'https://rotardv.luisfelipe.dpdns.org';
-            const linkRecuperacao = `${painelUrl}/redefinir-senha?token=${token}`;
+            const linkRecuperacao = origem === 'app'
+                ? `rotardv://auth/reset-password?token=${encodeURIComponent(token)}`
+                : `${painelUrl}/redefinir-senha?token=${encodeURIComponent(token)}`;
 
             const resposta = await hermesClient.email()
                 .to(email)
@@ -87,7 +89,7 @@ class EmailHelper {
                 .priority('high')
                 .send();
 
-            logger.info(`[EmailHelper] Email de recuperação de senha enviado com sucesso para ${email}`);
+            logger.info(`[EmailHelper] Email de recuperação de senha enviado com sucesso para ${email} (origem: ${origem})`);
             return resposta;
         } catch (error) {
             this._handleHermesError(error, `Recuperação de Senha - ${email}`);
