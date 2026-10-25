@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-const VeiculoSchema = z.object({
+const baseVeiculoFields = {
     modelo: z.string()
         .nonempty('Campo modelo é obrigatório.')
         .min(2, 'Modelo deve ter pelo menos 2 caracteres.'),
@@ -21,15 +21,36 @@ const VeiculoSchema = z.object({
     capacidade_tanque: z.number().optional(),
     capacidade_arla: z.number().nullable().optional(),
     ano_fabricacao: z.number().optional(),
+    km_atual: z.coerce.number().min(0, 'O KM atual não pode ser negativo.').optional().default(0),
+    km: z.coerce.number().optional(),
+    quilometragem: z.coerce.number().optional(),
     empresa_id: z.string().optional(),
     reboque: z.object({
         modelo: z.string().optional(),
         placas: z.array(z.string()).optional(),
         ano_fabricacao: z.number().optional(),
     }).optional(),
+};
+
+const VeiculoSchema = z.object(baseVeiculoFields).transform((data) => {
+    if (data.km_atual === 0 && (data.km !== undefined || data.quilometragem !== undefined)) {
+        data.km_atual = data.km !== undefined ? data.km : data.quilometragem;
+    }
+    delete data.km;
+    delete data.quilometragem;
+    return data;
 });
 
-const VeiculoUpdateSchema = VeiculoSchema.partial();
+const VeiculoUpdateSchema = z.object(baseVeiculoFields).partial().transform((data) => {
+    if (data.km !== undefined || data.quilometragem !== undefined) {
+        if (data.km_atual === undefined || data.km_atual === 0) {
+            data.km_atual = data.km !== undefined ? data.km : data.quilometragem;
+        }
+    }
+    delete data.km;
+    delete data.quilometragem;
+    return data;
+});
 
 const VeiculoStatusUpdateSchema = z.object({
     status: z.enum(['ativo', 'inativo'], {

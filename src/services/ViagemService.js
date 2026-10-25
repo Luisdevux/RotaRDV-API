@@ -246,6 +246,15 @@ class ViagemService {
         parsedData.empresa_id = parsedData.empresa_id || motorista.empresa_id || veiculo.empresa_id || null;
 
         const data = await this.repository.criar(parsedData);
+
+        if (data && data.status === 'concluída' && data.km_final && data.veiculo_id) {
+            try {
+                await this.veiculoRepository.atualizar(data.veiculo_id, {
+                    km_atual: data.km_final
+                });
+            } catch (_) {}
+        }
+
         return data;
     }
 
@@ -315,6 +324,15 @@ class ViagemService {
         }
 
         const data = await this.repository.atualizar(id, parsedData);
+
+        if (data && data.status === 'concluída' && data.km_final && data.veiculo_id) {
+            try {
+                await this.veiculoRepository.atualizar(data.veiculo_id, {
+                    km_atual: data.km_final
+                });
+            } catch (_) {}
+        }
+
         return data;
     }
     async deletar(id, req) {

@@ -85,6 +85,7 @@ class Empresa {
   +status: String
   +foto_logo: String
   +admin_id: ObjectId
+  +matriz_id: ObjectId
   +createdAt: Date
   +updatedAt: Date
   --
@@ -123,6 +124,7 @@ class Veiculo {
   +status: String
   +capacidade_tanque: Number
   +ano_fabricacao: Number
+  +km_atual: Number
   +reboque: Reboque
   +empresa_id: ObjectId
   +createdAt: Date
@@ -200,6 +202,7 @@ class DespesaOutros {
 }
 
 ' Relacionamentos Estruturais
+Empresa "0..1" <-- "0..*" Empresa : matriz_filiais
 Empresa "1" *-- "1" Endereco : possui
 Empresa "1" o-- "0..1" Usuario : admin_responsavel
 Empresa "1" <-- "0..*" Usuario : vinculada_a

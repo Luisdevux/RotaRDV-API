@@ -20,7 +20,9 @@ class EmpresaRepository {
     }
 
     async buscarPorID(id) {
-        const empresa = await this.modelEmpresa.findById(id).populate('admin_id', 'nome email cpf foto_perfil');
+        const empresa = await this.modelEmpresa.findById(id)
+            .populate('admin_id', 'nome email cpf foto_perfil empresa_id')
+            .populate('matriz_id', 'nome_empresa cnpj');
 
         if (!empresa) {
             throw new CustomError({
@@ -105,7 +107,10 @@ class EmpresaRepository {
 
         if (todos || parseInt(query.limite, 10) === 0) {
             const docs = await this.modelEmpresa.find(filtros)
-                .populate({ path: 'admin_id', select: 'nome email foto_perfil' })
+                .populate([
+                    { path: 'admin_id', select: 'nome email foto_perfil empresa_id' },
+                    { path: 'matriz_id', select: 'nome_empresa cnpj' }
+                ])
                 .sort({ nome_empresa: 1 })
                 .lean();
 
@@ -129,7 +134,10 @@ class EmpresaRepository {
             page: parseInt(page, 10),
             limit: parseInt(limite, 10),
             sort: { nome_empresa: 1 },
-            populate: { path: 'admin_id', select: 'nome email foto_perfil' }
+            populate: [
+                { path: 'admin_id', select: 'nome email foto_perfil empresa_id' },
+                { path: 'matriz_id', select: 'nome_empresa cnpj' }
+            ]
         };
 
         const resultado = await this.modelEmpresa.paginate(filtros, options);

@@ -203,6 +203,7 @@ describe('Rotas de Empresas (empresaRoutes)', () => {
             expect(res.status).toBe(201);
             expect(res.body.data.nome_empresa).toBe('Transportadora Batista - Filial Porto Velho');
             expect(String(res.body.data.admin_id)).toBe(String(adminMaster._id));
+            expect(String(res.body.data.matriz_id)).toBe(String(matriz._id));
 
             // Testar se o Admin Master enxerga Matriz e Filial no GET /empresas
             const listRes = await request(app)
@@ -214,6 +215,40 @@ describe('Rotas de Empresas (empresaRoutes)', () => {
             const ids = empresasEncontradas.map((e) => String(e._id));
             expect(ids).toContain(String(matriz._id));
             expect(ids).toContain(String(res.body.data._id));
+        });
+
+        it('deve permitir criação de filial por superAdmin especificando matriz_id e herdando admin_id da matriz', async () => {
+            const adminMaster = await criarUsuario({ role: 'admin' });
+            const matriz = await criarEmpresa({ admin_id: adminMaster._id });
+            adminMaster.empresa_id = matriz._id;
+            await adminMaster.save();
+
+            const superAdmin = await criarUsuario({ role: 'superAdmin' });
+            autenticarComo(superAdmin);
+
+            const cnpjFilial = cnpjUtil.format(cnpjUtil.generate(false));
+            const emailFilial = `filial_super_${Date.now()}@transporte.com`;
+
+            const res = await request(app)
+                .post('/empresas/filial')
+                .send({
+                    matriz_id: String(matriz._id),
+                    nome_empresa: 'Transportadora Batista - Filial Vilhena',
+                    cnpj: cnpjFilial,
+                    email: emailFilial,
+                    telefone: '6933221100'
+                });
+
+            expect(res.status).toBe(201);
+            expect(res.body.data.nome_empresa).toBe('Transportadora Batista - Filial Vilhena');
+            expect(String(res.body.data.matriz_id)).toBe(String(matriz._id));
+            expect(String(res.body.data.admin_id)).toBe(String(adminMaster._id));
+
+            // Testar se o GET /empresas/:id traz a matriz populada
+            const filialDetalhe = await request(app).get(`/empresas/${res.body.data._id}`);
+            expect(filialDetalhe.status).toBe(200);
+            expect(filialDetalhe.body.data.matriz_id).toBeDefined();
+            expect(filialDetalhe.body.data.matriz_id.nome_empresa).toBe(matriz.nome_empresa);
         });
 
         it('deve bloquear criação de filial para motorista com status 403', async () => {
