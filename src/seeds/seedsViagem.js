@@ -78,7 +78,12 @@ async function seedViagens() {
     }
 
     const viagensCriadas = await Viagem.insertMany(viagens);
-    console.log(`[SEED] ${viagensCriadas.length} Viagens cadastradas com Snapshots!`);
+    for (const v of viagensCriadas) {
+        if (v.status === 'concluída' && v.km_final) {
+            await Veiculos.findByIdAndUpdate(v.veiculo_id, { km_atual: v.km_final });
+        }
+    }
+    console.log(`[SEED] ${viagensCriadas.length} Viagens cadastradas com Snapshots e odômetros sincronizados!`);
     return viagensCriadas;
 }
 

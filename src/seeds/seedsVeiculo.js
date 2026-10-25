@@ -17,7 +17,7 @@ async function seedVeiculos() {
 
     const veiculos = [];
 
-    // Criar 5 veículos padrão com dados fixos.
+    // Criar 5 veículos padrão com dados fixos e odômetros realistas
     veiculos.push(
         {
             modelo: 'Volvo FH 540',
@@ -26,6 +26,7 @@ async function seedVeiculos() {
             capacidade_tanque: 600,
             capacidade_arla: 90,
             ano_fabricacao: 2024,
+            km_atual: 125000,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
@@ -41,6 +42,7 @@ async function seedVeiculos() {
             capacidade_tanque: 500,
             capacidade_arla: 80,
             ano_fabricacao: 2023,
+            km_atual: 89000,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
@@ -56,6 +58,7 @@ async function seedVeiculos() {
             capacidade_tanque: 700,
             capacidade_arla: 100,
             ano_fabricacao: 2024,
+            km_atual: 45000,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
@@ -70,6 +73,7 @@ async function seedVeiculos() {
             status: 'ativo',
             capacidade_tanque: 550,
             ano_fabricacao: 2022,
+            km_atual: 67000,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
@@ -84,6 +88,7 @@ async function seedVeiculos() {
             status: 'inativo',
             capacidade_tanque: 450,
             ano_fabricacao: 2020,
+            km_atual: 210000,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: 'DIESEL_S10',
             reboque: {
@@ -99,6 +104,7 @@ async function seedVeiculos() {
         veiculos.push({
             modelo: fakeMappings.Veiculo.modelo(),
             placa: fakeMappings.Veiculo.placa(),
+            km_atual: fakeMappings.Veiculo?.km_atual ? fakeMappings.Veiculo.km_atual() : 50000,
             empresa_id: randomEmpresaId(),
             combustivel_preferencial: fakeMappings.Veiculo.combustivel_preferencial(),
             reboque: fakeMappings.Veiculo.reboque()
@@ -107,7 +113,7 @@ async function seedVeiculos() {
 
     const veiculosCriados = await Veiculos.insertMany(veiculos);
 
-    console.log(`[SEED] ${veiculosCriados.length} veículos criados.`);
+    console.log(`[SEED] ${veiculosCriados.length} veículos criados com odômetros base!`);
     return veiculosCriados;
 }
 
