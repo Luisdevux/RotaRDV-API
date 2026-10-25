@@ -247,12 +247,15 @@ class ViagemService {
 
         const data = await this.repository.criar(parsedData);
 
-        if (data && data.status === 'concluída' && data.km_final && data.veiculo_id) {
-            try {
-                await this.veiculoRepository.atualizar(data.veiculo_id, {
-                    km_atual: data.km_final
-                });
-            } catch (_) {}
+        if (data && data.status === 'concluída' && data.km_final) {
+            const veiculoId = data.veiculo_id?._id || data.veiculo_id || parsedData.veiculo_id;
+            if (veiculoId) {
+                try {
+                    await this.veiculoRepository.modelVeiculo.findByIdAndUpdate(veiculoId, {
+                        $max: { km_atual: Number(data.km_final) }
+                    });
+                } catch (_) {}
+            }
         }
 
         return data;
@@ -325,12 +328,15 @@ class ViagemService {
 
         const data = await this.repository.atualizar(id, parsedData);
 
-        if (data && data.status === 'concluída' && data.km_final && data.veiculo_id) {
-            try {
-                await this.veiculoRepository.atualizar(data.veiculo_id, {
-                    km_atual: data.km_final
-                });
-            } catch (_) {}
+        if (data && data.status === 'concluída' && data.km_final) {
+            const veiculoId = data.veiculo_id?._id || data.veiculo_id || viagemOriginal?.veiculo_id?._id || viagemOriginal?.veiculo_id;
+            if (veiculoId) {
+                try {
+                    await this.veiculoRepository.modelVeiculo.findByIdAndUpdate(veiculoId, {
+                        $max: { km_atual: Number(data.km_final) }
+                    });
+                } catch (_) {}
+            }
         }
 
         return data;

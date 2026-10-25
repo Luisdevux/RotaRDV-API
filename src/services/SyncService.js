@@ -106,15 +106,24 @@ class SyncService {
                             : (veiculoDoc || v.veiculo_id)
                     });
 
-                    // Se a viagem sincronizada estiver concluída, atualiza o KM do veículo
+                    // Se a viagem sincronizada estiver concluída, atualiza o KM do veículo com o maior valor
                     if (v.status === 'concluída' && v.km_final) {
-                        const targetVeiculoId = (typeof v.veiculo_id === 'object' && v.veiculo_id?._id)
+                        let targetVeiculoId = (typeof v.veiculo_id === 'object' && v.veiculo_id?._id)
                             ? v.veiculo_id._id
                             : (v.veiculo_id || veiculoDoc?._id);
+                        if (!targetVeiculoId) {
+                            try {
+                                const viagemDb = await Viagem.findById(v._id).select('veiculo_id');
+                                if (viagemDb?.veiculo_id) {
+                                    targetVeiculoId = viagemDb.veiculo_id;
+                                }
+                            } catch (_) {}
+                        }
                         if (targetVeiculoId) {
                             try {
-                                const VeiculoModel = mongoose.models.veiculos || Veiculo;
-                                await VeiculoModel.findByIdAndUpdate(targetVeiculoId, { km_atual: v.km_final });
+                                await Veiculo.findByIdAndUpdate(targetVeiculoId, {
+                                    $max: { km_atual: Number(v.km_final) }
+                                });
                             } catch (_) {}
                         }
                     }
