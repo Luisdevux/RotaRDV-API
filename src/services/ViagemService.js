@@ -12,6 +12,7 @@ import ViagemRepository from '../repositories/ViagemRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
 import EmpresaRepository from '../repositories/EmpresaRepository.js';
 import ViagemDomainValidator from '../utils/validators/domain/ViagemDomainValidator.js';
+import '../models/Despesa.js';
 
 class ViagemService {
     constructor() {
@@ -38,9 +39,46 @@ class ViagemService {
                 $group: {
                     _id: '$tipo',
                     total: { $sum: '$valor_total' },
-                    litros_totais: {
+                    litros_combustivel: {
                         $sum: {
-                            $cond: [{ $eq: ['$tipo', 'ABASTECIMENTO'] }, { $ifNull: ['$litros', 0] }, 0]
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                        { $ne: ['$tipo_combustivel', 'ARLA_32'] }
+                                    ]
+                                },
+                                { $ifNull: ['$litros', 0] },
+                                0
+                            ]
+                        }
+                    },
+                    litros_arla: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                        { $eq: ['$tipo_combustivel', 'ARLA_32'] }
+                                    ]
+                                },
+                                { $ifNull: ['$litros', 0] },
+                                0
+                            ]
+                        }
+                    },
+                    max_km_combustivel: {
+                        $max: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                        { $ne: ['$tipo_combustivel', 'ARLA_32'] }
+                                    ]
+                                },
+                                { $ifNull: ['$km_atual', 0] },
+                                0
+                            ]
                         }
                     },
                     max_km_atual: {
@@ -66,11 +104,13 @@ class ViagemService {
             metricas: {
                 km_percorrido: 0,
                 total_litros: 0,
-                media_consumo: 0 // km/l
+                total_litros_arla: 0,
+                media_consumo: 0 // km/l (apenas combustível do motor, sem Arla 32)
             }
         };
 
         let maxKmRegistrado = 0;
+        let maxKmCombustivel = 0;
 
         resultados.forEach((res) => {
             if (res._id in resumo.por_categoria) {
@@ -78,24 +118,37 @@ class ViagemService {
                 resumo.total_geral += res.total;
             }
             if (res._id === 'ABASTECIMENTO') {
-                resumo.metricas.total_litros = res.litros_totais || 0;
+                resumo.metricas.total_litros = res.litros_combustivel || 0;
+                resumo.metricas.total_litros_arla = res.litros_arla || 0;
                 if (res.max_km_atual) {
                     maxKmRegistrado = res.max_km_atual;
+                }
+                if (res.max_km_combustivel) {
+                    maxKmCombustivel = res.max_km_combustivel;
                 }
             }
         });
 
-        // Aqui calcula as métricas de distância e consumo (km/l)
+        // Calcula distância e média de consumo (km/l) exclusivamente sobre o combustível (excluindo Arla 32)
         if (viagem) {
-            if (viagem.km_final && viagem.km_final > viagem.km_inicial) {
-                resumo.metricas.km_percorrido = viagem.km_final - viagem.km_inicial;
-            } else if (maxKmRegistrado > (viagem.km_inicial || 0)) {
-                resumo.metricas.km_percorrido = maxKmRegistrado - viagem.km_inicial;
+            const kmInicial = viagem.km_inicial || 0;
+            let kmParaConsumo = 0;
+
+            if (viagem.km_final && viagem.km_final > kmInicial) {
+                resumo.metricas.km_percorrido = viagem.km_final - kmInicial;
+                kmParaConsumo = resumo.metricas.km_percorrido;
+            } else {
+                if (maxKmRegistrado > kmInicial) {
+                    resumo.metricas.km_percorrido = maxKmRegistrado - kmInicial;
+                }
+                if (maxKmCombustivel > kmInicial) {
+                    kmParaConsumo = maxKmCombustivel - kmInicial;
+                }
             }
 
-            if (resumo.metricas.total_litros > 0 && resumo.metricas.km_percorrido > 0) {
+            if (resumo.metricas.total_litros > 0 && kmParaConsumo > 0) {
                 resumo.metricas.media_consumo = parseFloat(
-                    (resumo.metricas.km_percorrido / resumo.metricas.total_litros).toFixed(2)
+                    (kmParaConsumo / resumo.metricas.total_litros).toFixed(2)
                 );
             }
         }

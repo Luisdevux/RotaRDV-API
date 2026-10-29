@@ -13,6 +13,7 @@ import UsuarioRepository from '../repositories/UsuarioRepository.js';
 import VeiculoRepository from '../repositories/VeiculoRepository.js';
 import ViagemRepository from '../repositories/ViagemRepository.js';
 import UploadService from './UploadService.js';
+import '../models/Despesa.js';
 
 class EmpresaService {
     constructor() {
@@ -710,15 +711,34 @@ class EmpresaService {
         }).select('_id km_inicial km_final status');
 
         const matchViagemIds = [];
+        const matchViagemConcluidaIds = [];
         viagensEmpresa.forEach(v => {
-            matchViagemIds.push(String(v._id));
-            if (mongoose.Types.ObjectId.isValid(v._id) && String(new mongoose.Types.ObjectId(v._id)) === String(v._id)) {
+            if (v.status === 'cancelada') return;
+
+            const strId = String(v._id);
+            matchViagemIds.push(strId);
+            const hasObjId = mongoose.Types.ObjectId.isValid(v._id) && String(new mongoose.Types.ObjectId(v._id)) === strId;
+            if (hasObjId) {
                 matchViagemIds.push(new mongoose.Types.ObjectId(v._id));
+            }
+
+            const isConcluidaComKmValido = v.status === 'concluída' &&
+                v.km_final !== null && v.km_final !== undefined &&
+                v.km_inicial !== null && v.km_inicial !== undefined &&
+                v.km_final > v.km_inicial;
+
+            if (isConcluidaComKmValido) {
+                matchViagemConcluidaIds.push(strId);
+                if (hasObjId) {
+                    matchViagemConcluidaIds.push(new mongoose.Types.ObjectId(v._id));
+                }
             }
         });
 
         let totalDespesasGeral = 0;
         let totalLitrosCombustivel = 0;
+        let totalLitrosArla = 0;
+        let litrosCombustivelConcluidas = 0;
         const despesasPorCategoria = {
             ABASTECIMENTO: 0,
             ALIMENTACAO: 0,
@@ -734,9 +754,47 @@ class EmpresaService {
                     $group: {
                         _id: '$tipo',
                         total: { $sum: '$valor_total' },
-                        litros: {
+                        litros_combustivel: {
                             $sum: {
-                                $cond: [{ $eq: ['$tipo', 'ABASTECIMENTO'] }, { $ifNull: ['$litros', 0] }, 0]
+                                $cond: [
+                                    {
+                                        $and: [
+                                            { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                            { $ne: ['$tipo_combustivel', 'ARLA_32'] }
+                                        ]
+                                    },
+                                    { $ifNull: ['$litros', 0] },
+                                    0
+                                ]
+                            }
+                        },
+                        litros_arla: {
+                            $sum: {
+                                $cond: [
+                                    {
+                                        $and: [
+                                            { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                            { $eq: ['$tipo_combustivel', 'ARLA_32'] }
+                                        ]
+                                    },
+                                    { $ifNull: ['$litros', 0] },
+                                    0
+                                ]
+                            }
+                        },
+                        litros_combustivel_concluidas: {
+                            $sum: {
+                                $cond: [
+                                    {
+                                        $and: [
+                                            { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                            { $ne: ['$tipo_combustivel', 'ARLA_32'] },
+                                            { $in: ['$viagem_id', matchViagemConcluidaIds] }
+                                        ]
+                                    },
+                                    { $ifNull: ['$litros', 0] },
+                                    0
+                                ]
                             }
                         }
                     }
@@ -749,23 +807,25 @@ class EmpresaService {
                     totalDespesasGeral += item.total;
                 }
                 if (item._id === 'ABASTECIMENTO') {
-                    totalLitrosCombustivel += (item.litros || 0);
+                    totalLitrosCombustivel += (item.litros_combustivel || 0);
+                    totalLitrosArla += (item.litros_arla || 0);
+                    litrosCombustivelConcluidas += (item.litros_combustivel_concluidas || 0);
                 }
             });
         }
 
-        // Total de KM rodado nas viagens concluídas
+        // Total de KM rodado auditado apenas nas viagens concluídas
         let totalKmRodado = 0;
         viagensEmpresa.forEach(v => {
-            if (v.km_final && v.km_inicial && v.km_final > v.km_inicial) {
+            if (v.status === 'concluída' && v.km_final !== null && v.km_final !== undefined && v.km_inicial !== null && v.km_inicial !== undefined && v.km_final > v.km_inicial) {
                 totalKmRodado += (v.km_final - v.km_inicial);
             }
         });
 
-        // Média de consumo geral da frota (km/l)
+        // Média de consumo geral da frota (km/l): compara estritamente KM e litros de combustível das viagens concluídas (sem Arla 32 e sem viagens abertas)
         let mediaConsumoFrota = 0;
-        if (totalLitrosCombustivel > 0 && totalKmRodado > 0) {
-            mediaConsumoFrota = parseFloat((totalKmRodado / totalLitrosCombustivel).toFixed(2));
+        if (litrosCombustivelConcluidas > 0 && totalKmRodado > 0) {
+            mediaConsumoFrota = parseFloat((totalKmRodado / litrosCombustivelConcluidas).toFixed(2));
         }
 
         return {
@@ -782,6 +842,7 @@ class EmpresaService {
                 viagens_concluidas: viagensConcluidas,
                 total_km_rodado: totalKmRodado,
                 total_litros: totalLitrosCombustivel,
+                total_litros_arla: totalLitrosArla,
                 media_consumo_frota: mediaConsumoFrota,
                 total_despesas: totalDespesasGeral,
                 despesas_por_categoria: despesasPorCategoria

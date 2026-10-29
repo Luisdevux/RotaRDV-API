@@ -79,8 +79,9 @@ const viagemSchemas = {
                         type: "object",
                         properties: {
                             km_percorrido: { type: "number", example: 500 },
-                            total_litros: { type: "number", example: 100 },
-                            media_consumo: { type: "number", example: 5.0, description: "Consumo médio em km/l" }
+                            total_litros: { type: "number", example: 100, description: "Volume de combustível do motor (sem Arla 32)" },
+                            total_litros_arla: { type: "number", example: 20, description: "Volume de Arla 32 contabilizado separadamente" },
+                            media_consumo: { type: "number", example: 5.0, description: "Consumo médio em km/l (apenas combustível)" }
                         }
                     }
                 }

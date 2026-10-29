@@ -289,12 +289,20 @@ describe('Rotas de Viagens (viagemRoutes)', () => {
                 valor_total: 600,
                 km_atual: 10500,
             });
+            await criarDespesa('ABASTECIMENTO', {
+                viagem_id: viagem._id,
+                litros: 30,
+                valor_litro: 4.0,
+                valor_total: 120,
+                km_atual: 10520,
+                tipo_combustivel: 'ARLA_32',
+            });
             await criarDespesa('ALIMENTACAO', {
                 viagem_id: viagem._id,
                 valor_total: 80,
             });
 
-            // Encerra a viagem (km_final = 10600 -> 600 km percorridos, 200 litros = 3.00 km/l)
+            // Encerra a viagem (km_final = 10600 -> 600 km percorridos, 200 litros de diesel = 3.00 km/l; 30 L de Arla separados)
             const patchRes = await request(app)
                 .patch(`/viagens/${viagem._id}`)
                 .send({
@@ -312,11 +320,12 @@ describe('Rotas de Viagens (viagemRoutes)', () => {
             expect(getRes.status).toBe(200);
             const resumo = getRes.body.data.resumo_financeiro;
             expect(resumo).toBeDefined();
-            expect(resumo.total_geral).toBe(1280);
-            expect(resumo.por_categoria.ABASTECIMENTO).toBe(1200);
+            expect(resumo.total_geral).toBe(1400);
+            expect(resumo.por_categoria.ABASTECIMENTO).toBe(1320);
             expect(resumo.por_categoria.ALIMENTACAO).toBe(80);
             expect(resumo.metricas.km_percorrido).toBe(600);
             expect(resumo.metricas.total_litros).toBe(200);
+            expect(resumo.metricas.total_litros_arla).toBe(30);
             expect(resumo.metricas.media_consumo).toBe(3);
         });
 
