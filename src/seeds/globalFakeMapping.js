@@ -76,7 +76,7 @@ export const fakeMappings = {
     capacidade_tanque: () => faker.helpers.arrayElement([300, 400, 500, 600, 800, 1000]),
     ano_fabricacao: () => faker.number.int({ min: 2015, max: 2025 }),
     empresa_id: () => new mongoose.Types.ObjectId(),
-    combustivel_preferencial: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA', 'ARLA_32']),
+    combustivel_preferencial: () => faker.helpers.arrayElement(['DIESEL_S10', 'DIESEL_S500', 'GASOLINA']),
     reboque: () => ({
       modelo: faker.helpers.arrayElement(['Bitrem Graneleiro 9 Eixos', 'Rodotrem Basculante', 'Sider Librelato', 'Carreta Baú Facchini']),
       placas: [faker.vehicle.vrm(), faker.vehicle.vrm()],

@@ -321,25 +321,45 @@ describe('Unitário: ViagemService (Regras de Negócio de Viagens)', () => {
                 status: 'em_andamento',
             });
 
-            // Lança 2 abastecimentos e 1 refeição
+            // Lança 2 abastecimentos de Diesel, 1 de Arla 32 (em KM posterior) e 1 refeição
             await criarDespesa('ABASTECIMENTO', {
                 viagem_id: viagem._id,
                 litros: 100,
                 valor_total: 600,
                 km_atual: 10250,
+                tipo_combustivel: 'DIESEL_S10',
             });
             await criarDespesa('ABASTECIMENTO', {
                 viagem_id: viagem._id,
                 litros: 100,
                 valor_total: 600,
                 km_atual: 10500,
+                tipo_combustivel: 'DIESEL_S10',
+            });
+            await criarDespesa('ABASTECIMENTO', {
+                viagem_id: viagem._id,
+                litros: 40,
+                valor_litro: 4.0,
+                valor_total: 160,
+                km_atual: 10550,
+                tipo_combustivel: 'ARLA_32',
             });
             await criarDespesa('ALIMENTACAO', {
                 viagem_id: viagem._id,
                 valor_total: 80,
             });
 
-            // Encerra a viagem com km_final = 10600 (600 km rodados, 200 litros = 3 km/l)
+            // Enquanto em andamento, Arla 32 não pode contaminar litros nem inflar KM da média parcial (500 km / 200 L = 2.5 km/l)
+            const viagemParcial = await service.listar({
+                params: { id: viagem._id },
+                user_id: motorista._id,
+            });
+            expect(viagemParcial.resumo_financeiro.metricas.km_percorrido).toBe(550);
+            expect(viagemParcial.resumo_financeiro.metricas.total_litros).toBe(200);
+            expect(viagemParcial.resumo_financeiro.metricas.total_litros_arla).toBe(40);
+            expect(viagemParcial.resumo_financeiro.metricas.media_consumo).toBe(2.5);
+
+            // Encerra a viagem com km_final = 10600 (600 km rodados, 200 litros de Diesel = 3 km/l; 40 L de Arla separados)
             await service.atualizar(
                 viagem._id,
                 { status: 'concluída', km_final: 10600 },
@@ -352,11 +372,12 @@ describe('Unitário: ViagemService (Regras de Negócio de Viagens)', () => {
             });
 
             expect(viagemComResumo.resumo_financeiro).toBeDefined();
-            expect(viagemComResumo.resumo_financeiro.total_geral).toBe(1280);
-            expect(viagemComResumo.resumo_financeiro.por_categoria.ABASTECIMENTO).toBe(1200);
+            expect(viagemComResumo.resumo_financeiro.total_geral).toBe(1440);
+            expect(viagemComResumo.resumo_financeiro.por_categoria.ABASTECIMENTO).toBe(1360);
             expect(viagemComResumo.resumo_financeiro.por_categoria.ALIMENTACAO).toBe(80);
             expect(viagemComResumo.resumo_financeiro.metricas.km_percorrido).toBe(600);
             expect(viagemComResumo.resumo_financeiro.metricas.total_litros).toBe(200);
+            expect(viagemComResumo.resumo_financeiro.metricas.total_litros_arla).toBe(40);
             expect(viagemComResumo.resumo_financeiro.metricas.media_consumo).toBe(3);
         });
 
