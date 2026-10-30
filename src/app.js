@@ -3,6 +3,7 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
+import os from "os";
 import errorHandler from './utils/helpers/errorHandler.js';
 import logger from './utils/logger.js';
 import DbConnect from './config/dbConnect.js';
@@ -20,6 +21,10 @@ const app = express();
 
 // Configuração para acessar as variáveis de ambiente
 dotenv.config({ quiet: true });
+
+// Confia apenas no número configurado de saltos de reverse proxy (evita spoofing de X-Forwarded-For)
+const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY_HOPS || '1', 10);
+app.set('trust proxy', Number.isNaN(trustProxyHops) ? 1 : trustProxyHops);
 
 // Conectando ao banco de dados
 await DbConnect.conectar();
@@ -54,14 +59,13 @@ if (process.env.HERMES_WEBHOOK_SECRET) {
 // Habilitando o uso de json pelo express
 app.use(express.json());
 
-// Habilitando o uso de arquivos pelo express, com limite de segurança em memória de 50MB
+// Habilitando o uso de arquivos pelo express usando diretório temporário em disco (evita RAM OOM DoS)
 app.use(expressFileUpload({
-    limits: { fileSize: 50 * 1024 * 1024 }, // Trava em 50MB para não esgotar a RAM
+    limits: { fileSize: 50 * 1024 * 1024 }, // Trava em 50MB
+    useTempFiles: true,
+    tempFileDir: os.tmpdir(),
     abortOnLimit: true // Rejeita a requisição e poupa a banda automaticamente se passar
 }));
-
-// Configuração para o proxy confiar no cliente
-app.set('trust proxy', true);
 
 // Habilitando o uso de urlencoded pelo express
 app.use(express.urlencoded({ extended: true }));

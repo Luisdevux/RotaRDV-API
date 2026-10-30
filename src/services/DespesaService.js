@@ -16,27 +16,54 @@ class DespesaService {
         this.uploadService = new UploadService();
     }
 
+    async _verificarAcessoViagem(usuarioLogado, viagem, { field = 'Viagem', customMessage = 'Você não tem permissão para acessar esta despesa.' } = {}) {
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        if (isSuperAdmin) {
+            return { isSuperAdmin: true, isAdminDestaEmpresa: true, isGestorDaEmpresa: true, isOwner: false };
+        }
+
+        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado?._id);
+        const isGestorDaEmpresa = usuarioLogado?.role === 'gestor' &&
+            (!viagem.empresa_id || String(usuarioLogado?.empresa_id) === String(viagem.empresa_id));
+
+        let isAdminDestaEmpresa = false;
+        if (usuarioLogado?.role === 'admin' || usuarioLogado?.isAdmin) {
+            if (!viagem.empresa_id) {
+                isAdminDestaEmpresa = true;
+            } else {
+                try {
+                    await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, viagem.empresa_id);
+                    isAdminDestaEmpresa = true;
+                } catch (_) {
+                    isAdminDestaEmpresa = false;
+                }
+            }
+        }
+
+        if (!isOwner && !isGestorDaEmpresa && !isAdminDestaEmpresa) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.FORBIDDEN.code,
+                errorType: 'forbidden',
+                field,
+                details: [],
+                customMessage
+            });
+        }
+
+        return { isSuperAdmin: false, isAdminDestaEmpresa, isGestorDaEmpresa, isOwner };
+    }
+
     async criar(dados, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
         // 1. Busca a Viagem
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(dados.viagem_id), 'Viagem');
 
-        // 2. Checagem de permissão: SuperAdmin, Admin, Dono (motorista) ou Gestor da empresa da viagem
-        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
-        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
-        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
-
-        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.FORBIDDEN.code,
-                errorType: 'forbidden',
-                field: 'Viagem',
-                details: [],
-                customMessage: 'Você não tem permissão para lançar despesas na viagem de outro motorista.'
-            });
-        }
+        // 2. Checagem de permissão isolada por tenant: SuperAdmin, Dono (motorista), Gestor ou Admin da empresa da viagem
+        await this._verificarAcessoViagem(usuarioLogado, viagem, {
+            field: 'Viagem',
+            customMessage: 'Você não tem permissão para lançar despesas na viagem de outro motorista.'
+        });
 
         // 3. Validação unificada de validações de domínio
         const validacao = DespesaDomainValidator.validar(dados, viagem);
@@ -58,6 +85,17 @@ class DespesaService {
         const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
         const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
         const isGestor = usuarioLogado?.role === 'gestor';
+
+        const id = req.params?.id;
+        if (id) {
+            const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
+            const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
+            await this._verificarAcessoViagem(usuarioLogado, viagem, {
+                field: 'Despesa',
+                customMessage: 'Você não tem permissão para visualizar esta despesa.'
+            });
+            return despesa;
+        }
 
         const filtrosOverride = {};
 
@@ -127,22 +165,12 @@ class DespesaService {
         const despesa = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Despesa');
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
 
-        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
-        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
-        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
+        const { isSuperAdmin, isAdminDestaEmpresa, isGestorDaEmpresa } = await this._verificarAcessoViagem(usuarioLogado, viagem, {
+            field: 'Viagem',
+            customMessage: 'Você não tem permissão para deletar esta despesa.'
+        });
 
-        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.FORBIDDEN.code,
-                errorType: 'forbidden',
-                field: 'Viagem',
-                details: [],
-                customMessage: 'Você não tem permissão para deletar esta despesa.'
-            });
-        }
-
-        if (viagem.status !== 'em_andamento' && !isSuperAdmin && !isAdmin && !isGestorDaEmpresa) {
+        if (viagem.status !== 'em_andamento' && !isSuperAdmin && !isAdminDestaEmpresa && !isGestorDaEmpresa) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validation',
@@ -163,20 +191,10 @@ class DespesaService {
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
-        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
-        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
-
-        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.FORBIDDEN.code,
-                errorType: 'forbidden',
-                field: 'Despesa',
-                details: [],
-                customMessage: 'Você não tem permissão para anexar comprovantes nesta despesa.'
-            });
-        }
+        await this._verificarAcessoViagem(usuarioLogado, viagem, {
+            field: 'Despesa',
+            customMessage: 'Você não tem permissão para anexar comprovantes nesta despesa.'
+        });
 
         // O 'substituirImagem' já trata se 'despesa.foto_anexo' for null ou se não existir
         const uploadResult = await this.uploadService.substituirImagem(
@@ -196,20 +214,10 @@ class DespesaService {
         const viagem = await ValidationHelper.ensureExists(await this.viagemRepository.buscarPorID(despesa.viagem_id), 'Viagem');
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
-        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin || usuarioLogado?.isAdmin);
-        const isOwner = String(viagem.usuario_id?._id || viagem.usuario_id) === String(usuarioLogado._id);
-        const isGestorDaEmpresa = (usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(viagem.empresa_id);
-
-        if (!isSuperAdmin && !isAdmin && !isOwner && !isGestorDaEmpresa) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.FORBIDDEN.code,
-                errorType: 'forbidden',
-                field: 'Despesa',
-                details: [],
-                customMessage: 'Você não tem permissão para remover comprovantes desta despesa.'
-            });
-        }
+        await this._verificarAcessoViagem(usuarioLogado, viagem, {
+            field: 'Despesa',
+            customMessage: 'Você não tem permissão para remover comprovantes desta despesa.'
+        });
 
         if (!despesa.foto_anexo) {
             throw new CustomError({

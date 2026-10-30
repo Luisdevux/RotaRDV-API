@@ -1,6 +1,7 @@
 // src/services/UploadService.js
 
 import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { JSDOM } from "jsdom";
@@ -30,118 +31,131 @@ class UploadService {
             });
         }
 
-        // Configurações padrão otimizadas para web
-        const width = options.width;
-        const height = options.height;
-        const quality = options.quality || 80;
-        const fit = options.fit || 'inside'; // 'cover' para recortar, 'inside' para conter
-
-        // 1. Dupla Validação: Extensão no Nome e MimeType no FileUpload
-        let ext = '';
-        if (file.name) {
-            ext = path.extname(file.name).slice(1).toLowerCase();
-        }
-
-        const validExts = ['jpg', 'jpeg', 'png', 'svg'];
-        const validMimeTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
-
-        // Checa Apenas a string
-        if (!validExts.includes(ext)) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validationError',
-                field: 'file',
-                customMessage: `Extensão inválida (.${ext}). Permitido: ${validExts.join(', ')}.`
-            });
-        }
-
-        // Checa o MimeType real do binário informado pelo Multipart Header
-        if (!validMimeTypes.includes(file.mimetype)) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validationError',
-                field: 'file',
-                customMessage: `Formato de arquivo inseguro ou adulterado. Mimetype recebido: ${file.mimetype}`
-            });
-        }
-
-        // 2. Validação de tamanho bruto (max 50MB)
-        const MAX_BYTES = 50 * 1024 * 1024;
-        if(file.size > MAX_BYTES) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validationError',
-                field: 'file',
-                customMessage: `Arquivo excede o tamanho máximo de ${MAX_BYTES / (1024 * 1024)}MB.`
-            });
-        }
-
-        // 3. Gera nome único
-        // Padroniza a saída para jpeg (exceto SVG) para consistência e compressão
-        const finalExt = ext === 'svg' ? 'svg' : 'jpeg';
-        const fileName = `${uuidv4()}.${finalExt}`;
+        const hasTempFile = typeof file.tempFilePath === 'string' && file.tempFilePath.trim() !== '';
 
         try {
-            let buffer;
-            let contentType;
+            // Configurações padrão otimizadas para web
+            const width = options.width;
+            const height = options.height;
+            const quality = options.quality || 80;
+            const fit = options.fit || 'inside'; // 'cover' para recortar, 'inside' para conter
 
-            // 4. Processamento da Imagem ou Sanitização de SVG
-            if (ext !== 'svg') {
-                const transformer = sharp(file.data);
-
-                // Só redimensiona se passar width/height
-                if(width || height) {
-                    transformer.resize(width, height, {
-                        fit: fit,
-                        withoutEnlargement: true // Não aumenta imagem pequena se for menor
-                    });
-                }
-
-                buffer = await transformer.jpeg({
-                    quality,
-                    progressive: true,
-                    mozjpeg: true
-                })
-                .toBuffer();
-
-                contentType = 'image/jpeg';
-            } else {
-                // Configura ambiente DOM simulado para limpar tags <script> do SVG
-                const window = new JSDOM('').window;
-                const DOMPurify = createDOMPurify(window);
-
-                // Sanitiza o conteúdo XML do SVG para remover XSS
-                const cleanSvg = DOMPurify.sanitize(file.data.toString('utf8'), {
-                    USE_PROFILES: { svg: true } // Utiliza perfil específico para SVG
-                });
-
-                buffer = Buffer.from(cleanSvg, 'utf8');
-                contentType = 'image/svg+xml';
+            // 1. Dupla Validação: Extensão no Nome e MimeType no FileUpload
+            let ext = '';
+            if (file.name) {
+                ext = path.extname(file.name).slice(1).toLowerCase();
             }
 
-            // 5. Upload para Repository (ex: S3, local, etc)
-            const url = await this.repository.uploadFile(buffer, fileName, contentType);
+            const validExts = ['jpg', 'jpeg', 'png', 'svg'];
+            const validMimeTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
 
-            return {
-                url,
-                fileName,
-                metadata: {
-                    originalName: file.name,
-                    size: buffer.length,
-                    contentType
+            // Checa Apenas a string
+            if (!validExts.includes(ext)) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'file',
+                    customMessage: `Extensão inválida (.${ext}). Permitido: ${validExts.join(', ')}.`
+                });
+            }
+
+            // Checa o MimeType real do binário informado pelo Multipart Header
+            if (!validMimeTypes.includes(file.mimetype)) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'file',
+                    customMessage: `Formato de arquivo inseguro ou adulterado. Mimetype recebido: ${file.mimetype}`
+                });
+            }
+
+            // 2. Validação de tamanho bruto (max 50MB)
+            const MAX_BYTES = 50 * 1024 * 1024;
+            if(file.size > MAX_BYTES) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'file',
+                    customMessage: `Arquivo excede o tamanho máximo de ${MAX_BYTES / (1024 * 1024)}MB.`
+                });
+            }
+
+            // 3. Gera nome único
+            // Padroniza a saída para jpeg (exceto SVG) para consistência e compressão
+            const finalExt = ext === 'svg' ? 'svg' : 'jpeg';
+            const fileName = `${uuidv4()}.${finalExt}`;
+
+            try {
+                let buffer;
+                let contentType;
+
+                // 4. Processamento da Imagem ou Sanitização de SVG (suporta arquivo temporário em disco ou buffer em memória)
+                if (ext !== 'svg') {
+                    const inputSource = hasTempFile ? file.tempFilePath : file.data;
+                    const transformer = sharp(inputSource);
+
+                    // Só redimensiona se passar width/height
+                    if(width || height) {
+                        transformer.resize(width, height, {
+                            fit: fit,
+                            withoutEnlargement: true // Não aumenta imagem pequena se for menor
+                        });
+                    }
+
+                    buffer = await transformer.jpeg({
+                        quality,
+                        progressive: true,
+                        mozjpeg: true
+                    })
+                    .toBuffer();
+
+                    contentType = 'image/jpeg';
+                } else {
+                    // Configura ambiente DOM simulado para limpar tags <script> do SVG
+                    const window = new JSDOM('').window;
+                    const DOMPurify = createDOMPurify(window);
+
+                    const rawSvg = hasTempFile
+                        ? await fs.promises.readFile(file.tempFilePath, 'utf8')
+                        : file.data.toString('utf8');
+
+                    // Sanitiza o conteúdo XML do SVG para remover XSS
+                    const cleanSvg = DOMPurify.sanitize(rawSvg, {
+                        USE_PROFILES: { svg: true } // Utiliza perfil específico para SVG
+                    });
+
+                    buffer = Buffer.from(cleanSvg, 'utf8');
+                    contentType = 'image/svg+xml';
                 }
-            };
-        } catch (error) {
-            console.error(`Erro no processamento/upload: ${error.message}`);
-            // Relança CustomError diretamente
-            if (error instanceof CustomError) throw error;
 
-            throw new CustomError({
-                statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR.code,
-                errorType: 'processingError',
-                field: 'file',
-                customMessage: `Falha ao processar ou fazer upload do arquivo. Detalhe: ${error.message}`
-            });
+                // 5. Upload para Repository (ex: S3, local, etc)
+                const url = await this.repository.uploadFile(buffer, fileName, contentType);
+
+                return {
+                    url,
+                    fileName,
+                    metadata: {
+                        originalName: file.name,
+                        size: buffer.length,
+                        contentType
+                    }
+                };
+            } catch (error) {
+                console.error(`Erro no processamento/upload: ${error.message}`);
+                // Relança CustomError diretamente
+                if (error instanceof CustomError) throw error;
+
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR.code,
+                    errorType: 'processingError',
+                    field: 'file',
+                    customMessage: `Falha ao processar ou fazer upload do arquivo. Detalhe: ${error.message}`
+                });
+            }
+        } finally {
+            if (hasTempFile) {
+                await fs.promises.unlink(file.tempFilePath).catch(() => {});
+            }
         }
     }
 

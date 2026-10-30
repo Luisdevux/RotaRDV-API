@@ -427,5 +427,57 @@ describe('Unitário: ViagemService (Regras de Negócio de Viagens)', () => {
             expect(resultado).toBeDefined();
             expect(await Viagem.findById(viagem._id)).toBeNull();
         });
+
+        it('deve impedir que admin de outra empresa delete viagem alheia e deve remover despesas ao deletar viagem válida', async () => {
+            const empresaA = new mongoose.Types.ObjectId();
+            const empresaB = new mongoose.Types.ObjectId();
+            const adminA = await criarUsuario({ role: 'admin', empresa_id: empresaA });
+            const adminB = await criarUsuario({ role: 'admin', empresa_id: empresaB });
+            const viagemA = await criarViagem({ empresa_id: empresaA });
+            const despesaA = await criarDespesa('ALIMENTACAO', { viagem_id: viagemA._id });
+
+            await expect(
+                service.deletar(viagemA._id, { user_id: adminB._id })
+            ).rejects.toMatchObject({ statusCode: 403 });
+
+            await service.deletar(viagemA._id, { user_id: adminA._id });
+            expect(await Viagem.findById(viagemA._id)).toBeNull();
+            expect(await Despesa.findById(despesaA._id)).toBeNull();
+        });
+
+        it('deve permitir que superAdmin edite viagem concluída e calcular resumo em lote na listagem paginada', async () => {
+            const empresaId = new mongoose.Types.ObjectId();
+            const motorista = await criarUsuario({ empresa_id: empresaId });
+            const superAdmin = await criarUsuario({ role: 'superAdmin', isAdmin: false });
+            const viagem = await criarViagem({
+                usuario_id: motorista._id,
+                empresa_id: empresaId,
+                km_inicial: 1000,
+                km_final: 1500,
+                status: 'concluída',
+            });
+            await criarDespesa('ABASTECIMENTO', {
+                viagem_id: viagem._id,
+                litros: 100,
+                valor_total: 600,
+                km_atual: 1300,
+            });
+
+            const editada = await service.atualizar(
+                viagem._id,
+                { descricao: 'Revisada pela auditoria' },
+                { user_id: superAdmin._id }
+            );
+            expect(editada.descricao).toBe('Revisada pela auditoria');
+
+            const listagem = await service.listar({
+                params: {},
+                query: { page: '1', limite: '10' },
+                user_id: motorista._id,
+            });
+            expect(listagem.docs).toHaveLength(1);
+            expect(listagem.docs[0].resumo_financeiro.total_geral).toBe(600);
+            expect(listagem.docs[0].resumo_financeiro.metricas.media_consumo).toBe(5);
+        });
     });
 });
