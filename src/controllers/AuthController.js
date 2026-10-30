@@ -26,7 +26,6 @@ class AuthController {
         const body = req.body || {};
         const validatedBody = LoginSchema.parse(body);
         const data = await this.service.login(validatedBody);
-        console.log(data)
         return CommonResponse.success(res, data);
     }
 

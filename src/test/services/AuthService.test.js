@@ -250,4 +250,35 @@ describe('Unitário: AuthService (Regras de Negócio de Autenticação)', () => 
             expect(erro.errorType).toBe('notFound');
         });
     });
+
+    describe('Método atualizarSenhaToken (Revogação de Sessão OWASP)', () => {
+        it('deve revogar refreshtoken e accesstoken ativos ao redefinir a senha', async () => {
+            const tokenRecuperacao = 'token-reset-seguro-999';
+            const usuario = await criarUsuario({
+                tokenUnico: tokenRecuperacao,
+                exp_codigo_recupera_senha: new Date(Date.now() + 30 * 60 * 1000),
+            });
+            const refreshAntigo = gerarRefreshToken(usuario._id);
+            await Usuario.updateOne(
+                { _id: usuario._id },
+                { refreshtoken: refreshAntigo, accesstoken: 'access-antigo' }
+            );
+
+            await service.atualizarSenhaToken(tokenRecuperacao, 'NovaSenhaForte@2026');
+
+            const usuarioNoBanco = await Usuario.findById(usuario._id).select('+refreshtoken +accesstoken');
+            expect(usuarioNoBanco.refreshtoken).toBeNull();
+            expect(usuarioNoBanco.accesstoken).toBeNull();
+
+            // Tentativa de refresh com token antigo deve ser negada
+            let erroRefresh;
+            try {
+                await service.refresh(usuario._id, refreshAntigo);
+            } catch (err) {
+                erroRefresh = err;
+            }
+            expect(erroRefresh).toBeInstanceOf(CustomError);
+            expect(erroRefresh.statusCode).toBe(401);
+        });
+    });
 });

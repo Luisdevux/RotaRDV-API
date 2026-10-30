@@ -4,11 +4,9 @@ import rateLimit from 'express-rate-limit';
 import CommonResponse from '../utils/helpers/CommonResponse.js';
 import HttpStatusCodes from '../utils/helpers/HttpStatusCodes.js';
 
-// Helper para extrair IP do cliente considerando proxy
+// Helper para extrair IP confiável do cliente (calculado pelo Express conforme trust proxy)
 function getClientIdentifier(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) return forwarded.split(',')[0].trim();
-    return req.headers['x-real-ip'] || req.ip || req.socket.remoteAddress || 'unknown';
+    return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
 // Rate limiter geral para todas as rotas autenticadas

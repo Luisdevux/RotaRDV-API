@@ -22,6 +22,11 @@ const DateFlexible = z.preprocess((arg) => {
     invalid_type_error: 'Formato de data inválido. Use ISO (YYYY-MM-DD) ou formato BR (DD/MM/YYYY).',
 }));
 
+const StatusViagemSchema = z.preprocess(
+    (val) => (val === 'concluida' ? 'concluída' : val),
+    z.enum(['em_andamento', 'concluída', 'cancelada'])
+);
+
 const ViagemBaseSchema = z.object({
     _id: z.string().uuid('UUID inválido.').optional(),
     usuario_id: objectIdSchema,
@@ -34,7 +39,7 @@ const ViagemBaseSchema = z.object({
     km_inicial: z.number().min(0, 'KM inicial não pode ser negativo.'),
     km_final: z.number().min(0, 'KM final não pode ser negativo.').nullable().optional().default(null),
     descricao: z.string().optional().default(''),
-    status: z.enum(['em_andamento', 'concluída', 'cancelada']).optional().default('em_andamento'),
+    status: StatusViagemSchema.optional().default('em_andamento'),
 });
 
 const ViagemSchema = ViagemBaseSchema.refine((data) => {

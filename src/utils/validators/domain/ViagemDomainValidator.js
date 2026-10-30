@@ -50,8 +50,10 @@ class ViagemDomainValidator {
             }
         }
 
+        const statusNormalizado = viagem.status === 'concluida' ? 'concluída' : viagem.status;
+
         // 3. Regra de conclusão: KM final obrigatório
-        if (viagem.status === 'concluída') {
+        if (statusNormalizado === 'concluída') {
             if (viagem.km_final === null || viagem.km_final === undefined) {
                 return {
                     valido: false,
@@ -101,7 +103,7 @@ class ViagemDomainValidator {
 
         // 6. Status válido
         const statusValidos = ['em_andamento', 'concluída', 'cancelada'];
-        if (viagem.status && !statusValidos.includes(viagem.status)) {
+        if (statusNormalizado && !statusValidos.includes(statusNormalizado)) {
             return {
                 valido: false,
                 motivo: `Status de viagem '${viagem.status}' não reconhecido.`,

@@ -11,7 +11,9 @@ export const ViagemQuerySchema = z.object({
     empresa_id: z.string().optional(),
     usuario_id: z.string().optional(),
     veiculo_id: z.string().optional(),
-    status: z.enum(['em_andamento', 'concluída', 'cancelada']).optional(),
+    status: z
+        .preprocess((val) => (val === 'concluida' ? 'concluída' : val), z.enum(['em_andamento', 'concluída', 'cancelada']))
+        .optional(),
     data_inicio: z.string().optional(),
     data_fim: z.string().optional(),
     page: z
