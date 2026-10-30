@@ -210,6 +210,8 @@ class UsuarioRepository {
             id,
             {
                 senha: senhaHasheada,
+                refreshtoken: null,
+                accesstoken: null,
                 tokenUnico: null,
                 codigo_recupera_senha: null,
                 exp_codigo_recupera_senha: null
