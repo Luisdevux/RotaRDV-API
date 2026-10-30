@@ -265,6 +265,55 @@ describe('Unitário: SyncService (Motor de Sincronização Offline-First)', () =
 
             expect(pullDelta.viagens).toHaveLength(1);
             expect(pullDelta.viagens[0]._id).toBe(viagemRecente._id);
+            expect(pullDelta.viagens_ativas_ids).toEqual(
+                expect.arrayContaining([String(viagemAntiga._id), String(viagemRecente._id)])
+            );
+        });
+
+        it('deve rejeitar viagem sem veículo vinculado e viagem pertencente a outro motorista no pushSync', async () => {
+            const motoristaSemVeiculo = await criarUsuario({ veiculo_id: null });
+            const outroMotorista = await criarUsuario();
+
+            const vSemVeiculo = viagemPayload(motoristaSemVeiculo._id, '', {
+                veiculo_id: undefined,
+                veiculo_snapshot: undefined,
+            });
+            const vDeOutroMotorista = viagemPayload(outroMotorista._id, new mongoose.Types.ObjectId());
+
+            const res = await service.pushSync(motoristaSemVeiculo, [vSemVeiculo, vDeOutroMotorista], []);
+            expect(res.viagensUpserted).toBe(0);
+            expect(res.rejeitados).toHaveLength(2);
+            expect(res.rejeitados.map(r => r.campo)).toEqual(expect.arrayContaining(['veiculo_id', 'usuario_id']));
+        });
+
+        it('deve normalizar status "concluida" sem acento e converter datas DD/MM/YYYY para Date no pushSync', async () => {
+            const veiculo = await criarVeiculo({ km_atual: 10000 });
+            const motorista = await criarUsuario({ veiculo_id: veiculo._id });
+
+            const vPayload = viagemPayload(motorista._id, veiculo._id, {
+                km_inicial: 10000,
+                km_final: 10500,
+                status: 'concluida',
+                data_inicio: '10/10/2026',
+                data_fim: '11/10/2026',
+            });
+            const dPayload = despesaPayload('ALIMENTACAO', vPayload._id, {
+                data: '10/10/2026',
+                createdAt: '10/10/2026',
+            });
+
+            const res = await service.pushSync(motorista, [vPayload], [dPayload]);
+            expect(res.viagensUpserted).toBe(1);
+            expect(res.despesasUpserted).toBe(1);
+            expect(res.rejeitados).toHaveLength(0);
+
+            const viagemNoBanco = await Viagem.findById(vPayload._id).lean();
+            expect(viagemNoBanco.status).toBe('concluída');
+            expect(viagemNoBanco.data_inicio).toBeInstanceOf(Date);
+
+            const despesaNoBanco = await Despesa.collection.findOne({ _id: dPayload._id });
+            expect(despesaNoBanco.data).toBeInstanceOf(Date);
+            expect(despesaNoBanco.createdAt).toBeInstanceOf(Date);
         });
     });
 });

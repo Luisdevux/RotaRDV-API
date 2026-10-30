@@ -40,13 +40,33 @@ class SyncService {
         // 1. Processamento e validação de Viagens
         if (viagens && viagens.length > 0) {
             const bulkViagens = [];
+            const viagensDeletadasIds = [];
             for (const v of viagens) {
                 if (v.is_deleted) {
+                    if (v._id && mapaViagens.has(String(v._id))) {
+                        viagensDeletadasIds.push(v._id);
+                    }
                     bulkViagens.push({
                         deleteOne: { filter: { _id: v._id, usuario_id: usuarioLogado._id } }
                     });
                     mapaViagens.delete(String(v._id));
                 } else {
+                    // Impede apropriação de viagem de outro motorista caso usuario_id divergente seja enviado
+                    if (v.usuario_id && String(v.usuario_id) !== String(usuarioLogado._id)) {
+                        results.rejeitados.push({
+                            id: v._id,
+                            tipo: 'VIAGEM',
+                            motivo: 'Esta viagem pertence a outro motorista e não pode ser sincronizada nesta sessão.',
+                            campo: 'usuario_id'
+                        });
+                        continue;
+                    }
+
+                    // Normaliza variante sem acento enviada por versões antigas do cliente
+                    if (v.status === 'concluida') {
+                        v.status = 'concluída';
+                    }
+
                     // Validação de invariantes de domínio da viagem
                     const validacaoViagem = ViagemDomainValidator.validar(v);
                     if (!validacaoViagem.valido) {
@@ -59,6 +79,24 @@ class SyncService {
                         continue; // Rejeitado: não é incluído no lote de escrita do MongoDB
                     }
 
+                    const viagemExistente = mapaViagens.get(String(v._id));
+                    const veiculoExistenteId = viagemExistente?.veiculo_id?._id || viagemExistente?.veiculo_id;
+
+                    // Resolve veículo: informado no payload -> já existente na viagem -> vinculado ao motorista
+                    if (!v.veiculo_id) {
+                        v.veiculo_id = veiculoExistenteId || veiculoDoc?._id || null;
+                    }
+
+                    if (!v.veiculo_id) {
+                        results.rejeitados.push({
+                            id: v._id,
+                            tipo: 'VIAGEM',
+                            motivo: 'Nenhum veículo vinculado ao motorista ou informado na viagem.',
+                            campo: 'veiculo_id'
+                        });
+                        continue;
+                    }
+
                     v.usuario_id = usuarioLogado._id;
                     if (usuarioLogado.empresa_id && !v.empresa_id) {
                         v.empresa_id = usuarioLogado.empresa_id;
@@ -66,34 +104,58 @@ class SyncService {
 
                     // Autopreenche snapshot do motorista caso não venha no payload
                     if (!v.usuario_snapshot) {
-                        v.usuario_snapshot = {
+                        v.usuario_snapshot = viagemExistente?.usuario_snapshot || {
                             nome: usuarioLogado.nome,
                             email: usuarioLogado.email
                         };
                     }
 
-                    // Autopreenche veículo e snapshot do caminhão vinculado ao motorista
-                    if (!v.veiculo_id && veiculoDoc) {
-                        v.veiculo_id = veiculoDoc._id;
-                    }
-                    if (!v.veiculo_snapshot && veiculoDoc) {
-                        v.veiculo_snapshot = {
-                            placa: veiculoDoc.placa,
-                            modelo: veiculoDoc.modelo,
-                            reboque: {
-                                modelo: veiculoDoc.reboque?.modelo || '',
-                                placas: veiculoDoc.reboque?.placas || []
+                    // Autopreenche snapshot do caminhão caso não venha no payload
+                    let veiculoResolvido = veiculoDoc;
+                    if (!v.veiculo_snapshot) {
+                        if (viagemExistente?.veiculo_snapshot) {
+                            v.veiculo_snapshot = viagemExistente.veiculo_snapshot;
+                        } else {
+                            if (!veiculoResolvido || String(veiculoResolvido._id) !== String(v.veiculo_id)) {
+                                try {
+                                    veiculoResolvido = await Veiculo.findById(v.veiculo_id).lean();
+                                } catch (_) {
+                                    veiculoResolvido = null;
+                                }
                             }
-                        };
+                            if (veiculoResolvido) {
+                                v.veiculo_snapshot = {
+                                    placa: veiculoResolvido.placa,
+                                    modelo: veiculoResolvido.modelo,
+                                    reboque: {
+                                        modelo: veiculoResolvido.reboque?.modelo || '',
+                                        placas: veiculoResolvido.reboque?.placas || []
+                                    }
+                                };
+                            }
+                        }
                     }
 
+                    // Converte datas da viagem para BSON Date com suporte a formatos flexíveis
+                    if (v.data_inicio) {
+                        v.data_inicio = DateHelper.parseFlexibleDate(v.data_inicio) || new Date(v.data_inicio);
+                    }
+                    if (v.data_fim) {
+                        v.data_fim = DateHelper.parseFlexibleDate(v.data_fim) || null;
+                    }
+
+                    const viagemCreatedAt = DateHelper.parseFlexibleDate(v.createdAt) || v.data_inicio || new Date();
+                    delete v.createdAt;
                     delete v.is_deleted;
                     v.updatedAt = new Date();
 
                     bulkViagens.push({
                         updateOne: {
                             filter: { _id: v._id, usuario_id: usuarioLogado._id },
-                            update: { $set: v },
+                            update: {
+                                $set: v,
+                                $setOnInsert: { createdAt: viagemCreatedAt }
+                            },
                             upsert: true
                         }
                     });
@@ -101,9 +163,9 @@ class SyncService {
                     // Disponibiliza a viagem atualizada para as despesas do lote atual
                     mapaViagens.set(String(v._id), {
                         ...v,
-                        veiculo_id: (typeof v.veiculo_id === 'object' && v.veiculo_id !== null)
+                        veiculo_id: (typeof v.veiculo_id === 'object' && v.veiculo_id !== null && v.veiculo_id.placa)
                             ? v.veiculo_id
-                            : (veiculoDoc || v.veiculo_id)
+                            : (viagemExistente?.veiculo_id || veiculoResolvido || veiculoDoc || v.veiculo_id)
                     });
 
                     // Se a viagem sincronizada estiver concluída, atualiza o KM do veículo com o maior valor
@@ -134,6 +196,10 @@ class SyncService {
                 const vRes = await Viagem.bulkWrite(bulkViagens, { ordered: false });
                 results.viagensUpserted = (vRes.upsertedCount || 0) + (vRes.modifiedCount || 0);
                 results.viagensDeleted = vRes.deletedCount || 0;
+            }
+
+            if (viagensDeletadasIds.length > 0) {
+                await Despesa.deleteMany({ viagem_id: { $in: viagensDeletadasIds } });
             }
         }
 
@@ -183,14 +249,12 @@ class SyncService {
                     delete d.foto_anexo;
                 }
 
-                // Converte a data enviada pelo app para BSON Date (evita salvar como String no bulkWrite)
-                if (d.data && !(d.data instanceof Date)) {
-                    d.data = new Date(d.data);
+                // Converte as datas enviadas pelo app para BSON Date com parser flexível (ISO e DD/MM/YYYY)
+                if (d.data) {
+                    d.data = DateHelper.parseFlexibleDate(d.data) || new Date();
                 }
 
-                if (!d.createdAt) {
-                    d.createdAt = d.data || new Date();
-                }
+                d.createdAt = DateHelper.parseFlexibleDate(d.createdAt) || d.data || new Date();
 
                 d.updatedAt = new Date();
 
@@ -224,12 +288,23 @@ class SyncService {
         const usuarioLogado = await Usuario.findById(userId).populate('veiculo_id');
 
         if (!usuarioLogado) {
-            return { viagens: [], despesas: [], veiculo: null };
+            return {
+                viagens: [],
+                despesas: [],
+                veiculo: null,
+                viagens_ativas_ids: [],
+                despesas_ativas_ids: []
+            };
         }
 
-        // Pega todos os IDs de viagens que pertencem ao motorista
-        const viagensAllMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }, '_id');
-        const idsMotorista = viagensAllMotorista.map(v => v._id.toString());
+        // Pega todos os IDs de viagens e despesas ativas do motorista para reconciliação de exclusões no cliente
+        const viagensAllMotorista = await Viagem.find({ usuario_id: usuarioLogado._id }, '_id').lean();
+        const idsMotorista = viagensAllMotorista.map(v => String(v._id));
+
+        const despesasAllMotorista = idsMotorista.length > 0
+            ? await Despesa.find({ viagem_id: { $in: idsMotorista } }, '_id').lean()
+            : [];
+        const idsDespesasAtivas = despesasAllMotorista.map(d => String(d._id));
 
         const queryViagem = { usuario_id: usuarioLogado._id };
         const queryDespesa = { viagem_id: { $in: idsMotorista } };
@@ -244,12 +319,14 @@ class SyncService {
         }
 
         const viagens = await Viagem.find(queryViagem).lean();
-        const despesas = await Despesa.find(queryDespesa).lean();
+        const despesas = idsMotorista.length > 0 ? await Despesa.find(queryDespesa).lean() : [];
 
         return {
             viagens,
             despesas,
-            veiculo: usuarioLogado.veiculo_id || null
+            veiculo: usuarioLogado.veiculo_id || null,
+            viagens_ativas_ids: idsMotorista,
+            despesas_ativas_ids: idsDespesasAtivas
         };
     }
 }
