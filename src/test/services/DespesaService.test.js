@@ -236,4 +236,58 @@ describe('Unitário: DespesaService (Regras de Negócio de Despesas)', () => {
             expect(await Despesa.findById(despesa._id)).toBeNull();
         });
     });
+
+    describe('Isolamento Multi-Tenant e Proteção contra IDOR', () => {
+        it('deve bloquear consulta individual (GET /despesas/:id) por motorista de outra viagem', async () => {
+            const motoristaDono = await criarUsuario();
+            const motoristaIntruso = await criarUsuario();
+            const viagem = await criarViagem({ usuario_id: motoristaDono._id });
+            const despesa = await criarDespesa('ALIMENTACAO', { viagem_id: viagem._id });
+
+            let erro;
+            try {
+                await service.listar({
+                    params: { id: despesa._id },
+                    user_id: motoristaIntruso._id,
+                });
+            } catch (err) {
+                erro = err;
+            }
+
+            expect(erro).toBeInstanceOf(CustomError);
+            expect(erro.statusCode).toBe(403);
+        });
+
+        it('deve impedir que admin de outra empresa crie, visualize ou delete despesa alheia', async () => {
+            const empresaA = new mongoose.Types.ObjectId();
+            const empresaB = new mongoose.Types.ObjectId();
+            const motoristaA = await criarUsuario({ empresa_id: empresaA });
+            const adminEmpresaB = await criarUsuario({ role: 'admin', empresa_id: empresaB });
+            const viagemEmpresaA = await criarViagem({
+                usuario_id: motoristaA._id,
+                empresa_id: empresaA,
+            });
+            const despesaEmpresaA = await criarDespesa('ALIMENTACAO', { viagem_id: viagemEmpresaA._id });
+
+            await expect(
+                service.listar({ params: { id: despesaEmpresaA._id }, user_id: adminEmpresaB._id })
+            ).rejects.toMatchObject({ statusCode: 403 });
+
+            await expect(
+                service.criar(
+                    {
+                        viagem_id: viagemEmpresaA._id,
+                        tipo: 'ALIMENTACAO',
+                        valor_total: 40,
+                        data: new Date(),
+                    },
+                    { user_id: adminEmpresaB._id }
+                )
+            ).rejects.toMatchObject({ statusCode: 403 });
+
+            await expect(
+                service.deletar(despesaEmpresaA._id, { user_id: adminEmpresaB._id })
+            ).rejects.toMatchObject({ statusCode: 403 });
+        });
+    });
 });

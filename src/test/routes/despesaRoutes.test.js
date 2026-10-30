@@ -304,5 +304,25 @@ describe('Rotas de Despesas (despesaRoutes)', () => {
             expect(res.status).toBe(200);
             expect(await Despesa.findById(despesa._id)).toBeNull();
         });
+
+        it('deve bloquear IDOR em GET /despesas/:id quando solicitada por outro motorista', async () => {
+            const empresaId = new mongoose.Types.ObjectId();
+            const motoristaA = await criarUsuario({ empresa_id: empresaId });
+            const motoristaB = await criarUsuario({ empresa_id: empresaId });
+            const viagemA = await criarViagem({
+                usuario_id: motoristaA._id,
+                empresa_id: empresaId,
+            });
+            const despesaA = await criarDespesa('ALIMENTACAO', { viagem_id: viagemA._id });
+
+            autenticarComo(motoristaB);
+            const resIntruso = await request(app).get(`/despesas/${despesaA._id}`);
+            expect(resIntruso.status).toBe(403);
+
+            autenticarComo(motoristaA);
+            const resDono = await request(app).get(`/despesas/${despesaA._id}`);
+            expect(resDono.status).toBe(200);
+            expect(resDono.body.data._id).toBe(despesaA._id);
+        });
     });
 });

@@ -22,6 +22,71 @@ class ViagemService {
         this.empresaRepository = new EmpresaRepository();
     }
 
+    _montarResumoFinanceiro(resultados, viagem) {
+        const resumo = {
+            total_geral: 0,
+            por_categoria: {
+                ABASTECIMENTO: 0,
+                ALIMENTACAO: 0,
+                MANUTENCAO: 0,
+                PEDAGIO: 0,
+                OUTROS: 0,
+            },
+            metricas: {
+                km_percorrido: 0,
+                total_litros: 0,
+                total_litros_arla: 0,
+                media_consumo: 0 // km/l (apenas combustível do motor, sem Arla 32)
+            }
+        };
+
+        let maxKmRegistrado = 0;
+        let maxKmCombustivel = 0;
+
+        (resultados || []).forEach((res) => {
+            if (res._id in resumo.por_categoria) {
+                resumo.por_categoria[res._id] = res.total;
+                resumo.total_geral += res.total;
+            }
+            if (res._id === 'ABASTECIMENTO') {
+                resumo.metricas.total_litros = res.litros_combustivel || 0;
+                resumo.metricas.total_litros_arla = res.litros_arla || 0;
+                if (res.max_km_atual) {
+                    maxKmRegistrado = res.max_km_atual;
+                }
+                if (res.max_km_combustivel) {
+                    maxKmCombustivel = res.max_km_combustivel;
+                }
+            }
+        });
+
+        // Calcula distância e média de consumo (km/l) exclusivamente sobre o combustível (excluindo Arla 32)
+        if (viagem) {
+            const kmInicial = viagem.km_inicial || 0;
+            let kmParaConsumo = 0;
+
+            if (viagem.km_final && viagem.km_final > kmInicial) {
+                resumo.metricas.km_percorrido = viagem.km_final - kmInicial;
+                kmParaConsumo = resumo.metricas.km_percorrido;
+            } else {
+                if (maxKmRegistrado > kmInicial) {
+                    resumo.metricas.km_percorrido = maxKmRegistrado - kmInicial;
+                }
+                if (maxKmCombustivel > kmInicial) {
+                    kmParaConsumo = maxKmCombustivel - kmInicial;
+                }
+            }
+
+            if (resumo.metricas.total_litros > 0 && kmParaConsumo > 0) {
+                resumo.metricas.media_consumo = parseFloat(
+                    (kmParaConsumo / resumo.metricas.total_litros).toFixed(2)
+                );
+            }
+        }
+
+        return resumo;
+    }
+
     async _calcularResumoFinanceiro(viagemId, viagemDoc = null) {
         const Despesa = mongoose.model('despesas');
         const Viagem = mongoose.model('viagens');
@@ -91,69 +156,111 @@ class ViagemService {
         ];
 
         const resultados = await Despesa.aggregate(pipeline);
+        return this._montarResumoFinanceiro(resultados, viagem);
+    }
 
-        const resumo = {
-            total_geral: 0,
-            por_categoria: {
-                ABASTECIMENTO: 0,
-                ALIMENTACAO: 0,
-                MANUTENCAO: 0,
-                PEDAGIO: 0,
-                OUTROS: 0,
-            },
-            metricas: {
-                km_percorrido: 0,
-                total_litros: 0,
-                total_litros_arla: 0,
-                media_consumo: 0 // km/l (apenas combustível do motor, sem Arla 32)
-            }
-        };
+    async _calcularResumoFinanceiroEmLote(viagensDocs) {
+        const mapaResumos = new Map();
+        if (!Array.isArray(viagensDocs) || viagensDocs.length === 0) {
+            return mapaResumos;
+        }
 
-        let maxKmRegistrado = 0;
-        let maxKmCombustivel = 0;
+        const Despesa = mongoose.model('despesas');
+        const matchIds = [];
 
-        resultados.forEach((res) => {
-            if (res._id in resumo.por_categoria) {
-                resumo.por_categoria[res._id] = res.total;
-                resumo.total_geral += res.total;
-            }
-            if (res._id === 'ABASTECIMENTO') {
-                resumo.metricas.total_litros = res.litros_combustivel || 0;
-                resumo.metricas.total_litros_arla = res.litros_arla || 0;
-                if (res.max_km_atual) {
-                    maxKmRegistrado = res.max_km_atual;
-                }
-                if (res.max_km_combustivel) {
-                    maxKmCombustivel = res.max_km_combustivel;
-                }
-            }
-        });
-
-        // Calcula distância e média de consumo (km/l) exclusivamente sobre o combustível (excluindo Arla 32)
-        if (viagem) {
-            const kmInicial = viagem.km_inicial || 0;
-            let kmParaConsumo = 0;
-
-            if (viagem.km_final && viagem.km_final > kmInicial) {
-                resumo.metricas.km_percorrido = viagem.km_final - kmInicial;
-                kmParaConsumo = resumo.metricas.km_percorrido;
-            } else {
-                if (maxKmRegistrado > kmInicial) {
-                    resumo.metricas.km_percorrido = maxKmRegistrado - kmInicial;
-                }
-                if (maxKmCombustivel > kmInicial) {
-                    kmParaConsumo = maxKmCombustivel - kmInicial;
-                }
-            }
-
-            if (resumo.metricas.total_litros > 0 && kmParaConsumo > 0) {
-                resumo.metricas.media_consumo = parseFloat(
-                    (kmParaConsumo / resumo.metricas.total_litros).toFixed(2)
-                );
+        for (const doc of viagensDocs) {
+            const idStr = String(doc._id);
+            matchIds.push(idStr);
+            if (mongoose.Types.ObjectId.isValid(idStr) && String(new mongoose.Types.ObjectId(idStr)) === idStr) {
+                matchIds.push(new mongoose.Types.ObjectId(idStr));
             }
         }
 
-        return resumo;
+        const pipeline = [
+            { $match: { viagem_id: { $in: matchIds } } },
+            {
+                $group: {
+                    _id: {
+                        viagem_id: { $toString: '$viagem_id' },
+                        tipo: '$tipo',
+                    },
+                    total: { $sum: '$valor_total' },
+                    litros_combustivel: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                        { $ne: ['$tipo_combustivel', 'ARLA_32'] }
+                                    ]
+                                },
+                                { $ifNull: ['$litros', 0] },
+                                0
+                            ]
+                        }
+                    },
+                    litros_arla: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                        { $eq: ['$tipo_combustivel', 'ARLA_32'] }
+                                    ]
+                                },
+                                { $ifNull: ['$litros', 0] },
+                                0
+                            ]
+                        }
+                    },
+                    max_km_combustivel: {
+                        $max: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ['$tipo', 'ABASTECIMENTO'] },
+                                        { $ne: ['$tipo_combustivel', 'ARLA_32'] }
+                                    ]
+                                },
+                                { $ifNull: ['$km_atual', 0] },
+                                0
+                            ]
+                        }
+                    },
+                    max_km_atual: {
+                        $max: {
+                            $cond: [{ $eq: ['$tipo', 'ABASTECIMENTO'] }, { $ifNull: ['$km_atual', 0] }, 0]
+                        }
+                    }
+                },
+            },
+        ];
+
+        const resultadosLote = await Despesa.aggregate(pipeline);
+        const agrupadoPorViagem = new Map();
+
+        for (const item of resultadosLote) {
+            const vId = item._id.viagem_id;
+            if (!agrupadoPorViagem.has(vId)) {
+                agrupadoPorViagem.set(vId, []);
+            }
+            agrupadoPorViagem.get(vId).push({
+                _id: item._id.tipo,
+                total: item.total,
+                litros_combustivel: item.litros_combustivel,
+                litros_arla: item.litros_arla,
+                max_km_combustivel: item.max_km_combustivel,
+                max_km_atual: item.max_km_atual,
+            });
+        }
+
+        for (const doc of viagensDocs) {
+            const vId = String(doc._id);
+            const resultadosViagem = agrupadoPorViagem.get(vId) || [];
+            mapaResumos.set(vId, this._montarResumoFinanceiro(resultadosViagem, doc));
+        }
+
+        return mapaResumos;
     }
 
     async listar(req) {
@@ -215,9 +322,10 @@ class ViagemService {
         }
 
         const data = await this.repository.listar(req, filtrosOverride);
-        if (data && data.docs && Array.isArray(data.docs)) {
+        if (data && data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
+            const mapaResumos = await this._calcularResumoFinanceiroEmLote(data.docs);
             for (const doc of data.docs) {
-                doc.resumo_financeiro = await this._calcularResumoFinanceiro(doc._id, doc);
+                doc.resumo_financeiro = mapaResumos.get(String(doc._id)) || this._montarResumoFinanceiro([], doc);
             }
         }
         return data;
@@ -263,6 +371,10 @@ class ViagemService {
                 field: 'veiculo_id',
                 customMessage: 'Este veículo já está sendo utilizado em outra viagem em andamento.',
             });
+        }
+
+        if (parsedData.status === 'concluida') {
+            parsedData.status = 'concluída';
         }
 
         // Validação unificada de regras de negócio da viagem
@@ -338,14 +450,19 @@ class ViagemService {
             customMessage: 'Você não tem permissão para atualizar esta viagem.',
         });
 
-        // Impedir alteração em viagens já finalizadas/canceladas)
-        if (viagemOriginal.status !== 'em_andamento' && !usuarioLogado.isAdmin) {
+        // Impedir alteração em viagens já finalizadas/canceladas por usuários sem privilégio administrativo
+        const podeReabrirOuEditarFinalizada = Boolean(isAdmin || usuarioLogado?.isAdmin);
+        if (viagemOriginal.status !== 'em_andamento' && !podeReabrirOuEditarFinalizada) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'businessRuleError',
                 field: 'status',
                 customMessage: `Esta viagem já está com status '${viagemOriginal.status}' e não pode mais ser alterada.`,
             });
+        }
+
+        if (parsedData.status === 'concluida') {
+            parsedData.status = 'concluída';
         }
 
         // Validação unificada para Fechamento (Status: concluída)
@@ -397,15 +514,28 @@ class ViagemService {
     async deletar(id, req) {
         const usuarioLogado = await this.usuarioRepository.buscarPorID(req.user_id);
 
-        await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
+        const viagem = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Viagem');
+
+        const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
+        const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
+
+        let isAdminDestaEmpresa = false;
+        if (isAdmin && !isSuperAdmin && viagem.empresa_id) {
+            try {
+                await ValidationHelper.validarAcessoEmpresaAdmin(this.empresaRepository, usuarioLogado, viagem.empresa_id);
+                isAdminDestaEmpresa = true;
+            } catch (_) {}
+        }
 
         ensurePermission({
             usuarioLogado,
-            isOwner: false,
+            isOwner: isAdminDestaEmpresa,
+            empresaId: viagem.empresa_id,
             field: 'Exclusão de Viagem',
             customMessage: 'Apenas administradores podem deletar viagens.',
         });
 
+        await mongoose.model('despesas').deleteMany({ viagem_id: id });
         const data = await this.repository.deletar(id);
         return data;
     }
