@@ -92,7 +92,7 @@ class UploadService {
                 // 4. Processamento da Imagem ou Sanitização de SVG (suporta arquivo temporário em disco ou buffer em memória)
                 if (ext !== 'svg') {
                     const inputSource = hasTempFile ? file.tempFilePath : file.data;
-                    const transformer = sharp(inputSource);
+                    const transformer = sharp(inputSource).rotate();
 
                     // Só redimensiona se passar width/height
                     if(width || height) {
