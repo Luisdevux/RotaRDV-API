@@ -129,7 +129,7 @@ class EmailHelper {
      */
     static async enviarEmailBoasVindasEquipeAdministrativa({ email, nome, nomeEmpresa, cargo, role, linkPainel }) {
         try {
-            const painelUrl = linkPainel || process.env.PAINEL_WEB_URL || 'https://rotardv-painel.luisfelipe.dpdns.org';
+            const painelUrl = linkPainel || process.env.PAINEL_WEB_URL || 'https://rotardv.luisfelipe.dpdns.org';
             const cargoFormatado = cargo || (role === 'admin' ? 'Administrador da Empresa' : 'Gestor de Frota');
 
             const resposta = await hermesClient.email()
