@@ -15,9 +15,10 @@ function ensurePermission({
     const isSuperAdmin = usuarioLogado?.role === 'superAdmin';
     const isAdmin = Boolean(usuarioLogado?.role === 'admin' || isSuperAdmin);
 
+    const isSelf = targetId ? String(usuarioLogado?._id) === String(targetId) : false;
     const isDriver = typeof isOwner === 'boolean'
-        ? isOwner
-        : (targetId ? String(usuarioLogado?._id) === String(targetId) : false);
+        ? (isOwner || isSelf)
+        : isSelf;
 
     const isCompanyStaff = empresaId
         ? ((usuarioLogado?.role === 'gestor' || usuarioLogado?.role === 'admin') && String(usuarioLogado?.empresa_id) === String(empresaId))

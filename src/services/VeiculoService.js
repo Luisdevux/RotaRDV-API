@@ -28,7 +28,7 @@ class VeiculoService {
         if (id) {
             // Se está buscando um veículo específico, verifica permissão (Admin, Gestor da empresa do veículo, ou Motorista vinculado)
             const veiculo = await ValidationHelper.ensureExists(await this.repository.buscarPorID(id), 'Veículo');
-            const isMotoristaDesteVeiculo = usuarioLogado.veiculo_id && String(usuarioLogado.veiculo_id) === String(id);
+            const isMotoristaDesteVeiculo = usuarioLogado.veiculo_id && String(usuarioLogado.veiculo_id?._id || usuarioLogado.veiculo_id) === String(id);
             let isAdminDestaEmpresa = false;
             if (isAdmin && !isSuperAdmin && veiculo.empresa_id) {
                 try {

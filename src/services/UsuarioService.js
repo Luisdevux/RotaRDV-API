@@ -38,10 +38,14 @@ class UsuarioService {
                 } catch (_) {}
             }
 
+            // Verifica se o usuário logado é o mesmo que está sendo buscado, isso resolve um bug identificado quando trocava a senha,
+            // o usuário perdia as referências de permissão e não conseguia mais acessar seu próprio perfil.
+            const isSelf = String(usuarioLogado?._id) === String(req.params.id);
+
             ensurePermission({
                 usuarioLogado,
                 targetId: req.params.id,
-                isOwner: isAdminDestaEmpresa,
+                isOwner: isSelf || isAdminDestaEmpresa,
                 empresaId: targetUser?.empresa_id,
                 field: 'Consulta de Usuário',
                 customMessage: 'Você não tem permissões para acessar os dados deste usuário.',
