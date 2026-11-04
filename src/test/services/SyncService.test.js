@@ -158,6 +158,7 @@ describe('Unitário: SyncService (Motor de Sincronização Offline-First)', () =
                 km_inicial: 10000,
                 km_final: 12500,
                 status: 'concluída',
+                data_inicio: new Date(Date.now() - 3600000),
                 data_fim: new Date(),
             });
 

@@ -60,6 +60,44 @@ afterAll(async () => {
 });
 
 describe('Unitário: UsuarioService (Regras de Negócio e Hierarquia de Acesso)', () => {
+    describe('Consulta de Usuários e Permissões de Perfil', () => {
+        it('deve permitir que um motorista consulte os dados do seu próprio perfil', async () => {
+            const motorista = await criarUsuario({ role: 'motorista' });
+
+            const req = {
+                user_id: motorista._id,
+                params: { id: String(motorista._id) },
+                query: {},
+            };
+
+            const resultado = await service.listar(req);
+            expect(resultado).toBeDefined();
+            expect(String(resultado._id)).toBe(String(motorista._id));
+        });
+
+        it('deve bloquear com CustomError 403 se um motorista tentar consultar o perfil de outro usuário', async () => {
+            const motorista1 = await criarUsuario({ role: 'motorista' });
+            const motorista2 = await criarUsuario({ role: 'motorista' });
+
+            const req = {
+                user_id: motorista1._id,
+                params: { id: String(motorista2._id) },
+                query: {},
+            };
+
+            let erro;
+            try {
+                await service.listar(req);
+            } catch (err) {
+                erro = err;
+            }
+
+            expect(erro).toBeInstanceOf(CustomError);
+            expect(erro.statusCode).toBe(403);
+            expect(erro.errorType).toBe('permissionError');
+        });
+    });
+
     describe('Criação de Usuários e Validações de Hierarquia', () => {
         it('deve bloquear com CustomError 403 se um motorista tentar cadastrar um novo usuário', async () => {
             const motorista = await criarUsuario({ role: 'motorista' });
